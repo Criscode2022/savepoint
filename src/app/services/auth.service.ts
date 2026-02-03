@@ -1,289 +1,297 @@
-import { HttpClient } from "@angular/common/http";
-import { Injectable, inject } from "@angular/core";
-import { Router } from "@angular/router";
-import { BehaviorSubject, Observable, throwError } from "rxjs";
-import { catchError, map, tap } from "rxjs/operators";
-import { environment } from "../../environments/environment";
-import {
-  AuthResponse,
-  AuthUser,
-  LoginCredentials,
-  RegisterCredentials,
-} from "../models/auth.model";
+import { Injectable, inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { BehaviorSubject, Observable, from } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { authClient } from '../../lib/auth';
+import { AuthUser, LoginCredentials, RegisterCredentials } from '../models/auth.model';
+
+export type UserRole = 'admin' | 'user';
+
+// LocalStorage key for iOS fallback session
+const SESSION_STORAGE_KEY = 'neon_auth_session_fallback';
 
 @Injectable({
-  providedIn: "root",
+  providedIn: 'root',
 })
 export class AuthService {
-  private http = inject(HttpClient);
-  private router = inject(Router);
+  private readonly router = inject(Router);
 
-  private readonly STORAGE_KEY = "gamevault_auth";
-  private authState = new BehaviorSubject<AuthUser | null>(
-    this.getStoredUser(),
-  );
-
-  currentUser$ = this.authState.asObservable();
-  isAuthenticated$ = this.authState.pipe(map((user) => !!user));
+  private isAuthenticated = new BehaviorSubject<boolean>(false);
+  private currentUser: AuthUser | null = null;
+  private accessToken: string | null = null;
 
   constructor() {
-    // Check token expiration on init
-    this.checkTokenExpiration();
-    // Verify session with Neon Auth (uses cookie)
-    this.verifySession();
+    this.initializeAuth();
   }
 
   /**
-   * Verify session with Neon Auth using cookie
-   * This restores the session on page refresh
-   */
-  async verifySession(): Promise<boolean> {
-    try {
-      const response = await fetch(`${environment.neonAuthUrl}/session`, {
-        method: 'GET',
-        credentials: 'include', // Send the cookie
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        return false;
-      }
-
-      const data = await response.json();
-      
-      if (data.user) {
-        const token = this.extractJwtToken(data);
-        const user: AuthUser = {
-          id: data.user.id,
-          email: data.user.email,
-          username: data.user.name || data.user.email,
-          avatarUrl: data.user.avatarUrl,
-          accessToken: token,
-          refreshToken: data.refreshToken,
-          expiresAt: data.expiresAt ? Date.now() + data.expiresAt * 1000 : undefined,
-        };
-        this.storeUser(user);
-        this.authState.next(user);
-        return true;
-      }
-      
-      return false;
-    } catch {
-      // Session verification failed
-      return false;
-    }
-  }
-
-  private postAuth<T>(paths: string[], body: unknown): Observable<T> {
-    const [first, ...rest] = paths;
-    const baseUrl = (environment.neonAuthUrl || "").replace(/\/$/, "");
-    const url = `${baseUrl}${first}`;
-
-    // withCredentials: true allows cookies to be sent/received for Neon Auth session
-    return this.http.post<T>(url, body, { withCredentials: true }).pipe(
-      catchError((error) => {
-        if (rest.length > 0) {
-          return this.postAuth<T>(rest, body);
-        }
-        return throwError(() => error);
-      }),
-    );
-  }
-
-  private getStoredUser(): AuthUser | null {
-    if (typeof window === "undefined") return null;
-    const stored = localStorage.getItem(this.STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
-  }
-
-  private storeUser(user: AuthUser): void {
-    if (typeof window === "undefined") return;
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(user));
-  }
-
-  private clearStoredUser(): void {
-    if (typeof window === "undefined") return;
-    localStorage.removeItem(this.STORAGE_KEY);
-  }
-
-  private checkTokenExpiration(): void {
-    const user = this.getStoredUser();
-    if (user && user.expiresAt && user.expiresAt < Date.now()) {
-      this.logout();
-    }
-  }
-
-  login(credentials: LoginCredentials): Observable<AuthUser> {
-    return this.postAuth<AuthResponse>(
-      ["/sign-in/email", "/login", "/signin"],
-      credentials,
-    ).pipe(
-      tap((response) => {
-        // Try multiple token field names that Neon Auth might return
-        const token = this.extractJwtToken(response);
-        const user: AuthUser = {
-          ...response.user,
-          accessToken: token,
-          refreshToken: response.refreshToken,
-        };
-        this.storeUser(user);
-        this.authState.next(user);
-      }),
-      map((response) => ({
-        ...response.user,
-        accessToken: this.extractJwtToken(response),
-        refreshToken: response.refreshToken,
-      })),
-      catchError((error) => {
-        return throwError(
-          () => new Error(error.error?.message || "Login failed"),
-        );
-      }),
-    );
-  }
-
-  /**
-   * Extract JWT token from auth response (handles different response formats)
-   */
-  private extractJwtToken(response: AuthResponse): string | null {
-    // Try multiple possible token field locations
-    const possibleTokens = [
-      response.token,
-      response.accessToken,
-      (response as any).access_token,
-      (response as any).jwt,
-    ];
-
-    for (const token of possibleTokens) {
-      if (this.isJwt(token)) {
-        return token;
-      }
-    }
-
-    return null;
-  }
-
-  register(credentials: RegisterCredentials): Observable<AuthUser> {
-    const payload = {
-      email: credentials.email,
-      password: credentials.password,
-      name: credentials.username || credentials.email.split("@")[0],
-    };
-
-    return this.postAuth<AuthResponse>(
-      ["/sign-up/email", "/register", "/signup"],
-      payload,
-    ).pipe(
-      tap((response) => {
-        const token = this.extractJwtToken(response);
-        const user: AuthUser = {
-          ...response.user,
-          accessToken: token,
-          refreshToken: response.refreshToken,
-        };
-        this.storeUser(user);
-        this.authState.next(user);
-      }),
-      map((response) => ({
-        ...response.user,
-        accessToken: this.extractJwtToken(response),
-        refreshToken: response.refreshToken,
-      })),
-      catchError((error) => {
-        return throwError(
-          () => new Error(error.error?.message || "Registration failed"),
-        );
-      }),
-    );
-  }
-
-  logout(): void {
-    this.clearStoredUser();
-    this.authState.next(null);
-    this.router.navigate(["/login"]);
-  }
-
-  refreshToken(): Observable<string> {
-    const user = this.getStoredUser();
-    if (!user?.refreshToken) {
-      return throwError(() => new Error("No refresh token available"));
-    }
-
-    return this.postAuth<{ token: string }>(["/refresh"], {
-      refreshToken: user.refreshToken,
-    }).pipe(
-      tap((response) => {
-        const updatedUser = { ...user, accessToken: response.token };
-        this.storeUser(updatedUser);
-        this.authState.next(updatedUser);
-      }),
-      map((response) => response.token),
-      catchError((error) => {
-        this.logout();
-        return throwError(() => new Error("Session expired"));
-      }),
-    );
-  }
-
-  getCurrentUser(): AuthUser | null {
-    return this.authState.value;
-  }
-
-  getToken(): string | null {
-    return this.getCurrentUser()?.accessToken || null;
-  }
-
-  /**
-   * Check if token is a valid JWT (has 3 parts separated by dots)
+   * Check if string is a valid JWT (has 3 parts)
    */
   private isJwt(token: string | null | undefined): token is string {
     if (!token) return false;
-    // JWT format: header.payload.signature
     return token.split('.').length === 3;
   }
 
   /**
-   * Get access token for HTTP requests (async to match dog-reservation pattern)
-   * Only returns token if it's a valid JWT
+   * Initialize auth state on app start
    */
-  async getAccessToken(): Promise<string | null> {
-    const token = this.getToken();
-    return this.isJwt(token) ? token : null;
+  private async initializeAuth(): Promise<void> {
+    // Check for Neon Auth session via SDK (cookie-based)
+    try {
+      const { data, error } = await authClient.getSession();
+      if (error || !data?.user) {
+        // Cookie-based session failed, try localStorage fallback
+        this.restoreFromLocalStorage();
+        return;
+      }
+
+      // Extract JWT token if available
+      this.accessToken = this.isJwt(data.token) ? data.token : null;
+
+      this.currentUser = {
+        id: data.user.id,
+        email: data.user.email,
+        username: data.user.name || data.user.email,
+        avatarUrl: data.user.avatarUrl,
+        accessToken: this.accessToken,
+      };
+      this.isAuthenticated.next(true);
+    } catch {
+      // Cookie-based session failed, try localStorage fallback
+      this.restoreFromLocalStorage();
+    }
   }
 
-  isAuthenticated(): boolean {
-    return !!this.getCurrentUser();
+  /**
+   * Save session to localStorage as fallback for iOS Safari
+   */
+  private saveToLocalStorage(user: AuthUser): void {
+    try {
+      const sessionData = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        accessToken: this.accessToken,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
+    } catch {
+      // localStorage not available
+    }
   }
 
-  // Neon Auth integration
-  async signInWithNeon(email: string, password: string): Promise<void> {
-    // Neon Auth API integration with credentials to save cookie
-    const response = await fetch(`${environment.neonAuthUrl}/sign-in/email`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-      credentials: "include", // Important: allows cookie to be saved
-    });
+  /**
+   * Restore session from localStorage (iOS fallback)
+   */
+  private restoreFromLocalStorage(): boolean {
+    try {
+      const stored = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (!stored) {
+        return false;
+      }
 
-    if (!response.ok) {
-      throw new Error("Neon authentication failed");
+      const sessionData = JSON.parse(stored) as {
+        id: string;
+        username: string;
+        email?: string;
+        accessToken?: string | null;
+        timestamp: number;
+      };
+
+      // Check if session is not too old (7 days max)
+      const maxAge = 7 * 24 * 60 * 60 * 1000;
+      if (Date.now() - sessionData.timestamp > maxAge) {
+        this.clearLocalStorage();
+        return false;
+      }
+
+      this.currentUser = {
+        id: sessionData.id,
+        username: sessionData.username,
+        email: sessionData.email || '',
+        accessToken: this.isJwt(sessionData.accessToken) ? sessionData.accessToken : null,
+      };
+      this.isAuthenticated.next(true);
+      return true;
+    } catch {
+      this.clearLocalStorage();
+      return false;
+    }
+  }
+
+  /**
+   * Clear localStorage session
+   */
+  private clearLocalStorage(): void {
+    try {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+    } catch {
+      // Ignore errors
+    }
+  }
+
+  /**
+   * Login with email/password
+   */
+  async login(credentials: LoginCredentials): Promise<void> {
+    const { data, error } = await authClient.signIn(credentials.email, credentials.password);
+    
+    if (error || !data?.user) {
+      throw new Error(error?.message || 'Login failed');
     }
 
-    const data = await response.json();
-    const token = this.extractJwtToken(data);
-    const user: AuthUser = {
+    this.accessToken = this.isJwt(data.token) ? data.token : null;
+    this.currentUser = {
       id: data.user.id,
       email: data.user.email,
-      username: data.user.username,
+      username: data.user.name || data.user.email,
       avatarUrl: data.user.avatarUrl,
-      accessToken: token,
-      refreshToken: data.refreshToken,
-      expiresAt: Date.now() + data.expiresIn * 1000,
+      accessToken: this.accessToken,
     };
+    this.isAuthenticated.next(true);
 
-    this.storeUser(user);
-    this.authState.next(user);
+    // Save to localStorage as fallback for iOS Safari
+    this.saveToLocalStorage(this.currentUser);
+  }
+
+  /**
+   * Register with email/password
+   */
+  async register(credentials: RegisterCredentials): Promise<void> {
+    const name = credentials.username || credentials.email.split('@')[0];
+    const { data, error } = await authClient.signUp(credentials.email, credentials.password, name);
+    
+    if (error || !data?.user) {
+      throw new Error(error?.message || 'Registration failed');
+    }
+
+    this.accessToken = this.isJwt(data.token) ? data.token : null;
+    this.currentUser = {
+      id: data.user.id,
+      email: data.user.email,
+      username: data.user.name || data.user.email,
+      avatarUrl: data.user.avatarUrl,
+      accessToken: this.accessToken,
+    };
+    this.isAuthenticated.next(true);
+
+    // Save to localStorage as fallback
+    this.saveToLocalStorage(this.currentUser);
+  }
+
+  /**
+   * Logout
+   */
+  async logout(): Promise<void> {
+    try {
+      await authClient.signOut();
+    } catch {
+      // Ignore errors during sign out
+    }
+    this.clearSession();
+    this.router.navigateByUrl('/login', { replaceUrl: true });
+  }
+
+  /**
+   * Clear session
+   */
+  private clearSession(): void {
+    this.currentUser = null;
+    this.accessToken = null;
+    this.isAuthenticated.next(false);
+    this.clearLocalStorage();
+  }
+
+  /**
+   * Verify session (for guards)
+   */
+  async verifySession(): Promise<boolean> {
+    // If already authenticated in memory, trust it
+    if (this.currentUser && this.isAuthenticated.value) {
+      return true;
+    }
+
+    try {
+      const { data, error } = await authClient.getSession();
+      if (error || !data?.user) {
+        // Cookie failed, try localStorage
+        if (this.restoreFromLocalStorage()) {
+          return true;
+        }
+        this.clearSession();
+        return false;
+      }
+
+      this.accessToken = this.isJwt(data.token) ? data.token : null;
+      this.currentUser = {
+        id: data.user.id,
+        email: data.user.email,
+        username: data.user.name || data.user.email,
+        avatarUrl: data.user.avatarUrl,
+        accessToken: this.accessToken,
+      };
+      this.isAuthenticated.next(true);
+      this.saveToLocalStorage(this.currentUser);
+      return true;
+    } catch {
+      // Cookie failed, try localStorage
+      if (this.restoreFromLocalStorage()) {
+        return true;
+      }
+      this.clearSession();
+      return false;
+    }
+  }
+
+  /**
+   * Get access token for HTTP requests
+   */
+  async getAccessToken(): Promise<string | null> {
+    if (this.isJwt(this.accessToken)) {
+      return this.accessToken;
+    }
+
+    // Try to get fresh session
+    const { data } = await authClient.getSession();
+    const token = data?.token || null;
+    this.accessToken = this.isJwt(token) ? token : null;
+    return this.accessToken;
+  }
+
+  /**
+   * Get current user
+   */
+  getCurrentUser(): AuthUser | null {
+    return this.currentUser;
+  }
+
+  /**
+   * Get token (synchronous)
+   */
+  getToken(): string | null {
+    return this.accessToken;
+  }
+
+  /**
+   * Check if authenticated
+   */
+  isLoggedIn(): boolean {
+    return this.isAuthenticated.value;
+  }
+
+  /**
+   * Get auth state observable
+   */
+  getAuthState(): Observable<boolean> {
+    return this.isAuthenticated.asObservable();
+  }
+
+  /**
+   * Get current user observable
+   */
+  getCurrentUser$(): Observable<AuthUser | null> {
+    return this.isAuthenticated.pipe(
+      map(() => this.currentUser)
+    );
   }
 }

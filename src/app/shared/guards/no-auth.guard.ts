@@ -11,7 +11,7 @@ export class NoAuthGuard implements CanActivate {
   private router = inject(Router);
 
   canActivate(): Observable<boolean | UrlTree> {
-    return this.authService.isAuthenticated$.pipe(
+    return this.authService.getAuthState().pipe(
       take(1),
       map(isAuthenticated => {
         if (!isAuthenticated) {

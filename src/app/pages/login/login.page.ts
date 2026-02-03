@@ -210,12 +210,10 @@ export class LoginPage {
 
     try {
       if (this.isRegisterMode()) {
-        await this.authService
-          .register({ email, password, username })
-          .toPromise();
+        await this.authService.register({ email, password, username });
         this.showToast("Account created successfully!", "success");
       } else {
-        await this.authService.login({ email, password }).toPromise();
+        await this.authService.login({ email, password });
         this.showToast("Welcome back!", "success");
       }
       this.router.navigate(["/home"]);
