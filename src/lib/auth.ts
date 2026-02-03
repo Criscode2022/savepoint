@@ -13,12 +13,18 @@ export interface AuthUser {
 }
 
 export interface AuthSessionData {
-  session: {
+  // Session object (from getSession endpoint)
+  session?: {
     token?: string;
     access_token?: string;
     accessToken?: string;
   } | null;
-  user: AuthUser | null;
+  // User data
+  user?: AuthUser | null;
+  // Token might be at root level (from sign-in/sign-up endpoints)
+  token?: string;
+  access_token?: string;
+  accessToken?: string;
 }
 
 export const authClient = {
