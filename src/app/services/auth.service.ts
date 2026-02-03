@@ -29,6 +29,51 @@ export class AuthService {
   constructor() {
     // Check token expiration on init
     this.checkTokenExpiration();
+    // Verify session with Neon Auth (uses cookie)
+    this.verifySession();
+  }
+
+  /**
+   * Verify session with Neon Auth using cookie
+   * This restores the session on page refresh
+   */
+  async verifySession(): Promise<boolean> {
+    try {
+      const response = await fetch(`${environment.neonAuthUrl}/session`, {
+        method: 'GET',
+        credentials: 'include', // Send the cookie
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const data = await response.json();
+      
+      if (data.user) {
+        const token = this.extractJwtToken(data);
+        const user: AuthUser = {
+          id: data.user.id,
+          email: data.user.email,
+          username: data.user.name || data.user.email,
+          avatarUrl: data.user.avatarUrl,
+          accessToken: token,
+          refreshToken: data.refreshToken,
+          expiresAt: data.expiresAt ? Date.now() + data.expiresAt * 1000 : undefined,
+        };
+        this.storeUser(user);
+        this.authState.next(user);
+        return true;
+      }
+      
+      return false;
+    } catch {
+      // Session verification failed
+      return false;
+    }
   }
 
   private postAuth<T>(paths: string[], body: unknown): Observable<T> {
