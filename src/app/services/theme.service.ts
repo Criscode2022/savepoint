@@ -1,5 +1,7 @@
 import { Injectable, inject, signal, effect, Renderer2, RendererFactory2 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { Observable } from 'rxjs';
 
 export type Theme = 'dark' | 'light' | 'system';
 
@@ -15,6 +17,7 @@ export class ThemeService {
   
   readonly currentTheme = signal<Theme>(this.getStoredTheme());
   readonly isDarkMode = signal<boolean>(true);
+  readonly isDarkMode$: Observable<boolean> = toObservable(this.isDarkMode);
 
   constructor() {
     this.renderer = this.rendererFactory.createRenderer(null, null);

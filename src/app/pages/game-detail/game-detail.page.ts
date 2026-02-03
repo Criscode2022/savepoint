@@ -34,7 +34,7 @@ import { GameService } from '../../services/game.service';
         <ion-title class="gaming-font">Game Details</ion-title>
         
         <ion-buttons slot="end" *ngIf="game">
-          <ion-button [routerLink]="['/edit-game', game.id]">
+          <ion-button [routerLink]="['/edit', game.id]">
             <ion-icon name="create-outline"></ion-icon>
           </ion-button>
           <ion-button (click)="deleteGame()" color="danger">

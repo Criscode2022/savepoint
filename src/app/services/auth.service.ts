@@ -48,7 +48,7 @@ export class AuthService {
   }
 
   login(credentials: LoginCredentials): Observable<AuthUser> {
-    return this.http.post<AuthResponse>(`${environment.apiUrl}/auth/login`, credentials)
+    return this.http.post<AuthResponse>(`${environment.apiBaseUrl}/auth/login`, credentials)
       .pipe(
         tap(response => {
           const user: AuthUser = {
@@ -71,7 +71,7 @@ export class AuthService {
   }
 
   register(credentials: RegisterCredentials): Observable<AuthUser> {
-    return this.http.post<AuthResponse>(`${environment.apiUrl}/auth/register`, credentials)
+    return this.http.post<AuthResponse>(`${environment.apiBaseUrl}/auth/register`, credentials)
       .pipe(
         tap(response => {
           const user: AuthUser = {
@@ -105,7 +105,7 @@ export class AuthService {
       return throwError(() => new Error('No refresh token available'));
     }
 
-    return this.http.post<{ token: string }>(`${environment.apiUrl}/auth/refresh`, {
+    return this.http.post<{ token: string }>(`${environment.apiBaseUrl}/auth/refresh`, {
       refreshToken: user.refreshToken
     }).pipe(
       tap(response => {

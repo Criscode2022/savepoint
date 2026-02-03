@@ -10,7 +10,7 @@ import { environment } from '../../environments/environment';
 })
 export class DirectorService {
   private http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/directors`;
+  private readonly apiUrl = `${environment.apiBaseUrl}/directors`;
 
   getDirectors(): Observable<Director[]> {
     return this.http.get<Director[]>(this.apiUrl)

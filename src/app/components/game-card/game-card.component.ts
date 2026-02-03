@@ -34,7 +34,7 @@ import { Game } from '../../models/game.model';
             <ion-button 
               fill="clear" 
               size="small"
-              [routerLink]="['/edit-game', game.id]"
+              [routerLink]="['/edit', game.id]"
               class="action-btn">
               <ion-icon name="create-outline"></ion-icon>
             </ion-button>
@@ -70,7 +70,7 @@ import { Game } from '../../models/game.model';
       </ion-card-header>
 
       <ion-card-content [routerLink]="['/game', game.id]">
-        <p class="game-description">{{game.description | slice:0:100}}{{game.description.length > 100 ? '...' : ''}}</p>
+        <p class="game-description">{{game.description || '' | slice:0:100}}{{(game.description?.length || 0) > 100 ? '...' : ''}}</p>
         
         <div class="game-stats">
           <div class="stat" *ngIf="game.rating">
@@ -84,8 +84,8 @@ import { Game } from '../../models/game.model';
           </div>
         </div>
 
-        <div class="game-genres">
-          <ion-chip *ngFor="let genre of game.genre.slice(0, 3)" class="genre-chip">
+        <div class="game-genres" *ngIf="game.genre">
+          <ion-chip *ngFor="let genre of (game.genre || []).slice(0, 3)" class="genre-chip">
             {{genre}}
           </ion-chip>
         </div>

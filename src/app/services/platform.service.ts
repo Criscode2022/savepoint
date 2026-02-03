@@ -10,7 +10,7 @@ import { environment } from '../../environments/environment';
 })
 export class PlatformService {
   private http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/platforms`;
+  private readonly apiUrl = `${environment.apiBaseUrl}/platforms`;
 
   getPlatforms(): Observable<Platform[]> {
     return this.http.get<Platform[]>(this.apiUrl)

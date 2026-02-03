@@ -10,7 +10,7 @@ import { environment } from '../../environments/environment';
 })
 export class CompanyService {
   private http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/companies`;
+  private readonly apiUrl = `${environment.apiBaseUrl}/companies`;
 
   getCompanies(): Observable<Company[]> {
     return this.http.get<Company[]>(this.apiUrl)

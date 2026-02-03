@@ -16,9 +16,9 @@ import {
   IonSpinner,
   ToastController
 } from '@ionic/angular/standalone';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../../services/auth.service';
 import { addIcons } from 'ionicons';
-import { gameController, mail, lock, person, arrowForward } from 'ionicons/icons';
+import { gameController, mail, person, arrowForward, lockClosedOutline } from 'ionicons/icons';
 
 @Component({
   selector: 'app-login',
@@ -150,7 +150,7 @@ export class LoginPage {
   });
 
   constructor() {
-    addIcons({ gameController, mail, lock, person, arrowForward });
+    addIcons({ gameController, mail, lockClosedOutline, person, arrowForward });
   }
 
   toggleMode(): void {

@@ -210,7 +210,7 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
           
           <ion-button 
             *ngIf="!hasActiveFilters()"
-            routerLink="/add-game"
+            routerLink="/add"
             class="add-first-game-btn">
             <ion-icon name="add-outline" slot="start"></ion-icon>
             Add Game
@@ -220,7 +220,7 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
 
       <!-- FAB -->
       <ion-fab slot="fixed" vertical="bottom" horizontal="end">
-        <ion-fab-button routerLink="/add-game" class="add-fab">
+        <ion-fab-button routerLink="/add" class="add-fab">
           <ion-icon name="add-outline"></ion-icon>
         </ion-fab-button>
       </ion-fab>
