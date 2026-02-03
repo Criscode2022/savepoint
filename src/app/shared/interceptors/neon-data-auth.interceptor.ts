@@ -18,7 +18,13 @@ export class NeonDataAuthInterceptor implements HttpInterceptor {
     req: HttpRequest<unknown>,
     next: HttpHandler,
   ): Observable<HttpEvent<unknown>> {
-    // Only attach auth to Neon Data API calls
+    // For Neon Auth endpoints - let browser handle cookies automatically
+    if (req.url.startsWith(environment.neonAuthUrl)) {
+      // withCredentials allows cookies to be sent/received
+      return next.handle(req.clone({ withCredentials: true }));
+    }
+
+    // For Neon Data API - attach JWT token
     if (!req.url.startsWith(environment.databaseUrl)) {
       return next.handle(req);
     }

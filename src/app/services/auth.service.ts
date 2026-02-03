@@ -36,7 +36,8 @@ export class AuthService {
     const baseUrl = (environment.neonAuthUrl || "").replace(/\/$/, "");
     const url = `${baseUrl}${first}`;
 
-    return this.http.post<T>(url, body).pipe(
+    // withCredentials: true allows cookies to be sent/received for Neon Auth session
+    return this.http.post<T>(url, body, { withCredentials: true }).pipe(
       catchError((error) => {
         if (rest.length > 0) {
           return this.postAuth<T>(rest, body);
@@ -213,11 +214,12 @@ export class AuthService {
 
   // Neon Auth integration
   async signInWithNeon(email: string, password: string): Promise<void> {
-    // Neon Auth API integration
+    // Neon Auth API integration with credentials to save cookie
     const response = await fetch(`${environment.neonAuthUrl}/sign-in/email`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
+      credentials: "include", // Important: allows cookie to be saved
     });
 
     if (!response.ok) {
@@ -225,12 +227,13 @@ export class AuthService {
     }
 
     const data = await response.json();
+    const token = this.extractJwtToken(data);
     const user: AuthUser = {
       id: data.user.id,
       email: data.user.email,
       username: data.user.username,
       avatarUrl: data.user.avatarUrl,
-      accessToken: data.token,
+      accessToken: token,
       refreshToken: data.refreshToken,
       expiresAt: Date.now() + data.expiresIn * 1000,
     };
