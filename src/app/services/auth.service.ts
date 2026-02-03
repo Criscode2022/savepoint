@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, from } from 'rxjs';
+import { BehaviorSubject, Observable, from, filter, take } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { authClient } from '../../lib/auth';
 import { AuthUser, LoginCredentials, RegisterCredentials } from '../models/auth.model';
@@ -17,11 +17,13 @@ export class AuthService {
   private readonly router = inject(Router);
 
   private isAuthenticated = new BehaviorSubject<boolean>(false);
+  private initialized = new BehaviorSubject<boolean>(false);
   private currentUser: AuthUser | null = null;
   private accessToken: string | null = null;
+  private initPromise: Promise<void> | null = null;
 
   constructor() {
-    this.initializeAuth();
+    // Don't auto-initialize - let APP_INITIALIZER handle it
   }
 
   /**
@@ -34,14 +36,29 @@ export class AuthService {
 
   /**
    * Initialize auth state on app start
+   * Returns a promise that resolves when initialization is complete
    */
-  private async initializeAuth(): Promise<void> {
+  initializeAuth(): Promise<void> {
+    // Return existing promise if already initializing
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = this.doInitialize();
+    return this.initPromise;
+  }
+
+  /**
+   * Internal initialization logic
+   */
+  private async doInitialize(): Promise<void> {
     // Check for Neon Auth session via SDK (cookie-based)
     try {
       const { data, error } = await authClient.getSession();
       if (error || !data?.user) {
         // Cookie-based session failed, try localStorage fallback
         this.restoreFromLocalStorage();
+        this.initialized.next(true);
         return;
       }
 
@@ -56,10 +73,32 @@ export class AuthService {
         accessToken: this.accessToken,
       };
       this.isAuthenticated.next(true);
+
+      // Also save to localStorage for consistency
+      this.saveToLocalStorage(this.currentUser);
     } catch {
       // Cookie-based session failed, try localStorage fallback
       this.restoreFromLocalStorage();
     }
+
+    this.initialized.next(true);
+  }
+
+  /**
+   * Check if initialization is complete
+   */
+  isInitialized(): boolean {
+    return this.initialized.value;
+  }
+
+  /**
+   * Wait for initialization to complete
+   */
+  waitForInitialization(): Observable<boolean> {
+    return this.initialized.pipe(
+      filter(initialized => initialized),
+      take(1)
+    );
   }
 
   /**
