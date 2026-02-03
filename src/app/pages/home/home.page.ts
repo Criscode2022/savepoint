@@ -613,7 +613,8 @@ export class HomePage implements OnInit, OnDestroy {
     this.gameService.games$.pipe(takeUntil(this.destroy$))
       .subscribe(games => {
         this.games = games;
-        this.applyFilters();
+        // Don't call applyFilters() here - it creates an infinite loop
+        // applyFilters() already updates gamesSubject, which triggers this subscription
       });
   }
 
