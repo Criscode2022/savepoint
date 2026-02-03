@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS games (
     playtime_hours INTEGER DEFAULT 0,
     completed BOOLEAN DEFAULT FALSE,
     purchase_date DATE,
+    notes TEXT,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
