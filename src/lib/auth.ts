@@ -33,7 +33,7 @@ export const authClient = {
    */
   async getSession(): Promise<{ data: AuthSessionData | null; error: Error | null }> {
     try {
-      const response = await fetch(`${NEON_AUTH_URL}/session`, {
+      const response = await fetch(`${NEON_AUTH_URL}/get-session`, {
         method: 'GET',
         credentials: 'include',
         headers: {
