@@ -597,6 +597,9 @@ export class HomePage implements OnInit, OnDestroy {
     this.loadFilterOptions();
     this.setupSearch();
     
+    // Trigger initial data fetch
+    this.applyFilters();
+    
     this.themeService.isDarkMode$.pipe(takeUntil(this.destroy$))
       .subscribe(isDark => this.isDarkMode = isDark);
   }
