@@ -1,26 +1,34 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, from, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { Director } from '../models/game.model';
-import { NeonRepository } from '../shared/repositories/neon.repository';
+import { DatabaseService } from './database.service';
+
+interface DbDirector {
+  id: string;
+  name: string;
+  birth_year?: number;
+  nationality?: string;
+  bio?: string;
+  created_at: string;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class DirectorService {
-  private repository = inject(NeonRepository);
+  private db = inject(DatabaseService);
 
   getDirectors(): Observable<Director[]> {
-    return from(
-      this.repository.select<Director>('directors', { 
-        select: 'id::text, name, birth_year as "birthYear", nationality, bio, created_at as "createdAt"',
-        order: 'name.asc'
-      }).then(directors => directors.map(d => ({
-        ...d,
-        birthYear: (d as any).birth_year,
-        createdAt: (d as any).created_at
-      })))
-    ).pipe(
+    return this.db.select<DbDirector>('directors', { order: 'name.asc' }).pipe(
+      map(directors => directors.map(d => ({
+        id: d.id,
+        name: d.name,
+        birthYear: d.birth_year,
+        nationality: d.nationality,
+        bio: d.bio,
+        createdAt: d.created_at
+      }))),
       catchError(error => throwError(() => 
         new Error(error?.message || 'Failed to fetch directors')
       ))
@@ -28,20 +36,20 @@ export class DirectorService {
   }
 
   getDirectorById(id: string): Observable<Director> {
-    return from(
-      this.repository.selectById<Director>('directors', id, {
-        select: 'id::text, name, birth_year as "birthYear", nationality, bio, created_at as "createdAt"'
-      }).then(director => {
+    return this.db.selectOne<DbDirector>('directors', id).pipe(
+      map(director => {
         if (!director) {
           throw new Error('Director not found');
         }
         return {
-          ...director,
-          birthYear: (director as any).birth_year,
-          createdAt: (director as any).created_at
+          id: director.id,
+          name: director.name,
+          birthYear: director.birth_year,
+          nationality: director.nationality,
+          bio: director.bio,
+          createdAt: director.created_at
         };
-      })
-    ).pipe(
+      }),
       catchError(error => throwError(() => 
         new Error(error?.message || 'Failed to fetch director')
       ))
@@ -49,18 +57,21 @@ export class DirectorService {
   }
 
   searchDirectors(query: string): Observable<Director[]> {
-    return from(
-      this.repository.query<Director>(`
-        SELECT id::text, name, birth_year as "birthYear", nationality, bio, created_at as "createdAt"
-        FROM directors 
-        WHERE name ILIKE '%${query.replace(/'/g, "''")}%'
-        ORDER BY name
-      `).then(directors => directors.map(d => ({
-        ...d,
-        birthYear: (d as any).birth_year,
-        createdAt: (d as any).created_at
-      })))
-    ).pipe(
+    return this.db.select<DbDirector>('directors', { 
+      order: 'name.asc'
+    }).pipe(
+      map(directors => 
+        directors
+          .filter(d => d.name.toLowerCase().includes(query.toLowerCase()))
+          .map(d => ({
+            id: d.id,
+            name: d.name,
+            birthYear: d.birth_year,
+            nationality: d.nationality,
+            bio: d.bio,
+            createdAt: d.created_at
+          }))
+      ),
       catchError(error => throwError(() => 
         new Error(error?.message || 'Failed to search directors')
       ))

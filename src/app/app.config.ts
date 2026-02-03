@@ -5,12 +5,13 @@ import { provideIonicAngular } from "@ionic/angular/standalone";
 import { routes } from "./app.routes";
 import { authInterceptor } from "./shared/interceptors/auth.interceptor";
 import { errorInterceptor } from "./shared/interceptors/error.interceptor";
+import { neonDataAuthInterceptor } from "./shared/interceptors/neon-data-auth.interceptor";
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, neonDataAuthInterceptor, errorInterceptor])),
     provideIonicAngular({
       mode: "md",
       animated: true,

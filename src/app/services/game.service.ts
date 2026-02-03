@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, from, throwError, BehaviorSubject } from 'rxjs';
+import { Observable, from, throwError, BehaviorSubject, switchMap, of } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { 
   Game, 
@@ -14,14 +14,64 @@ import {
   Director
 } from '../models/game.model';
 import { AuthService } from './auth.service';
-import { NeonRepository } from '../shared/repositories/neon.repository';
+import { DatabaseService } from './database.service';
+
+// Database row types
+interface DbGame {
+  id: string;
+  title: string;
+  description?: string;
+  cover_image?: string;
+  platform_id?: string;
+  developer_id?: string;
+  director_id?: string;
+  release_year?: number;
+  genre?: string;
+  rating?: number;
+  playtime_hours?: number;
+  completed: boolean;
+  purchase_date?: string;
+  notes?: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DbPlatform {
+  id: string;
+  name: string;
+  manufacturer?: string;
+  generation?: number;
+  release_year?: number;
+  icon_url?: string;
+  color?: string;
+  created_at: string;
+}
+
+interface DbCompany {
+  id: string;
+  name: string;
+  country?: string;
+  founded_year?: number;
+  website?: string;
+  created_at: string;
+}
+
+interface DbDirector {
+  id: string;
+  name: string;
+  birth_year?: number;
+  nationality?: string;
+  bio?: string;
+  created_at: string;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class GameService {
   private authService = inject(AuthService);
-  private repository = inject(NeonRepository);
+  private db = inject(DatabaseService);
   
   private gamesSubject = new BehaviorSubject<Game[]>([]);
   games$ = this.gamesSubject.asObservable();
@@ -56,7 +106,7 @@ export class GameService {
     );
   }
 
-  private async fetchGamesWithPagination(
+  private fetchGamesWithPagination(
     filter: GameFilter | undefined, 
     page: number, 
     limit: number,
@@ -65,8 +115,7 @@ export class GameService {
     const offset = (page - 1) * limit;
 
     // Build filters
-    const filters: { [key: string]: any } = { user_id: userId };
-    if (filter?.search) filters['title'] = filter.search;
+    const filters: Record<string, any> = { user_id: userId };
     if (filter?.platformId) filters['platform_id'] = filter.platformId;
     if (filter?.year) filters['release_year'] = filter.year;
     if (filter?.developerId) filters['developer_id'] = filter.developerId;
@@ -74,54 +123,64 @@ export class GameService {
     if (filter?.genre) filters['genre'] = filter.genre;
     if (filter?.completed !== undefined) filters['completed'] = filter.completed;
 
+    // For search, we need to use ILIKE which isn't directly supported by simple eq filters
+    // We'll fetch all and filter client-side for search, or use a custom endpoint
+
     // Build order
     const sortFieldMap: Record<string, string> = {
       'createdAt': 'created_at',
-      'updatedAt': 'updated_at',
+      'updatedAt': 'updated_at', 
       'releaseYear': 'release_year',
       'playtimeHours': 'playtime_hours',
       'title': 'title',
       'rating': 'rating'
     };
     const sortBy = sortFieldMap[filter?.sortBy || 'createdAt'] || 'created_at';
-    const sortOrder = filter?.sortOrder || 'desc';
+    const sortOrder = filter?.sortOrder === 'asc' ? 'asc' : 'desc';
     const order = `${sortBy}.${sortOrder}`;
 
-    // Get total count using custom query (repository doesn't support count directly)
-    const countResult = await this.repository.query<{ count: number }>(`SELECT COUNT(*) as count FROM games WHERE user_id = '${userId}'`);
-    const total = parseInt(countResult[0]?.count as any) || 0;
+    // Use select with embedded resources
+    const select = `*,
+      platform:platforms(id,name,manufacturer,color),
+      developer:companies(id,name,country),
+      director:directors(id,name)`;
 
-    // Get games with joins using custom query for complex joins
-    const games = await this.repository.query<any>(`
-      SELECT 
-        g.id::text, g.title, g.description, g.cover_image as "coverImage",
-        g.platform_id as "platformId", p.name as "platformName", p.manufacturer as "platformManufacturer", p.color as "platformColor",
-        g.developer_id as "developerId", c.name as "developerName", c.country as "developerCountry",
-        g.director_id as "directorId", d.name as "directorName",
-        g.release_year as "releaseYear", g.genre, g.rating, g.playtime_hours as "playtimeHours",
-        g.completed, g.purchase_date as "purchaseDate", g.notes,
-        g.user_id as "userId", g.created_at as "createdAt", g.updated_at as "updatedAt"
-      FROM games g
-      LEFT JOIN platforms p ON g.platform_id = p.id
-      LEFT JOIN companies c ON g.developer_id = c.id
-      LEFT JOIN directors d ON g.director_id = d.id
-      WHERE g.user_id = '${userId}'
-      ORDER BY g.${sortBy} ${sortOrder.toUpperCase()}
-      LIMIT ${limit} OFFSET ${offset}
-    `);
-
-    const mappedGames: Game[] = games.map((g: any) => this.mapGameFromDb(g));
-
-    return {
-      games: mappedGames,
-      total,
-      page,
-      limit
-    };
+    return Promise.all([
+      // Get total count
+      firstValueFrom(this.db.select<DbGame>('games', { 
+        select: 'count',
+        filters,
+        limit: 1
+      })).then(() => 0), // PostgREST returns count in headers, simplified here
+      
+      // Get games
+      firstValueFrom(this.db.select<any>('games', {
+        select,
+        filters,
+        order,
+        limit,
+        offset
+      }))
+    ]).then(([total, games]) => {
+      // Count query - we need to do a separate count
+      return firstValueFrom(this.db.select<DbGame>('games', { filters, limit: 10000 }))
+        .then(allGames => {
+          const filteredGames = filter?.search 
+            ? allGames.filter(g => g.title?.toLowerCase().includes(filter.search!.toLowerCase()))
+            : allGames;
+          
+          return {
+            games: games.map(g => this.mapGameFromDb(g)),
+            total: filteredGames.length,
+            page,
+            limit
+          };
+        });
+    });
   }
 
-  private async fetchGames(filters: GameFilters | undefined, userId: string): Promise<Game[]> {
-    // Build filters
+  private fetchGames(filters: GameFilters | undefined, userId: string): Promise<Game[]> {
+    // Build base filters
     const dbFilters: Record<string, any> = { user_id: userId };
     
     // Build order
@@ -134,111 +193,103 @@ export class GameService {
       'rating': 'rating'
     };
     const sortBy = sortFieldMap[filters?.sortBy || 'createdAt'] || 'created_at';
-    const sortOrder = filters?.sortOrder || 'desc';
+    const sortOrder = filters?.sortOrder === 'asc' ? 'asc' : 'desc';
+    const order = `${sortBy}.${sortOrder}`;
 
-    // For complex filters (platforms, years arrays), we need custom query
-    let platformFilter = '';
-    if (filters?.platforms?.length) {
-      const platformList = filters.platforms.map(p => `'${p}'`).join(',');
-      platformFilter = `AND p.name IN (${platformList})`;
-    }
+    // Use select with embedded resources for joins
+    const select = `*,
+      platform:platforms(id,name,manufacturer,color),
+      developer:companies(id,name,country),
+      director:directors(id,name)`;
 
-    let yearFilter = '';
-    if (filters?.years?.length) {
-      const yearList = filters.years.join(',');
-      yearFilter = `AND g.release_year IN (${yearList})`;
-    }
+    return firstValueFrom(
+      this.db.select<any>('games', {
+        select,
+        filters: dbFilters,
+        order
+      })
+    ).then(games => {
+      // Client-side filtering for complex filters
+      let filtered = games;
+      
+      if (filters?.search) {
+        const search = filters.search.toLowerCase();
+        filtered = filtered.filter((g: any) => 
+          g.title?.toLowerCase().includes(search)
+        );
+      }
+      
+      if (filters?.platforms?.length) {
+        filtered = filtered.filter((g: any) => 
+          g.platform && filters.platforms!.includes(g.platform.name)
+        );
+      }
+      
+      if (filters?.years?.length) {
+        filtered = filtered.filter((g: any) => 
+          filters.years!.includes(g.release_year)
+        );
+      }
+      
+      if (filters?.developers?.length) {
+        filtered = filtered.filter((g: any) => 
+          g.developer && filters.developers!.includes(g.developer.name)
+        );
+      }
 
-    let devFilter = '';
-    if (filters?.developers?.length) {
-      const devList = filters.developers.map(d => `'${d}'`).join(',');
-      devFilter = `AND c.name IN (${devList})`;
-    }
-
-    let searchFilter = '';
-    if (filters?.search) {
-      searchFilter = `AND g.title ILIKE '%${filters.search.replace(/'/g, "''")}%'`;
-    }
-
-    const games = await this.repository.query<any>(`
-      SELECT 
-        g.id::text, g.title, g.description, g.cover_image as "coverImage",
-        g.platform_id as "platformId", p.name as "platformName", p.manufacturer as "platformManufacturer", p.color as "platformColor",
-        g.developer_id as "developerId", c.name as "developerName", c.country as "developerCountry",
-        g.director_id as "directorId", d.name as "directorName",
-        g.release_year as "releaseYear", g.genre, g.rating, g.playtime_hours as "playtimeHours",
-        g.completed, g.purchase_date as "purchaseDate", g.notes,
-        g.user_id as "userId", g.created_at as "createdAt", g.updated_at as "updatedAt"
-      FROM games g
-      LEFT JOIN platforms p ON g.platform_id = p.id
-      LEFT JOIN companies c ON g.developer_id = c.id
-      LEFT JOIN directors d ON g.director_id = d.id
-      WHERE g.user_id = '${userId}' ${platformFilter} ${yearFilter} ${devFilter} ${searchFilter}
-      ORDER BY g.${sortBy} ${sortOrder.toUpperCase()}
-    `);
-
-    return games.map((g: any) => this.mapGameFromDb(g));
+      return filtered.map((g: any) => this.mapGameFromDb(g));
+    });
   }
 
-  private mapGameFromDb(g: Record<string, any>): Game {
+  private mapGameFromDb(g: any): Game {
     return {
-      id: g['id'],
-      title: g['title'],
-      description: g['description'],
-      coverImage: g['coverImage'],
-      platformId: g['platformId'],
-      platform: g['platformId'] ? {
-        id: g['platformId'],
-        name: g['platformName'] || '',
-        manufacturer: g['platformManufacturer'],
-        color: g['platformColor'],
-        createdAt: new Date().toISOString()
+      id: g.id,
+      title: g.title,
+      description: g.description,
+      coverImage: g.cover_image,
+      platformId: g.platform_id,
+      platform: g.platform ? {
+        id: g.platform.id,
+        name: g.platform.name,
+        manufacturer: g.platform.manufacturer,
+        color: g.platform.color,
+        createdAt: g.platform.created_at
       } : { id: '', name: 'Unknown', createdAt: new Date().toISOString() },
-      developerId: g['developerId'],
-      developer: g['developerId'] ? {
-        id: g['developerId'],
-        name: g['developerName'] || '',
-        country: g['developerCountry'],
-        createdAt: new Date().toISOString()
+      developerId: g.developer_id,
+      developer: g.developer ? {
+        id: g.developer.id,
+        name: g.developer.name,
+        country: g.developer.country,
+        createdAt: g.developer.created_at || new Date().toISOString()
       } : { id: '', name: 'Unknown', createdAt: new Date().toISOString() },
-      directorId: g['directorId'],
-      director: g['directorName'],
-      releaseYear: g['releaseYear'],
-      genre: g['genre'] ? [g['genre']] : [],
-      rating: g['rating'] ? parseFloat(g['rating']) : undefined,
-      playtimeHours: g['playtimeHours'],
-      completed: g['completed'],
-      purchaseDate: g['purchaseDate'],
-      notes: g['notes'],
-      userId: g['userId'],
-      createdAt: g['createdAt'],
-      updatedAt: g['updatedAt']
+      directorId: g.director_id,
+      director: g.director?.name,
+      releaseYear: g.release_year,
+      genre: g.genre ? [g.genre] : [],
+      rating: g.rating,
+      playtimeHours: g.playtime_hours,
+      completed: g.completed,
+      purchaseDate: g.purchase_date,
+      notes: g.notes,
+      userId: g.user_id,
+      createdAt: g.created_at,
+      updatedAt: g.updated_at
     };
   }
 
   getGameById(id: string): Observable<Game> {
-    return from(
-      this.repository.query<any>(`
-        SELECT 
-          g.id::text, g.title, g.description, g.cover_image as "coverImage",
-          g.platform_id as "platformId", p.name as "platformName", p.manufacturer as "platformManufacturer", p.color as "platformColor",
-          g.developer_id as "developerId", c.name as "developerName", c.country as "developerCountry",
-          g.director_id as "directorId", d.name as "directorName",
-          g.release_year as "releaseYear", g.genre, g.rating, g.playtime_hours as "playtimeHours",
-          g.completed, g.purchase_date as "purchaseDate", g.notes,
-          g.user_id as "userId", g.created_at as "createdAt", g.updated_at as "updatedAt"
-        FROM games g
-        LEFT JOIN platforms p ON g.platform_id = p.id
-        LEFT JOIN companies c ON g.developer_id = c.id
-        LEFT JOIN directors d ON g.director_id = d.id
-        WHERE g.id = '${id}'
-      `).then((games: any[]) => {
-        if (games.length === 0) {
+    const select = `*,
+      platform:platforms(id,name,manufacturer,color),
+      developer:companies(id,name,country),
+      director:directors(id,name)`;
+
+    return this.db.selectOne<any>('games', id, { select }).pipe(
+      map(game => {
+        if (!game) {
           throw new Error('Game not found');
         }
-        return this.mapGameFromDb(games[0]);
-      })
-    ).pipe(
+        return this.mapGameFromDb(game);
+      }),
       catchError(error => this.handleError(error, 'Failed to fetch game details'))
     );
   }
@@ -266,15 +317,11 @@ export class GameService {
       user_id: currentUser.id
     };
 
-    return from(
-      this.repository.insert<any>('games', data).then((result: any) => ({
-        ...game,
-        id: result['id'],
-        userId: currentUser.id,
-        createdAt: result['created_at'],
-        updatedAt: result['updated_at']
-      } as Game))
-    ).pipe(
+    return this.db.insert<DbGame>('games', data).pipe(
+      switchMap((result: DbGame) => {
+        // Fetch with joins to get full data
+        return this.getGameById(result.id);
+      }),
       catchError(error => this.handleError(error, 'Failed to create game'))
     );
   }
@@ -289,7 +336,7 @@ export class GameService {
       return throwError(() => new Error('User not authenticated'));
     }
 
-    const data: { [key: string]: any } = {};
+    const data: Record<string, any> = {};
     if (game.title !== undefined) data['title'] = game.title;
     if (game.description !== undefined) data['description'] = game.description;
     if (game.coverImage !== undefined) data['cover_image'] = game.coverImage;
@@ -308,14 +355,14 @@ export class GameService {
       return throwError(() => new Error('No fields to update'));
     }
 
-    return from(
-      this.repository.updateById<any>('games', id, data).then((result: any) => {
+    return this.db.updateById<DbGame>('games', id, data).pipe(
+      switchMap((result: DbGame | undefined) => {
         if (!result) {
           throw new Error('Game not found or access denied');
         }
-        return this.mapGameFromDb(result);
-      })
-    ).pipe(
+        // Fetch with joins to get full data
+        return this.getGameById(id);
+      }),
       catchError(error => this.handleError(error, 'Failed to update game'))
     );
   }
@@ -326,16 +373,12 @@ export class GameService {
       return throwError(() => new Error('User not authenticated'));
     }
 
-    return from(
-      this.repository.deleteById('games', id).then(() => undefined)
-    ).pipe(
+    return this.db.deleteById('games', id).pipe(
+      map(() => undefined),
       catchError(error => this.handleError(error, 'Failed to delete game'))
     );
   }
 
-  /**
-   * Toggle completion status by ID
-   */
   toggleCompleted(gameId: string): Observable<Game> {
     const game = this.gamesSubject.value.find(g => g.id === gameId);
     if (!game) {
@@ -344,37 +387,50 @@ export class GameService {
     return this.updateGame(gameId, { completed: !game.completed });
   }
 
-  /**
-   * Set completion status explicitly
-   */
   setCompleted(id: string, completed: boolean): Observable<Game> {
     return this.updateGame(id, { completed });
   }
 
   getFilterOptions(): Observable<FilterOptions> {
     return from(Promise.all([
-      this.repository.select<Platform>('platforms', { order: 'name.asc' }),
-      this.repository.select<Company>('companies', { order: 'name.asc' }),
-      this.repository.select<Director>('directors', { order: 'name.asc' }),
-      this.repository.query<{ genre: string }>('SELECT DISTINCT genre FROM games WHERE genre IS NOT NULL'),
-      this.repository.query<{ release_year: number }>('SELECT DISTINCT release_year FROM games WHERE release_year IS NOT NULL ORDER BY release_year DESC')
-    ]).then(([platforms, companies, directors, genres, years]) => ({
-      platforms: platforms.map(p => ({ 
-        ...p, 
-        createdAt: (p as any).created_at || new Date().toISOString() 
+      firstValueFrom(this.db.select<DbPlatform>('platforms', { order: 'name.asc' })),
+      firstValueFrom(this.db.select<DbCompany>('companies', { order: 'name.asc' })),
+      firstValueFrom(this.db.select<DbDirector>('directors', { order: 'name.asc' })),
+      firstValueFrom(this.db.select<DbGame>('games', { 
+        select: 'genre',
+        filters: { genre: 'not.is.null' }
       })),
-      developers: companies.map(c => ({ 
-        ...c, 
-        createdAt: (c as any).created_at || new Date().toISOString() 
+      firstValueFrom(this.db.select<DbGame>('games', {
+        select: 'release_year',
+        filters: { release_year: 'not.is.null' },
+        order: 'release_year.desc'
+      }))
+    ])).pipe(
+      map(([platforms, companies, directors, gamesWithGenre, gamesWithYear]) => ({
+        platforms: platforms.map(p => ({
+          id: p.id,
+          name: p.name,
+          manufacturer: p.manufacturer,
+          color: p.color,
+          createdAt: p.created_at
+        })),
+        developers: companies.map(c => ({
+          id: c.id,
+          name: c.name,
+          country: c.country,
+          createdAt: c.created_at
+        })),
+        directors: directors.map(d => ({
+          id: d.id,
+          name: d.name,
+          birthYear: d.birth_year,
+          nationality: d.nationality,
+          bio: d.bio,
+          createdAt: d.created_at
+        })),
+        genres: [...new Set(gamesWithGenre.map(g => g.genre).filter(Boolean))] as string[],
+        years: [...new Set(gamesWithYear.map(g => g.release_year).filter(Boolean))] as number[]
       })),
-      directors: directors.map(d => ({ 
-        ...d, 
-        birthYear: (d as any).birth_year,
-        createdAt: (d as any).created_at || new Date().toISOString() 
-      })),
-      genres: genres.map(g => g.genre).filter(Boolean),
-      years: years.map(y => y.release_year).filter(Boolean)
-    }))).pipe(
       catchError(error => this.handleError(error, 'Failed to fetch filter options'))
     );
   }
@@ -391,56 +447,54 @@ export class GameService {
   }
 
   searchGames(query: string, limit = 10): Observable<Game[]> {
-    const currentUser = this.authService.getCurrentUser();
-    if (!currentUser) {
-      return throwError(() => new Error('User not authenticated'));
-    }
-
     return this.getGames({ search: query });
   }
 
   getGenres(): Observable<string[]> {
-    return from(
-      this.repository.query<{ genre: string }>('SELECT DISTINCT genre FROM games WHERE genre IS NOT NULL')
-        .then(result => result.map(r => r.genre).filter(Boolean))
-    ).pipe(
+    return this.db.select<DbGame>('games', {
+      select: 'genre',
+      filters: { genre: 'not.is.null' }
+    }).pipe(
+      map(games => [...new Set(games.map(g => g.genre).filter(Boolean))] as string[]),
       catchError(error => this.handleError(error, 'Failed to fetch genres'))
     );
   }
 
   getPlatforms(): Observable<string[]> {
-    return from(
-      this.repository.select<{ name: string }>('platforms', { select: 'name', order: 'name.asc' })
-        .then(result => result.map(r => r.name))
-    ).pipe(
+    return this.db.select<DbPlatform>('platforms', {
+      select: 'name',
+      order: 'name.asc'
+    }).pipe(
+      map(platforms => platforms.map(p => p.name)),
       catchError(() => {
         const platforms = ['PlayStation 5', 'PlayStation 4', 'Xbox Series X/S', 'Xbox One', 'Nintendo Switch', 'PC', 'Steam Deck'];
-        return new BehaviorSubject(platforms).asObservable();
+        return of(platforms);
       })
     );
   }
 
   getYears(): Observable<number[]> {
-    return from(
-      this.repository.query<{ release_year: number }>('SELECT DISTINCT release_year FROM games WHERE release_year IS NOT NULL ORDER BY release_year DESC')
-        .then(result => result.map(r => r.release_year).filter(Boolean))
-    ).pipe(
+    return this.db.select<DbGame>('games', {
+      select: 'release_year',
+      filters: { release_year: 'not.is.null' },
+      order: 'release_year.desc'
+    }).pipe(
+      map(games => [...new Set(games.map(g => g.release_year).filter(Boolean))] as number[]),
       catchError(() => {
         const currentYear = new Date().getFullYear();
         const years = Array.from({ length: currentYear - 1980 + 1 }, (_, i) => currentYear - i);
-        return new BehaviorSubject(years).asObservable();
+        return of(years);
       })
     );
   }
 
   getDevelopers(): Observable<string[]> {
-    return from(
-      this.repository.select<{ name: string }>('companies', { select: 'name', order: 'name.asc' })
-        .then(result => result.map(r => r.name))
-    ).pipe(
-      catchError(() => {
-        return new BehaviorSubject<string[]>([]).asObservable();
-      })
+    return this.db.select<DbCompany>('companies', {
+      select: 'name',
+      order: 'name.asc'
+    }).pipe(
+      map(companies => companies.map(c => c.name)),
+      catchError(() => of([]))
     );
   }
 
@@ -448,4 +502,15 @@ export class GameService {
     const message = error?.message || defaultMessage;
     return throwError(() => new Error(message));
   }
+}
+
+// Helper function to convert Observable to Promise
+function firstValueFrom<T>(obs: Observable<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    obs.subscribe({
+      next: resolve,
+      error: reject,
+      complete: () => {}
+    });
+  });
 }

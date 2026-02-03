@@ -1,26 +1,34 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, from, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { Company } from '../models/game.model';
-import { NeonRepository } from '../shared/repositories/neon.repository';
+import { DatabaseService } from './database.service';
+
+interface DbCompany {
+  id: string;
+  name: string;
+  country?: string;
+  founded_year?: number;
+  website?: string;
+  created_at: string;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class CompanyService {
-  private repository = inject(NeonRepository);
+  private db = inject(DatabaseService);
 
   getCompanies(): Observable<Company[]> {
-    return from(
-      this.repository.select<Company>('companies', { 
-        select: 'id::text, name, country, founded_year as "foundedYear", website, created_at as "createdAt"',
-        order: 'name.asc'
-      }).then(companies => companies.map(c => ({
-        ...c,
-        foundedYear: (c as any).founded_year,
-        createdAt: (c as any).created_at
-      })))
-    ).pipe(
+    return this.db.select<DbCompany>('companies', { order: 'name.asc' }).pipe(
+      map(companies => companies.map(c => ({
+        id: c.id,
+        name: c.name,
+        country: c.country,
+        foundedYear: c.founded_year,
+        website: c.website,
+        createdAt: c.created_at
+      }))),
       catchError(error => throwError(() => 
         new Error(error?.message || 'Failed to fetch companies')
       ))
@@ -28,20 +36,20 @@ export class CompanyService {
   }
 
   getCompanyById(id: string): Observable<Company> {
-    return from(
-      this.repository.selectById<Company>('companies', id, {
-        select: 'id::text, name, country, founded_year as "foundedYear", website, created_at as "createdAt"'
-      }).then(company => {
+    return this.db.selectOne<DbCompany>('companies', id).pipe(
+      map(company => {
         if (!company) {
           throw new Error('Company not found');
         }
         return {
-          ...company,
-          foundedYear: (company as any).founded_year,
-          createdAt: (company as any).created_at
+          id: company.id,
+          name: company.name,
+          country: company.country,
+          foundedYear: company.founded_year,
+          website: company.website,
+          createdAt: company.created_at
         };
-      })
-    ).pipe(
+      }),
       catchError(error => throwError(() => 
         new Error(error?.message || 'Failed to fetch company')
       ))
@@ -49,18 +57,23 @@ export class CompanyService {
   }
 
   searchCompanies(query: string): Observable<Company[]> {
-    return from(
-      this.repository.query<Company>(`
-        SELECT id::text, name, country, founded_year as "foundedYear", website, created_at as "createdAt"
-        FROM companies 
-        WHERE name ILIKE '%${query.replace(/'/g, "''")}%'
-        ORDER BY name
-      `).then(companies => companies.map(c => ({
-        ...c,
-        foundedYear: (c as any).founded_year,
-        createdAt: (c as any).created_at
-      })))
-    ).pipe(
+    // PostgREST doesn't support ILIKE directly in eq filters
+    // Would need a custom endpoint or use ilike operator
+    return this.db.select<DbCompany>('companies', { 
+      order: 'name.asc'
+    }).pipe(
+      map(companies => 
+        companies
+          .filter(c => c.name.toLowerCase().includes(query.toLowerCase()))
+          .map(c => ({
+            id: c.id,
+            name: c.name,
+            country: c.country,
+            foundedYear: c.founded_year,
+            website: c.website,
+            createdAt: c.created_at
+          }))
+      ),
       catchError(error => throwError(() => 
         new Error(error?.message || 'Failed to search companies')
       ))
