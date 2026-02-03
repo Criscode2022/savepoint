@@ -1,25 +1,31 @@
-// Simple auth client for Neon Auth
-// Uses fetch with proper cookie handling
+// Auth client for Neon Auth
+// Uses fetch with proper cookie handling (same as dog-reservation)
 import { environment } from '../environments/environment';
 
 const NEON_AUTH_URL = environment.neonAuthUrl;
 
-export interface AuthSession {
-  user: {
-    id: string;
-    email: string;
-    name?: string;
-    avatarUrl?: string;
+export interface AuthUser {
+  id: string;
+  email: string;
+  name?: string;
+  avatarUrl?: string;
+  role?: string;
+}
+
+export interface AuthSessionData {
+  session: {
+    token?: string;
+    access_token?: string;
+    accessToken?: string;
   } | null;
-  token?: string;
-  refreshToken?: string;
+  user: AuthUser | null;
 }
 
 export const authClient = {
   /**
    * Get current session using cookie
    */
-  async getSession(): Promise<{ data: AuthSession | null; error: Error | null }> {
+  async getSession(): Promise<{ data: AuthSessionData | null; error: Error | null }> {
     try {
       const response = await fetch(`${NEON_AUTH_URL}/session`, {
         method: 'GET',
@@ -46,7 +52,7 @@ export const authClient = {
   /**
    * Sign in with email/password
    */
-  async signIn(email: string, password: string): Promise<{ data: AuthSession | null; error: Error | null }> {
+  async signIn(email: string, password: string): Promise<{ data: AuthSessionData | null; error: Error | null }> {
     try {
       const response = await fetch(`${NEON_AUTH_URL}/sign-in/email`, {
         method: 'POST',
@@ -73,7 +79,7 @@ export const authClient = {
   /**
    * Sign up with email/password
    */
-  async signUp(email: string, password: string, name?: string): Promise<{ data: AuthSession | null; error: Error | null }> {
+  async signUp(email: string, password: string, name?: string): Promise<{ data: AuthSessionData | null; error: Error | null }> {
     try {
       const response = await fetch(`${NEON_AUTH_URL}/sign-up/email`, {
         method: 'POST',
