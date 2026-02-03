@@ -4,9 +4,9 @@
   "description": "A modern videogames library management app with Angular, Ionic, and Neon",
   "author": "OpenClaw",
   "scripts": {
-    "env:generate": "node scripts/generate-env-js.mjs",
-    "prestart": "npm run env:generate",
-    "prebuild": "npm run env:generate",
+    "set-env": "node scripts/set-env.js",
+    "prestart": "npm run set-env",
+    "prebuild": "npm run set-env",
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",

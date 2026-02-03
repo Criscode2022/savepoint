@@ -42,12 +42,14 @@ testem.log
 .DS_Store
 Thumbs.db
 
-# Environment files
+# Environment files (auto-generated from .env by set-env.js)
+src/environments/environment.ts
+src/environments/environment.prod.ts
 src/environments/environment.local.ts
 .env
 .env.local
 
-# Generated runtime env (do not commit)
+# Generated runtime env (legacy - no longer used)
 src/assets/env.js
 
 # Capacitor
