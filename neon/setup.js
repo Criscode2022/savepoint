@@ -1,26 +1,24 @@
-const { neon } = require('@neondatabase/serverless');
-const fs = require('fs');
-const path = require('path');
+const { neon } = require("@neondatabase/serverless");
+const path = require("path");
 
-// Read .env file manually
-const envPath = path.join(__dirname, '..', '.env');
-const envContent = fs.readFileSync(envPath, 'utf8');
-const dbUrlMatch = envContent.match(/DATABASE_URL="([^"]+)"/);
-const DATABASE_URL = dbUrlMatch ? dbUrlMatch[1] : process.env.DATABASE_URL;
+// Load .env if present (local dev)
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+
+const DATABASE_URL = process.env.DATABASE_URL;
 
 if (!DATABASE_URL) {
-  console.error('DATABASE_URL not found in .env file');
+  console.error("DATABASE_URL not found in .env file");
   process.exit(1);
 }
 
 const sql = neon(DATABASE_URL);
 
 async function setupDatabase() {
-  console.log('Setting up database...');
-  
+  console.log("Setting up database...");
+
   try {
     // Create tables using individual queries
-    console.log('Creating users table...');
+    console.log("Creating users table...");
     await sql`CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       email VARCHAR(255) UNIQUE NOT NULL,
@@ -29,8 +27,8 @@ async function setupDatabase() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`;
-    
-    console.log('Creating games table...');
+
+    console.log("Creating games table...");
     await sql`CREATE TABLE IF NOT EXISTS games (
       id SERIAL PRIMARY KEY,
       title VARCHAR(255) NOT NULL,
@@ -44,8 +42,8 @@ async function setupDatabase() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`;
-    
-    console.log('Creating game_status table...');
+
+    console.log("Creating game_status table...");
     await sql`CREATE TABLE IF NOT EXISTS game_status (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -56,8 +54,8 @@ async function setupDatabase() {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(user_id, game_id)
     )`;
-    
-    console.log('Inserting sample games...');
+
+    console.log("Inserting sample games...");
     await sql`INSERT INTO games (title, platform, genre, release_date, rating, description) VALUES
       ('The Legend of Zelda: Breath of the Wild', 'Nintendo Switch', 'Adventure', '2017-03-03', 9.5, 'Open-world adventure game'),
       ('Elden Ring', 'Multi-platform', 'RPG', '2022-02-25', 9.6, 'Action RPG by FromSoftware'),
@@ -65,15 +63,15 @@ async function setupDatabase() {
       ('Cyberpunk 2077', 'Multi-platform', 'RPG', '2020-12-10', 8.5, 'Futuristic open-world RPG'),
       ('Hades', 'Multi-platform', 'Roguelike', '2020-09-17', 9.0, 'Greek mythology roguelike')
       ON CONFLICT DO NOTHING`;
-    
-    console.log('Creating indexes...');
+
+    console.log("Creating indexes...");
     await sql`CREATE INDEX IF NOT EXISTS idx_games_user_id ON games(user_id)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_game_status_user_id ON game_status(user_id)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_game_status_game_id ON game_status(game_id)`;
-    
-    console.log('✅ Database setup complete!');
+
+    console.log("✅ Database setup complete!");
   } catch (error) {
-    console.error('❌ Error setting up database:', error.message);
+    console.error("❌ Error setting up database:", error.message);
     process.exit(1);
   }
 }

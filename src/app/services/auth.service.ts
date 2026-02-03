@@ -1,42 +1,64 @@
-import { Injectable, inject, signal, effect } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
-import { Observable, BehaviorSubject, of, throwError } from 'rxjs';
-import { map, catchError, tap } from 'rxjs/operators';
-import { AuthUser, LoginCredentials, RegisterCredentials, AuthResponse } from '../models/auth.model';
-import { environment } from '../../environments/environment';
+import { HttpClient } from "@angular/common/http";
+import { Injectable, inject } from "@angular/core";
+import { Router } from "@angular/router";
+import { BehaviorSubject, Observable, throwError } from "rxjs";
+import { catchError, map, tap } from "rxjs/operators";
+import { environment } from "../../environments/environment";
+import {
+  AuthResponse,
+  AuthUser,
+  LoginCredentials,
+  RegisterCredentials,
+} from "../models/auth.model";
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root",
 })
 export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
 
-  private readonly STORAGE_KEY = 'gamevault_auth';
-  private authState = new BehaviorSubject<AuthUser | null>(this.getStoredUser());
-  
+  private readonly STORAGE_KEY = "gamevault_auth";
+  private authState = new BehaviorSubject<AuthUser | null>(
+    this.getStoredUser(),
+  );
+
   currentUser$ = this.authState.asObservable();
-  isAuthenticated$ = this.authState.pipe(map(user => !!user));
+  isAuthenticated$ = this.authState.pipe(map((user) => !!user));
 
   constructor() {
     // Check token expiration on init
     this.checkTokenExpiration();
   }
 
+  private postAuth<T>(paths: string[], body: unknown): Observable<T> {
+    const [first, ...rest] = paths;
+    const baseUrl = (environment.neonAuthUrl || "").replace(/\/$/, "");
+    const url = `${baseUrl}${first}`;
+
+    return this.http.post<T>(url, body).pipe(
+      catchError((error) => {
+        if (rest.length > 0) {
+          return this.postAuth<T>(rest, body);
+        }
+        return throwError(() => error);
+      }),
+    );
+  }
+
   private getStoredUser(): AuthUser | null {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === "undefined") return null;
     const stored = localStorage.getItem(this.STORAGE_KEY);
     return stored ? JSON.parse(stored) : null;
   }
 
   private storeUser(user: AuthUser): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(user));
   }
 
   private clearStoredUser(): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     localStorage.removeItem(this.STORAGE_KEY);
   }
 
@@ -48,76 +70,90 @@ export class AuthService {
   }
 
   login(credentials: LoginCredentials): Observable<AuthUser> {
-    return this.http.post<AuthResponse>(`${environment.apiBaseUrl}/auth/login`, credentials)
-      .pipe(
-        tap(response => {
-          const user: AuthUser = {
-            ...response.user,
-            accessToken: response.token,
-            refreshToken: response.refreshToken
-          };
-          this.storeUser(user);
-          this.authState.next(user);
-        }),
-        map(response => ({
+    return this.postAuth<AuthResponse>(
+      ["/sign-in/email", "/login", "/signin"],
+      credentials,
+    ).pipe(
+      tap((response) => {
+        const user: AuthUser = {
           ...response.user,
           accessToken: response.token,
-          refreshToken: response.refreshToken
-        })),
-        catchError(error => {
-          return throwError(() => new Error(error.error?.message || 'Login failed'));
-        })
-      );
+          refreshToken: response.refreshToken,
+        };
+        this.storeUser(user);
+        this.authState.next(user);
+      }),
+      map((response) => ({
+        ...response.user,
+        accessToken: response.token,
+        refreshToken: response.refreshToken,
+      })),
+      catchError((error) => {
+        return throwError(
+          () => new Error(error.error?.message || "Login failed"),
+        );
+      }),
+    );
   }
 
   register(credentials: RegisterCredentials): Observable<AuthUser> {
-    return this.http.post<AuthResponse>(`${environment.apiBaseUrl}/auth/register`, credentials)
-      .pipe(
-        tap(response => {
-          const user: AuthUser = {
-            ...response.user,
-            accessToken: response.token,
-            refreshToken: response.refreshToken
-          };
-          this.storeUser(user);
-          this.authState.next(user);
-        }),
-        map(response => ({
+    const payload = {
+      email: credentials.email,
+      password: credentials.password,
+      name: credentials.username || credentials.email.split("@")[0],
+    };
+
+    return this.postAuth<AuthResponse>(
+      ["/sign-up/email", "/register", "/signup"],
+      payload,
+    ).pipe(
+      tap((response) => {
+        const user: AuthUser = {
           ...response.user,
           accessToken: response.token,
-          refreshToken: response.refreshToken
-        })),
-        catchError(error => {
-          return throwError(() => new Error(error.error?.message || 'Registration failed'));
-        })
-      );
+          refreshToken: response.refreshToken,
+        };
+        this.storeUser(user);
+        this.authState.next(user);
+      }),
+      map((response) => ({
+        ...response.user,
+        accessToken: response.token,
+        refreshToken: response.refreshToken,
+      })),
+      catchError((error) => {
+        return throwError(
+          () => new Error(error.error?.message || "Registration failed"),
+        );
+      }),
+    );
   }
 
   logout(): void {
     this.clearStoredUser();
     this.authState.next(null);
-    this.router.navigate(['/login']);
+    this.router.navigate(["/login"]);
   }
 
   refreshToken(): Observable<string> {
     const user = this.getStoredUser();
     if (!user?.refreshToken) {
-      return throwError(() => new Error('No refresh token available'));
+      return throwError(() => new Error("No refresh token available"));
     }
 
-    return this.http.post<{ token: string }>(`${environment.apiBaseUrl}/auth/refresh`, {
-      refreshToken: user.refreshToken
+    return this.postAuth<{ token: string }>(["/refresh"], {
+      refreshToken: user.refreshToken,
     }).pipe(
-      tap(response => {
+      tap((response) => {
         const updatedUser = { ...user, accessToken: response.token };
         this.storeUser(updatedUser);
         this.authState.next(updatedUser);
       }),
-      map(response => response.token),
-      catchError(error => {
+      map((response) => response.token),
+      catchError((error) => {
         this.logout();
-        return throwError(() => new Error('Session expired'));
-      })
+        return throwError(() => new Error("Session expired"));
+      }),
     );
   }
 
@@ -136,14 +172,14 @@ export class AuthService {
   // Neon Auth integration
   async signInWithNeon(email: string, password: string): Promise<void> {
     // Neon Auth API integration
-    const response = await fetch(`${environment.neonAuthUrl}/signin`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+    const response = await fetch(`${environment.neonAuthUrl}/sign-in/email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
     });
 
     if (!response.ok) {
-      throw new Error('Neon authentication failed');
+      throw new Error("Neon authentication failed");
     }
 
     const data = await response.json();
@@ -154,7 +190,7 @@ export class AuthService {
       avatarUrl: data.user.avatarUrl,
       accessToken: data.token,
       refreshToken: data.refreshToken,
-      expiresAt: Date.now() + (data.expiresIn * 1000)
+      expiresAt: Date.now() + data.expiresIn * 1000,
     };
 
     this.storeUser(user);

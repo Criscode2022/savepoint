@@ -47,6 +47,9 @@ src/environments/environment.local.ts
 .env
 .env.local
 
+# Generated runtime env (do not commit)
+src/assets/env.js
+
 # Capacitor
 /ios
 /android

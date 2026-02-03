@@ -1,36 +1,40 @@
-const { neon } = require('@neondatabase/serverless');
+const { neon } = require("@neondatabase/serverless");
+const path = require("path");
+
+// Load .env if present (local dev)
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
 async function migrate() {
   const connectionString = process.env.DATABASE_URL;
-  
+
   if (!connectionString) {
-    console.error('❌ DATABASE_URL environment variable is required');
+    console.error("❌ DATABASE_URL environment variable is required");
     process.exit(1);
   }
 
   const sql = neon(connectionString);
 
   try {
-    console.log('🔄 Running migrations...');
-    
+    console.log("🔄 Running migrations...");
+
     // Read and execute migration files
-    const fs = require('fs');
-    const path = require('path');
-    
+    const fs = require("fs");
+    const path = require("path");
+
     const migrationFiles = fs
       .readdirSync(__dirname)
-      .filter(f => f.endsWith('.sql') && f.match(/^\d+_/))
+      .filter((f) => f.endsWith(".sql") && f.match(/^\d+_/))
       .sort();
 
     for (const file of migrationFiles) {
       console.log(`  📄 ${file}`);
-      const content = fs.readFileSync(path.join(__dirname, file), 'utf8');
+      const content = fs.readFileSync(path.join(__dirname, file), "utf8");
       await sql.query(content);
     }
 
-    console.log('✅ Migrations completed successfully!');
+    console.log("✅ Migrations completed successfully!");
   } catch (error) {
-    console.error('❌ Migration failed:', error.message);
+    console.error("❌ Migration failed:", error.message);
     process.exit(1);
   }
 }
