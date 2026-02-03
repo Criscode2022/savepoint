@@ -1,39 +1,24 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, from, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { neon } from '@neondatabase/serverless';
 import { Director } from '../models/game.model';
-import { environment } from '../../environments/environment';
+import { NeonRepository } from '../shared/repositories/neon.repository';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DirectorService {
-  private readonly DATABASE_URL = environment.neonDatabaseUrl;
-
-  private get sql() {
-    return neon(this.DATABASE_URL);
-  }
+  private repository = inject(NeonRepository);
 
   getDirectors(): Observable<Director[]> {
     return from(
-      this.sql(`
-        SELECT 
-          id::text, 
-          name, 
-          birth_year as "birthYear", 
-          nationality, 
-          bio,
-          created_at as "createdAt"
-        FROM directors 
-        ORDER BY name
-      `).then((directors: any[]) => directors.map(d => ({
-        id: d.id,
-        name: d.name,
-        birthYear: d.birthYear,
-        nationality: d.nationality,
-        bio: d.bio,
-        createdAt: d.createdAt
+      this.repository.select<Director>('directors', { 
+        select: 'id::text, name, birth_year as "birthYear", nationality, bio, created_at as "createdAt"',
+        order: 'name.asc'
+      }).then(directors => directors.map(d => ({
+        ...d,
+        birthYear: (d as any).birth_year,
+        createdAt: (d as any).created_at
       })))
     ).pipe(
       catchError(error => throwError(() => 
@@ -44,28 +29,16 @@ export class DirectorService {
 
   getDirectorById(id: string): Observable<Director> {
     return from(
-      this.sql(`
-        SELECT 
-          id::text, 
-          name, 
-          birth_year as "birthYear", 
-          nationality, 
-          bio,
-          created_at as "createdAt"
-        FROM directors 
-        WHERE id = '${id}'
-      `).then((directors: any[]) => {
-        if (directors.length === 0) {
+      this.repository.selectById<Director>('directors', id, {
+        select: 'id::text, name, birth_year as "birthYear", nationality, bio, created_at as "createdAt"'
+      }).then(director => {
+        if (!director) {
           throw new Error('Director not found');
         }
-        const d = directors[0];
         return {
-          id: d.id,
-          name: d.name,
-          birthYear: d.birthYear,
-          nationality: d.nationality,
-          bio: d.bio,
-          createdAt: d.createdAt
+          ...director,
+          birthYear: (director as any).birth_year,
+          createdAt: (director as any).created_at
         };
       })
     ).pipe(
@@ -77,24 +50,15 @@ export class DirectorService {
 
   searchDirectors(query: string): Observable<Director[]> {
     return from(
-      this.sql(`
-        SELECT 
-          id::text, 
-          name, 
-          birth_year as "birthYear", 
-          nationality, 
-          bio,
-          created_at as "createdAt"
+      this.repository.query<Director>(`
+        SELECT id::text, name, birth_year as "birthYear", nationality, bio, created_at as "createdAt"
         FROM directors 
         WHERE name ILIKE '%${query.replace(/'/g, "''")}%'
         ORDER BY name
-      `).then((directors: any[]) => directors.map(d => ({
-        id: d.id,
-        name: d.name,
-        birthYear: d.birthYear,
-        nationality: d.nationality,
-        bio: d.bio,
-        createdAt: d.createdAt
+      `).then(directors => directors.map(d => ({
+        ...d,
+        birthYear: (d as any).birth_year,
+        createdAt: (d as any).created_at
       })))
     ).pipe(
       catchError(error => throwError(() => 

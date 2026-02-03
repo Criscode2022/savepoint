@@ -1,43 +1,25 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, from, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { neon } from '@neondatabase/serverless';
 import { Platform } from '../models/game.model';
-import { environment } from '../../environments/environment';
+import { NeonRepository } from '../shared/repositories/neon.repository';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PlatformService {
-  private readonly DATABASE_URL = environment.neonDatabaseUrl;
-
-  private get sql() {
-    return neon(this.DATABASE_URL);
-  }
+  private repository = inject(NeonRepository);
 
   getPlatforms(): Observable<Platform[]> {
     return from(
-      this.sql(`
-        SELECT 
-          id::text, 
-          name, 
-          manufacturer, 
-          generation, 
-          release_year as "releaseYear", 
-          icon_url as "iconUrl",
-          color,
-          created_at as "createdAt"
-        FROM platforms 
-        ORDER BY name
-      `).then((platforms: any[]) => platforms.map(p => ({
-        id: p.id,
-        name: p.name,
-        manufacturer: p.manufacturer,
-        generation: p.generation,
-        releaseYear: p.releaseYear,
-        iconUrl: p.iconUrl,
-        color: p.color,
-        createdAt: p.createdAt
+      this.repository.select<Platform>('platforms', { 
+        select: 'id::text, name, manufacturer, generation, release_year as "releaseYear", icon_url as "iconUrl", color, created_at as "createdAt"',
+        order: 'name.asc'
+      }).then(platforms => platforms.map(p => ({
+        ...p,
+        releaseYear: (p as any).release_year,
+        iconUrl: (p as any).icon_url,
+        createdAt: (p as any).created_at
       })))
     ).pipe(
       catchError(error => throwError(() => 
@@ -48,32 +30,17 @@ export class PlatformService {
 
   getPlatformById(id: string): Observable<Platform> {
     return from(
-      this.sql(`
-        SELECT 
-          id::text, 
-          name, 
-          manufacturer, 
-          generation, 
-          release_year as "releaseYear", 
-          icon_url as "iconUrl",
-          color,
-          created_at as "createdAt"
-        FROM platforms 
-        WHERE id = '${id}'
-      `).then((platforms: any[]) => {
-        if (platforms.length === 0) {
+      this.repository.selectById<Platform>('platforms', id, {
+        select: 'id::text, name, manufacturer, generation, release_year as "releaseYear", icon_url as "iconUrl", color, created_at as "createdAt"'
+      }).then(platform => {
+        if (!platform) {
           throw new Error('Platform not found');
         }
-        const p = platforms[0];
         return {
-          id: p.id,
-          name: p.name,
-          manufacturer: p.manufacturer,
-          generation: p.generation,
-          releaseYear: p.releaseYear,
-          iconUrl: p.iconUrl,
-          color: p.color,
-          createdAt: p.createdAt
+          ...platform,
+          releaseYear: (platform as any).release_year,
+          iconUrl: (platform as any).icon_url,
+          createdAt: (platform as any).created_at
         };
       })
     ).pipe(
