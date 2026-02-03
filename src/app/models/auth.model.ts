@@ -3,7 +3,7 @@ export interface AuthUser {
   email: string;
   username?: string;
   avatarUrl?: string;
-  accessToken: string;
+  accessToken: string | null;
   refreshToken?: string;
   expiresAt?: number;
 }
@@ -19,7 +19,10 @@ export interface RegisterCredentials extends LoginCredentials {
 
 export interface AuthResponse {
   user: AuthUser;
-  token: string;
+  token?: string;
+  accessToken?: string;
+  access_token?: string;
+  jwt?: string;
   refreshToken?: string;
 }
 

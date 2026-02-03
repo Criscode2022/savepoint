@@ -75,9 +75,11 @@ export class AuthService {
       credentials,
     ).pipe(
       tap((response) => {
+        // Try multiple token field names that Neon Auth might return
+        const token = this.extractJwtToken(response);
         const user: AuthUser = {
           ...response.user,
-          accessToken: response.token,
+          accessToken: token,
           refreshToken: response.refreshToken,
         };
         this.storeUser(user);
@@ -85,7 +87,7 @@ export class AuthService {
       }),
       map((response) => ({
         ...response.user,
-        accessToken: response.token,
+        accessToken: this.extractJwtToken(response),
         refreshToken: response.refreshToken,
       })),
       catchError((error) => {
@@ -94,6 +96,27 @@ export class AuthService {
         );
       }),
     );
+  }
+
+  /**
+   * Extract JWT token from auth response (handles different response formats)
+   */
+  private extractJwtToken(response: AuthResponse): string | null {
+    // Try multiple possible token field locations
+    const possibleTokens = [
+      response.token,
+      response.accessToken,
+      (response as any).access_token,
+      (response as any).jwt,
+    ];
+
+    for (const token of possibleTokens) {
+      if (this.isJwt(token)) {
+        return token;
+      }
+    }
+
+    return null;
   }
 
   register(credentials: RegisterCredentials): Observable<AuthUser> {
@@ -108,9 +131,10 @@ export class AuthService {
       payload,
     ).pipe(
       tap((response) => {
+        const token = this.extractJwtToken(response);
         const user: AuthUser = {
           ...response.user,
-          accessToken: response.token,
+          accessToken: token,
           refreshToken: response.refreshToken,
         };
         this.storeUser(user);
@@ -118,7 +142,7 @@ export class AuthService {
       }),
       map((response) => ({
         ...response.user,
-        accessToken: response.token,
+        accessToken: this.extractJwtToken(response),
         refreshToken: response.refreshToken,
       })),
       catchError((error) => {
@@ -166,10 +190,21 @@ export class AuthService {
   }
 
   /**
+   * Check if token is a valid JWT (has 3 parts separated by dots)
+   */
+  private isJwt(token: string | null | undefined): token is string {
+    if (!token) return false;
+    // JWT format: header.payload.signature
+    return token.split('.').length === 3;
+  }
+
+  /**
    * Get access token for HTTP requests (async to match dog-reservation pattern)
+   * Only returns token if it's a valid JWT
    */
   async getAccessToken(): Promise<string | null> {
-    return this.getToken();
+    const token = this.getToken();
+    return this.isJwt(token) ? token : null;
   }
 
   isAuthenticated(): boolean {
