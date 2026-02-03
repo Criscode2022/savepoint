@@ -50,14 +50,40 @@ export class AuthService {
 
   /**
    * Internal initialization logic
-   * Cookies are primary session storage, localStorage is fallback for iOS Safari
+   * Uses localStorage as primary session storage (like dog-reservation pattern)
+   * Server session is used for verification/refresh only
    */
   private async doInitialize(): Promise<void> {
-    // Try cookie-based session first (primary)
+    // First, try to restore from localStorage (primary source)
+    const hasLocalSession = this.restoreFromLocalStorage();
+
+    if (hasLocalSession) {
+      // We have a local session, try to verify/refresh with server
+      try {
+        const { data, error } = await authClient.getSession();
+        if (!error && data?.user) {
+          // Server confirmed session, update token if new one provided
+          if (this.isJwt(data.token)) {
+            this.accessToken = data.token;
+            if (this.currentUser) {
+              this.currentUser.accessToken = this.accessToken;
+              this.saveToLocalStorage(this.currentUser);
+            }
+          }
+        }
+        // Even if server check fails, keep local session (might be offline)
+      } catch {
+        // Server unreachable, keep local session
+      }
+      this.initialized.next(true);
+      return;
+    }
+
+    // No local session, try server session (cookie-based)
     try {
       const { data, error } = await authClient.getSession();
       if (!error && data?.user) {
-        // Cookie session valid
+        // Extract JWT token if available
         this.accessToken = this.isJwt(data.token) ? data.token : null;
 
         this.currentUser = {
@@ -69,17 +95,13 @@ export class AuthService {
         };
         this.isAuthenticated.next(true);
 
-        // Save to localStorage as iOS fallback
+        // Save to localStorage for persistence
         this.saveToLocalStorage(this.currentUser);
-        this.initialized.next(true);
-        return;
       }
     } catch {
-      // Cookie check failed, try localStorage fallback
+      // No session available
     }
 
-    // Cookie failed - try localStorage fallback (for iOS Safari)
-    this.restoreFromLocalStorage();
     this.initialized.next(true);
   }
 
@@ -119,7 +141,7 @@ export class AuthService {
   }
 
   /**
-   * Restore session from localStorage (iOS Safari fallback)
+   * Restore session from localStorage (primary session storage)
    */
   private restoreFromLocalStorage(): boolean {
     try {
@@ -244,7 +266,7 @@ export class AuthService {
 
   /**
    * Verify session (for guards)
-   * Checks memory first, then cookies, then localStorage (iOS fallback)
+   * Checks memory first, then localStorage, then server
    */
   async verifySession(): Promise<boolean> {
     // If already authenticated in memory, trust it
@@ -252,7 +274,12 @@ export class AuthService {
       return true;
     }
 
-    // Try cookie-based session first (primary)
+    // Try localStorage first (primary storage)
+    if (this.restoreFromLocalStorage()) {
+      return true;
+    }
+
+    // Try server session (cookie-based)
     try {
       const { data, error } = await authClient.getSession();
       if (!error && data?.user) {
@@ -269,12 +296,7 @@ export class AuthService {
         return true;
       }
     } catch {
-      // Cookie check failed
-    }
-
-    // Try localStorage fallback (for iOS Safari)
-    if (this.restoreFromLocalStorage()) {
-      return true;
+      // Server unreachable
     }
 
     this.clearSession();
