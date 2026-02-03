@@ -4,8 +4,8 @@ import { environment } from '../../../environments/environment';
 import { AuthService } from '../../services/auth.service';
 
 export const neonDataAuthInterceptor: HttpInterceptorFn = (req, next) => {
-  // Only attach auth to Neon Data API calls
-  if (!req.url.startsWith(environment.neonDatabaseUrl)) {
+  // Only attach auth to Neon Data API calls (HTTP REST endpoint)
+  if (!req.url.startsWith(environment.databaseUrl)) {
     return next(req);
   }
 
