@@ -16,7 +16,7 @@ export interface QueryOptions {
 })
 export class DatabaseService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = environment.neonDatabaseUrl.replace(/\/+$/, '');
+  private readonly baseUrl = environment.databaseUrl.replace(/\/+$/, '');
   private readonly schema = 'public';
 
   private getHeaders(options?: { write?: boolean }): HttpHeaders {

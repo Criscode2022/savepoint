@@ -165,6 +165,13 @@ export class AuthService {
     return this.getCurrentUser()?.accessToken || null;
   }
 
+  /**
+   * Get access token for HTTP requests (async to match dog-reservation pattern)
+   */
+  async getAccessToken(): Promise<string | null> {
+    return this.getToken();
+  }
+
   isAuthenticated(): boolean {
     return !!this.getCurrentUser();
   }
