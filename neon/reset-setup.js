@@ -62,18 +62,7 @@ async function resetAndSetupDatabase() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
     
-    // Create users table (for Neon Auth integration)
-    console.log('Creating users table...');
-    await sql(`CREATE TABLE users (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      email VARCHAR(255) UNIQUE NOT NULL,
-      username VARCHAR(100) UNIQUE,
-      avatar_url VARCHAR(500),
-      auth_provider VARCHAR(50) DEFAULT 'neon',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`);
-    
-    // Create games table with proper foreign keys
+    // Create games table - references neon_auth.users instead of local users
     console.log('Creating games table...');
     await sql(`CREATE TABLE games (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -90,7 +79,7 @@ async function resetAndSetupDatabase() {
       completed BOOLEAN DEFAULT FALSE,
       purchase_date DATE,
       notes TEXT,
-      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_id UUID NOT NULL REFERENCES neon_auth.user(id) ON DELETE CASCADE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);

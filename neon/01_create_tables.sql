@@ -29,17 +29,7 @@ CREATE TABLE IF NOT EXISTS directors (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create users table (for Neon Auth integration)
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    username VARCHAR(100) UNIQUE,
-    avatar_url VARCHAR(500),
-    auth_provider VARCHAR(50) DEFAULT 'neon',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create games table
+-- Create games table - references neon_auth.users (Neon Auth table)
 CREATE TABLE IF NOT EXISTS games (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(255) NOT NULL,
@@ -55,7 +45,7 @@ CREATE TABLE IF NOT EXISTS games (
     completed BOOLEAN DEFAULT FALSE,
     purchase_date DATE,
     notes TEXT,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES neon_auth.user(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
