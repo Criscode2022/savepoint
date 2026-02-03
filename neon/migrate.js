@@ -28,8 +28,17 @@ async function migrate() {
 
     for (const file of migrationFiles) {
       console.log(`  📄 ${file}`);
-      const content = fs.readFileSync(path.join(__dirname, file), "utf8");
-      await sql.query(content);
+      const content = fs.readFileSync(path.join(__dirname, file), 'utf8');
+      // Split by semicolons to handle multiple statements (Neon doesn't support multiple commands in one query)
+      const statements = content
+        .replace(/--.*$/gm, '') // Remove comments
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+      
+      for (const stmt of statements) {
+        await sql(stmt + ';');
+      }
     }
 
     console.log("✅ Migrations completed successfully!");

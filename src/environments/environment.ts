@@ -8,4 +8,8 @@ export const environment = {
     typeof window !== "undefined" && (window as any).__ENV__?.NEON_AUTH_URL
       ? (window as any).__ENV__.NEON_AUTH_URL
       : "http://localhost:3000/auth",
+  neonDatabaseUrl: 
+    typeof window !== "undefined" && (window as any).__ENV__?.NEON_DATABASE_URL
+      ? (window as any).__ENV__.NEON_DATABASE_URL
+      : "postgresql://neondb_owner:npg_ga9qZ1uUYejM@ep-calm-credit-ahfggcxi-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 };

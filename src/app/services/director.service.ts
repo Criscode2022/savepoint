@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, from, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { neon } from '@neondatabase/serverless';
 import { Director } from '../models/game.model';
 import { environment } from '../../environments/environment';
 
@@ -9,33 +9,97 @@ import { environment } from '../../environments/environment';
   providedIn: 'root'
 })
 export class DirectorService {
-  private http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiBaseUrl}/directors`;
+  private readonly DATABASE_URL = environment.neonDatabaseUrl;
+
+  private get sql() {
+    return neon(this.DATABASE_URL);
+  }
 
   getDirectors(): Observable<Director[]> {
-    return this.http.get<Director[]>(this.apiUrl)
-      .pipe(
-        catchError(error => throwError(() => 
-          new Error(error.error?.message || 'Failed to fetch directors')
-        ))
-      );
+    return from(
+      this.sql(`
+        SELECT 
+          id::text, 
+          name, 
+          birth_year as "birthYear", 
+          nationality, 
+          bio,
+          created_at as "createdAt"
+        FROM directors 
+        ORDER BY name
+      `).then((directors: any[]) => directors.map(d => ({
+        id: d.id,
+        name: d.name,
+        birthYear: d.birthYear,
+        nationality: d.nationality,
+        bio: d.bio,
+        createdAt: d.createdAt
+      })))
+    ).pipe(
+      catchError(error => throwError(() => 
+        new Error(error?.message || 'Failed to fetch directors')
+      ))
+    );
   }
 
   getDirectorById(id: string): Observable<Director> {
-    return this.http.get<Director>(`${this.apiUrl}/${id}`)
-      .pipe(
-        catchError(error => throwError(() => 
-          new Error(error.error?.message || 'Failed to fetch director')
-        ))
-      );
+    return from(
+      this.sql(`
+        SELECT 
+          id::text, 
+          name, 
+          birth_year as "birthYear", 
+          nationality, 
+          bio,
+          created_at as "createdAt"
+        FROM directors 
+        WHERE id = '${id}'
+      `).then((directors: any[]) => {
+        if (directors.length === 0) {
+          throw new Error('Director not found');
+        }
+        const d = directors[0];
+        return {
+          id: d.id,
+          name: d.name,
+          birthYear: d.birthYear,
+          nationality: d.nationality,
+          bio: d.bio,
+          createdAt: d.createdAt
+        };
+      })
+    ).pipe(
+      catchError(error => throwError(() => 
+        new Error(error?.message || 'Failed to fetch director')
+      ))
+    );
   }
 
   searchDirectors(query: string): Observable<Director[]> {
-    return this.http.get<Director[]>(`${this.apiUrl}/search?q=${encodeURIComponent(query)}`)
-      .pipe(
-        catchError(error => throwError(() => 
-          new Error(error.error?.message || 'Failed to search directors')
-        ))
-      );
+    return from(
+      this.sql(`
+        SELECT 
+          id::text, 
+          name, 
+          birth_year as "birthYear", 
+          nationality, 
+          bio,
+          created_at as "createdAt"
+        FROM directors 
+        WHERE name ILIKE '%${query.replace(/'/g, "''")}%'
+        ORDER BY name
+      `).then((directors: any[]) => directors.map(d => ({
+        id: d.id,
+        name: d.name,
+        birthYear: d.birthYear,
+        nationality: d.nationality,
+        bio: d.bio,
+        createdAt: d.createdAt
+      })))
+    ).pipe(
+      catchError(error => throwError(() => 
+        new Error(error?.message || 'Failed to search directors')
+      ))
+    );
   }
 }
