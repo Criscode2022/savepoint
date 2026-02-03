@@ -50,35 +50,56 @@ export class AuthService {
 
   /**
    * Internal initialization logic
+   * Uses localStorage as primary session storage (like dog-reservation pattern)
+   * Server session is used for verification/refresh only
    */
   private async doInitialize(): Promise<void> {
-    // Check for Neon Auth session via SDK (cookie-based)
+    // First, try to restore from localStorage (primary source)
+    const hasLocalSession = this.restoreFromLocalStorage();
+
+    if (hasLocalSession) {
+      // We have a local session, try to verify/refresh with server
+      try {
+        const { data, error } = await authClient.getSession();
+        if (!error && data?.user) {
+          // Server confirmed session, update token if new one provided
+          if (this.isJwt(data.token)) {
+            this.accessToken = data.token;
+            if (this.currentUser) {
+              this.currentUser.accessToken = this.accessToken;
+              this.saveToLocalStorage(this.currentUser);
+            }
+          }
+        }
+        // Even if server check fails, keep local session (might be offline)
+      } catch {
+        // Server unreachable, keep local session
+      }
+      this.initialized.next(true);
+      return;
+    }
+
+    // No local session, try server session (cookie-based)
     try {
       const { data, error } = await authClient.getSession();
-      if (error || !data?.user) {
-        // Cookie-based session failed, try localStorage fallback
-        this.restoreFromLocalStorage();
-        this.initialized.next(true);
-        return;
+      if (!error && data?.user) {
+        // Extract JWT token if available
+        this.accessToken = this.isJwt(data.token) ? data.token : null;
+
+        this.currentUser = {
+          id: data.user.id,
+          email: data.user.email,
+          username: data.user.name || data.user.email,
+          avatarUrl: data.user.avatarUrl,
+          accessToken: this.accessToken,
+        };
+        this.isAuthenticated.next(true);
+
+        // Save to localStorage for persistence
+        this.saveToLocalStorage(this.currentUser);
       }
-
-      // Extract JWT token if available
-      this.accessToken = this.isJwt(data.token) ? data.token : null;
-
-      this.currentUser = {
-        id: data.user.id,
-        email: data.user.email,
-        username: data.user.name || data.user.email,
-        avatarUrl: data.user.avatarUrl,
-        accessToken: this.accessToken,
-      };
-      this.isAuthenticated.next(true);
-
-      // Also save to localStorage for consistency
-      this.saveToLocalStorage(this.currentUser);
     } catch {
-      // Cookie-based session failed, try localStorage fallback
-      this.restoreFromLocalStorage();
+      // No session available
     }
 
     this.initialized.next(true);
@@ -120,7 +141,7 @@ export class AuthService {
   }
 
   /**
-   * Restore session from localStorage (iOS fallback)
+   * Restore session from localStorage (primary session storage)
    */
   private restoreFromLocalStorage(): boolean {
     try {
@@ -144,11 +165,13 @@ export class AuthService {
         return false;
       }
 
+      // Restore both the class property and user object
+      this.accessToken = this.isJwt(sessionData.accessToken) ? sessionData.accessToken : null;
       this.currentUser = {
         id: sessionData.id,
         username: sessionData.username,
         email: sessionData.email || '',
-        accessToken: this.isJwt(sessionData.accessToken) ? sessionData.accessToken : null,
+        accessToken: this.accessToken,
       };
       this.isAuthenticated.next(true);
       return true;
@@ -243,6 +266,7 @@ export class AuthService {
 
   /**
    * Verify session (for guards)
+   * Checks memory first, then localStorage, then server
    */
   async verifySession(): Promise<boolean> {
     // If already authenticated in memory, trust it
@@ -250,36 +274,33 @@ export class AuthService {
       return true;
     }
 
+    // Try localStorage first (primary storage)
+    if (this.restoreFromLocalStorage()) {
+      return true;
+    }
+
+    // Try server session (cookie-based)
     try {
       const { data, error } = await authClient.getSession();
-      if (error || !data?.user) {
-        // Cookie failed, try localStorage
-        if (this.restoreFromLocalStorage()) {
-          return true;
-        }
-        this.clearSession();
-        return false;
-      }
-
-      this.accessToken = this.isJwt(data.token) ? data.token : null;
-      this.currentUser = {
-        id: data.user.id,
-        email: data.user.email,
-        username: data.user.name || data.user.email,
-        avatarUrl: data.user.avatarUrl,
-        accessToken: this.accessToken,
-      };
-      this.isAuthenticated.next(true);
-      this.saveToLocalStorage(this.currentUser);
-      return true;
-    } catch {
-      // Cookie failed, try localStorage
-      if (this.restoreFromLocalStorage()) {
+      if (!error && data?.user) {
+        this.accessToken = this.isJwt(data.token) ? data.token : null;
+        this.currentUser = {
+          id: data.user.id,
+          email: data.user.email,
+          username: data.user.name || data.user.email,
+          avatarUrl: data.user.avatarUrl,
+          accessToken: this.accessToken,
+        };
+        this.isAuthenticated.next(true);
+        this.saveToLocalStorage(this.currentUser);
         return true;
       }
-      this.clearSession();
-      return false;
+    } catch {
+      // Server unreachable
     }
+
+    this.clearSession();
+    return false;
   }
 
   /**
