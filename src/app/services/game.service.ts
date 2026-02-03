@@ -97,8 +97,16 @@ export class GameService {
 
     const whereClause = conditions.join(' AND ');
     
-    // Build ORDER BY
-    const sortBy = filter?.sortBy || 'created_at';
+    // Build ORDER BY - map camelCase to snake_case
+    const sortFieldMap: Record<string, string> = {
+      'createdAt': 'created_at',
+      'updatedAt': 'updated_at',
+      'releaseYear': 'release_year',
+      'playtimeHours': 'playtime_hours',
+      'title': 'title',
+      'rating': 'rating'
+    };
+    const sortBy = sortFieldMap[filter?.sortBy || 'createdAt'] || 'created_at';
     const sortOrder = filter?.sortOrder || 'desc';
     const orderBy = `g.${sortBy} ${sortOrder.toUpperCase()}`;
 
@@ -195,8 +203,16 @@ export class GameService {
 
     const whereClause = conditions.join(' AND ');
     
-    // Build ORDER BY
-    const sortBy = filters?.sortBy || 'created_at';
+    // Build ORDER BY - map camelCase to snake_case
+    const sortFieldMap: Record<string, string> = {
+      'createdAt': 'created_at',
+      'updatedAt': 'updated_at',
+      'releaseYear': 'release_year',
+      'playtimeHours': 'playtime_hours',
+      'title': 'title',
+      'rating': 'rating'
+    };
+    const sortBy = sortFieldMap[filters?.sortBy || 'createdAt'] || 'created_at';
     const sortOrder = filters?.sortOrder || 'desc';
     const orderBy = `g.${sortBy} ${sortOrder.toUpperCase()}`;
 
