@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { CanActivate, Router, UrlTree } from '@angular/router';
-import { Observable, map, take } from 'rxjs';
+import { Observable, map, take, switchMap } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 
 @Injectable({
@@ -11,7 +11,9 @@ export class NoAuthGuard implements CanActivate {
   private router = inject(Router);
 
   canActivate(): Observable<boolean | UrlTree> {
-    return this.authService.getAuthState().pipe(
+    // Wait for auth initialization to complete before checking state
+    return this.authService.waitForInitialization().pipe(
+      switchMap(() => this.authService.getAuthState()),
       take(1),
       map(isAuthenticated => {
         if (!isAuthenticated) {

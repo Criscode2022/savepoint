@@ -350,7 +350,7 @@ export class RegisterPage {
     });
   }
 
-  onRegister(): void {
+  async onRegister(): Promise<void> {
     if (!this.username || !this.email || !this.password) return;
 
     if (this.password !== this.confirmPassword) {
@@ -361,17 +361,17 @@ export class RegisterPage {
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.authService.register(this.email, this.password, this.username).subscribe({
-      next: () => {
-        this.router.navigate(['/home']);
-      },
-      error: (error) => {
-        this.errorMessage = error.message || 'Registration failed. Please try again.';
-        this.isLoading = false;
-      },
-      complete: () => {
-        this.isLoading = false;
-      }
-    });
+    try {
+      await this.authService.register({
+        email: this.email,
+        password: this.password,
+        username: this.username
+      });
+      this.router.navigate(['/home']);
+    } catch (error: any) {
+      this.errorMessage = error.message || 'Registration failed. Please try again.';
+    } finally {
+      this.isLoading = false;
+    }
   }
 }

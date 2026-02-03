@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, from } from 'rxjs';
+import { BehaviorSubject, Observable, filter, take } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { authClient } from '../../lib/auth';
 import { AuthUser, LoginCredentials, RegisterCredentials } from '../models/auth.model';
@@ -17,6 +17,7 @@ export class AuthService {
   private readonly router = inject(Router);
 
   private isAuthenticated = new BehaviorSubject<boolean>(false);
+  private initialized = new BehaviorSubject<boolean>(false);
   private currentUser: AuthUser | null = null;
   private accessToken: string | null = null;
 
@@ -28,8 +29,67 @@ export class AuthService {
    * Check if string is a valid JWT (has 3 parts)
    */
   private isJwt(token: string | null | undefined): token is string {
-    if (!token) return false;
+    if (!token) {
+      return false;
+    }
     return token.split('.').length === 3;
+  }
+
+  /**
+   * Extract token from response data (handles multiple formats)
+   */
+  private extractToken(data: any): string | null {
+    if (!data) return null;
+
+    // Try session object first
+    const session = data.session;
+    if (session) {
+      const sessionToken = session.token || session.access_token || session.accessToken;
+      if (this.isJwt(sessionToken)) {
+        return sessionToken;
+      }
+    }
+    // Try root level token
+    const rootToken = data.token || data.access_token || data.accessToken;
+    if (this.isJwt(rootToken)) {
+      return rootToken;
+    }
+    return null;
+  }
+
+  /**
+   * Check if response has valid session (handles multiple formats)
+   */
+  private hasValidSession(data: any): boolean {
+    if (!data) return false;
+    // Check if we have user data (required)
+    if (!data.user) return false;
+    // Session can be explicit or implied by having user + cookie
+    return true;
+  }
+
+  /**
+   * Fetch JWT token from SDK using multiple fallback methods
+   */
+  private async fetchJwtFromSdk(): Promise<string | null> {
+    try {
+      const authWithJwt = authClient as unknown as {
+        getJWTToken?: () => Promise<string | null>;
+      };
+      const jwt = await authWithJwt.getJWTToken?.();
+      if (this.isJwt(jwt)) {
+        return jwt;
+      }
+    } catch {
+      // Ignore and fall back
+    }
+
+    try {
+      const { data } = await authClient.getSession();
+      return this.extractToken(data);
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -38,28 +98,41 @@ export class AuthService {
   private async initializeAuth(): Promise<void> {
     // Check for Neon Auth session via SDK (cookie-based)
     try {
-      const { data, error } = await authClient.getSession();
-      if (error || !data?.user) {
-        // Cookie-based session failed, try localStorage fallback
-        this.restoreFromLocalStorage();
+      const { data } = await authClient.getSession();
+      if (this.hasValidSession(data)) {
+        this.accessToken = this.extractToken(data) || await this.fetchJwtFromSdk();
+
+        this.currentUser = {
+          id: data!.user!.id,
+          email: data!.user!.email,
+          username: data!.user!.name || data!.user!.email,
+          avatarUrl: data!.user!.avatarUrl,
+          accessToken: this.accessToken,
+        };
+        this.isAuthenticated.next(true);
+
+        // Save to localStorage as iOS fallback
+        this.saveToLocalStorage(this.currentUser);
+        this.initialized.next(true);
         return;
       }
-
-      // Extract JWT token if available
-      this.accessToken = this.isJwt(data.token) ? data.token : null;
-
-      this.currentUser = {
-        id: data.user.id,
-        email: data.user.email,
-        username: data.user.name || data.user.email,
-        avatarUrl: data.user.avatarUrl,
-        accessToken: this.accessToken,
-      };
-      this.isAuthenticated.next(true);
     } catch {
       // Cookie-based session failed, try localStorage fallback
-      this.restoreFromLocalStorage();
     }
+
+    // Fallback to localStorage (for iOS Safari where cookies may fail)
+    this.restoreFromLocalStorage();
+    this.initialized.next(true);
+  }
+
+  /**
+   * Wait for initialization to complete (for guards)
+   */
+  waitForInitialization(): Observable<boolean> {
+    return this.initialized.pipe(
+      filter(initialized => initialized),
+      take(1)
+    );
   }
 
   /**
@@ -81,7 +154,7 @@ export class AuthService {
   }
 
   /**
-   * Restore session from localStorage (iOS fallback)
+   * Restore session from localStorage (iOS Safari fallback)
    */
   private restoreFromLocalStorage(): boolean {
     try {
@@ -109,8 +182,12 @@ export class AuthService {
         id: sessionData.id,
         username: sessionData.username,
         email: sessionData.email || '',
-        accessToken: this.isJwt(sessionData.accessToken) ? sessionData.accessToken : null,
+        accessToken: null,
       };
+
+      this.accessToken = this.isJwt(sessionData.accessToken)
+        ? sessionData.accessToken
+        : null;
       this.isAuthenticated.next(true);
       return true;
     } catch {
@@ -131,27 +208,53 @@ export class AuthService {
   }
 
   /**
-   * Login with email/password
+   * Set session after successful Neon Auth login
    */
-  async login(credentials: LoginCredentials): Promise<void> {
-    const { data, error } = await authClient.signIn(credentials.email, credentials.password);
-    
-    if (error || !data?.user) {
-      throw new Error(error?.message || 'Login failed');
-    }
-
-    this.accessToken = this.isJwt(data.token) ? data.token : null;
+  setNeonAuthSession(user: {
+    id: string;
+    name?: string;
+    email: string;
+    avatarUrl?: string;
+    accessToken?: string | null;
+  }): void {
     this.currentUser = {
-      id: data.user.id,
-      email: data.user.email,
-      username: data.user.name || data.user.email,
-      avatarUrl: data.user.avatarUrl,
-      accessToken: this.accessToken,
+      id: user.id,
+      username: user.name || user.email,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+      accessToken: null,
     };
+
+    if (this.isJwt(user.accessToken)) {
+      this.accessToken = user.accessToken;
+      this.currentUser.accessToken = this.accessToken;
+    }
     this.isAuthenticated.next(true);
 
     // Save to localStorage as fallback for iOS Safari
     this.saveToLocalStorage(this.currentUser);
+  }
+
+  /**
+   * Login with email/password
+   */
+  async login(credentials: LoginCredentials): Promise<void> {
+    const { data, error } = await authClient.signIn(credentials.email, credentials.password);
+
+    if (error || !data?.user) {
+      throw new Error(error?.message || 'Login failed');
+    }
+
+    // Get JWT token from response or SDK
+    const token = this.extractToken(data) || await this.fetchJwtFromSdk();
+
+    this.setNeonAuthSession({
+      id: data.user.id,
+      name: data.user.name,
+      email: data.user.email,
+      avatarUrl: data.user.avatarUrl,
+      accessToken: token,
+    });
   }
 
   /**
@@ -160,23 +263,67 @@ export class AuthService {
   async register(credentials: RegisterCredentials): Promise<void> {
     const name = credentials.username || credentials.email.split('@')[0];
     const { data, error } = await authClient.signUp(credentials.email, credentials.password, name);
-    
+
     if (error || !data?.user) {
       throw new Error(error?.message || 'Registration failed');
     }
 
-    this.accessToken = this.isJwt(data.token) ? data.token : null;
-    this.currentUser = {
-      id: data.user.id,
-      email: data.user.email,
-      username: data.user.name || data.user.email,
-      avatarUrl: data.user.avatarUrl,
-      accessToken: this.accessToken,
-    };
-    this.isAuthenticated.next(true);
+    // Get JWT token from response or SDK
+    const token = this.extractToken(data) || await this.fetchJwtFromSdk();
 
-    // Save to localStorage as fallback
-    this.saveToLocalStorage(this.currentUser);
+    this.setNeonAuthSession({
+      id: data.user.id,
+      name: data.user.name,
+      email: data.user.email,
+      avatarUrl: data.user.avatarUrl,
+      accessToken: token,
+    });
+  }
+
+  /**
+   * Verify session with Neon Auth
+   */
+  async verifySession(): Promise<boolean> {
+    // If we already have a session in memory (just logged in), trust it
+    // This fixes iOS Safari cookie issues where getSession() fails immediately after login
+    if (this.currentUser && this.isAuthenticated.value) {
+      return true;
+    }
+
+    try {
+      const { data, error } = await authClient.getSession();
+      if (error || !this.hasValidSession(data)) {
+        // Cookie-based session failed, try localStorage fallback (iOS)
+        if (this.restoreFromLocalStorage()) {
+          return true;
+        }
+        this.clearSession();
+        return false;
+      }
+
+      this.accessToken = this.extractToken(data) || (await this.fetchJwtFromSdk()) || this.accessToken;
+
+      // Update current user from session data
+      this.currentUser = {
+        id: data!.user!.id,
+        email: data!.user!.email,
+        username: data!.user!.name || data!.user!.email,
+        avatarUrl: data!.user!.avatarUrl,
+        accessToken: this.accessToken,
+      };
+      this.isAuthenticated.next(true);
+      // Also update localStorage in case it was stale
+      this.saveToLocalStorage(this.currentUser);
+
+      return true;
+    } catch {
+      // Cookie-based session failed, try localStorage fallback (iOS)
+      if (this.restoreFromLocalStorage()) {
+        return true;
+      }
+      this.clearSession();
+      return false;
+    }
   }
 
   /**
@@ -203,47 +350,6 @@ export class AuthService {
   }
 
   /**
-   * Verify session (for guards)
-   */
-  async verifySession(): Promise<boolean> {
-    // If already authenticated in memory, trust it
-    if (this.currentUser && this.isAuthenticated.value) {
-      return true;
-    }
-
-    try {
-      const { data, error } = await authClient.getSession();
-      if (error || !data?.user) {
-        // Cookie failed, try localStorage
-        if (this.restoreFromLocalStorage()) {
-          return true;
-        }
-        this.clearSession();
-        return false;
-      }
-
-      this.accessToken = this.isJwt(data.token) ? data.token : null;
-      this.currentUser = {
-        id: data.user.id,
-        email: data.user.email,
-        username: data.user.name || data.user.email,
-        avatarUrl: data.user.avatarUrl,
-        accessToken: this.accessToken,
-      };
-      this.isAuthenticated.next(true);
-      this.saveToLocalStorage(this.currentUser);
-      return true;
-    } catch {
-      // Cookie failed, try localStorage
-      if (this.restoreFromLocalStorage()) {
-        return true;
-      }
-      this.clearSession();
-      return false;
-    }
-  }
-
-  /**
    * Get access token for HTTP requests
    */
   async getAccessToken(): Promise<string | null> {
@@ -251,11 +357,9 @@ export class AuthService {
       return this.accessToken;
     }
 
-    // Try to get fresh session
-    const { data } = await authClient.getSession();
-    const token = data?.token || null;
-    this.accessToken = this.isJwt(token) ? token : null;
-    return this.accessToken;
+    const jwt = await this.fetchJwtFromSdk();
+    this.accessToken = jwt;
+    return jwt;
   }
 
   /**
