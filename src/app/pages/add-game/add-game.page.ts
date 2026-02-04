@@ -34,15 +34,9 @@ import { GameService } from '../../services/game.service';
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="form-content">
-      <div class="form-container">
-        <ion-card class="form-card">
-          <ion-card-header>
-            <ion-card-title class="gaming-font">Game Information</ion-card-title>
-          </ion-card-header>
-
-          <ion-card-content>
-            <form (ngSubmit)="onSubmit()" #gameForm="ngForm">
+    <ion-content class="form-content" [scrollEvents]="true">
+      <div class="form-wrapper">
+        <form (ngSubmit)="onSubmit()" #gameForm="ngForm" class="game-form">
               <!-- Basic Info -->
               <div class="form-section">
                 <h3 class="section-title">Basic Information</h3>
@@ -201,8 +195,21 @@ import { GameService } from '../../services/game.service';
                 </ion-button>
               </div>
             </form>
-          </ion-card-content>
-        </ion-card>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <ion-button
+          type="submit"
+          [disabled]="isSubmitting || !gameForm.valid"
+          class="submit-btn"
+          (click)="onSubmit()"
+        >
+          <ion-icon name="save-outline" slot="start"></ion-icon>
+          <span *ngIf="!isSubmitting">Save Game</span>
+          <span *ngIf="isSubmitting">Saving...</span>
+        </ion-button>
       </div>
 
       <ion-toast
@@ -226,40 +233,34 @@ import { GameService } from '../../services/game.service';
       --background: var(--color-bg-primary);
     }
 
-    .form-container {
+    .form-wrapper {
       max-width: 800px;
       margin: 0 auto;
-      padding: 1.5rem;
+      padding: 1rem 1rem 140px 1rem;
+      min-height: 100%;
     }
 
-    .form-card {
+    .game-form {
       background: rgba(22, 22, 42, 0.8);
       border-radius: 16px;
       border: 1px solid rgba(139, 92, 246, 0.1);
-    }
-
-    ion-card-header {
-      padding: 1.5rem 1.5rem 0;
-    }
-
-    ion-card-title {
-      font-size: 1.5rem;
-      color: #f8fafc;
-    }
-
-    ion-card-content {
-      padding: 1.5rem;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
     }
 
     .form-section {
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-section:last-child {
+      margin-bottom: 0;
     }
 
     .section-title {
-      font-size: 1rem;
+      font-size: 0.875rem;
       font-weight: 600;
       color: #8b5cf6;
-      margin: 0 0 1rem;
+      margin: 0 0 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -268,8 +269,12 @@ import { GameService } from '../../services/game.service';
       --background: rgba(30, 30, 54, 0.5);
       --border-color: rgba(139, 92, 246, 0.2);
       --border-radius: 12px;
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
       border-radius: 12px;
+    }
+
+    .form-item:last-child {
+      margin-bottom: 0;
     }
 
     .form-item:focus-within {
@@ -278,13 +283,15 @@ import { GameService } from '../../services/game.service';
 
     ion-label {
       color: #94a3b8 !important;
-      font-size: 0.875rem !important;
-      margin-bottom: 0.5rem;
+      font-size: 0.8125rem !important;
+      margin-bottom: 0.375rem;
     }
 
     ion-input, ion-textarea, ion-select {
       --color: #f8fafc;
       --placeholder-color: #475569;
+      --padding-top: 8px;
+      --padding-bottom: 8px;
     }
 
     .toggle-item {
@@ -306,7 +313,7 @@ import { GameService } from '../../services/game.service';
     .genre-selector {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5rem;
+      gap: 0.375rem;
     }
 
     .genre-selector ion-chip {
@@ -315,6 +322,8 @@ import { GameService } from '../../services/game.service';
       margin: 0;
       cursor: pointer;
       transition: all 0.2s ease;
+      height: 28px;
+      font-size: 0.8125rem;
     }
 
     .genre-selector ion-chip.selected {
@@ -324,33 +333,68 @@ import { GameService } from '../../services/game.service';
     }
 
     .form-actions {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
       display: flex;
-      justify-content: flex-end;
-      padding-top: 1rem;
-      border-top: 1px solid rgba(139, 92, 246, 0.1);
+      justify-content: center;
+      padding: 1rem;
+      background: linear-gradient(to top, rgba(15, 15, 26, 1) 0%, rgba(15, 15, 26, 0.95) 70%, transparent 100%);
+      z-index: 1000;
     }
 
     .submit-btn {
       --background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
       --background-hover: linear-gradient(135deg, #a78bfa 0%, #67e8f9 100%);
       --border-radius: 12px;
-      --padding-start: 24px;
-      --padding-end: 24px;
-      height: 48px;
+      --padding-start: 32px;
+      --padding-end: 32px;
+      height: 52px;
       font-weight: 600;
+      font-size: 1rem;
+      min-width: 200px;
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
     }
 
-    @media (max-width: 480px) {
-      .form-container {
-        padding: 1rem;
+    @media (min-width: 768px) {
+      .form-wrapper {
+        padding: 1.5rem 1.5rem 120px 1.5rem;
+      }
+
+      .game-form {
+        padding: 1.5rem;
       }
 
       .form-actions {
-        justify-content: stretch;
+        position: static;
+        background: transparent;
+        justify-content: flex-end;
+        padding: 0;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(139, 92, 246, 0.1);
       }
 
       .submit-btn {
-        flex: 1;
+        min-width: auto;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .form-wrapper {
+        padding: 0.75rem 0.75rem 120px 0.75rem;
+      }
+
+      .game-form {
+        padding: 1rem;
+      }
+
+      .submit-btn {
+        min-width: 160px;
+        --padding-start: 24px;
+        --padding-end: 24px;
+        height: 48px;
       }
     }
   `]
