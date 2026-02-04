@@ -287,13 +287,6 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
         </div>
       </div>
 
-      <!-- FAB -->
-      <ion-fab slot="fixed" vertical="bottom" horizontal="end">
-        <ion-fab-button routerLink="/add" class="add-fab">
-          <ion-icon name="add-outline"></ion-icon>
-        </ion-fab-button>
-      </ion-fab>
-
       <!-- Toast -->
       <ion-toast
         [isOpen]="!!toastMessage"
@@ -304,8 +297,25 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
         (didDismiss)="toastMessage = ''"
       ></ion-toast>
     </ion-content>
+
+    <!-- FAB - Positioned outside ion-content for iOS visibility -->
+    <ion-fab vertical="bottom" horizontal="end" class="fab-container">
+      <ion-fab-button routerLink="/add" class="add-fab">
+        <ion-icon name="add-outline"></ion-icon>
+      </ion-fab-button>
+    </ion-fab>
   `,
   styles: [`
+    /* Component wrapper to handle FAB positioning */
+    :host {
+      display: contents;
+    }
+
+    /* CSS Variables for FAB positioning */
+    :host {
+      --fab-offset: 20px;
+    }
+
     .header-toolbar {
       --background: rgba(15, 15, 26, 0.95);
       --border-color: rgba(139, 92, 246, 0.2);
@@ -663,26 +673,28 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
       --border-radius: 12px;
     }
 
-    /* FAB - Aggressive iOS fixes */
-    ion-fab {
-      z-index: 99999 !important;
-      position: fixed !important;
-      isolation: isolate;
+    /* FAB - Positioned as sibling to ion-content for iOS visibility */
+    .fab-container {
+      position: fixed;
+      bottom: var(--fab-offset);
+      right: var(--fab-offset);
+      z-index: 10000;
+      pointer-events: auto;
     }
 
     .add-fab {
       --background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
       --box-shadow: 0 4px 20px rgba(139, 92, 246, 0.5);
-      transform: translateZ(0) !important;
-      -webkit-transform: translateZ(0) !important;
-      will-change: transform;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-      perspective: 1000px;
-      -webkit-perspective: 1000px;
-      opacity: 1 !important;
-      visibility: visible !important;
-      pointer-events: auto !important;
+      width: 56px;
+      height: 56px;
+    }
+
+    /* iOS-specific safe area adjustments */
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
+      .fab-container {
+        bottom: calc(var(--fab-offset) + env(safe-area-inset-bottom));
+        right: calc(var(--fab-offset) + env(safe-area-inset-right));
+      }
     }
 
     @keyframes slideIn {
