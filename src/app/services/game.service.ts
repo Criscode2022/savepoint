@@ -1,4 +1,4 @@
-import { Injectable, inject } from "@angular/core";
+import { Injectable, inject, signal } from "@angular/core";
 import {
   BehaviorSubject,
   Observable,
@@ -85,6 +85,8 @@ export class GameService {
 
   private gamesSubject = new BehaviorSubject<Game[]>([]);
   games$ = this.gamesSubject.asObservable();
+  readonly filteredGames = signal<Game[]>([]);
+  private lastFilters: GameFilters | undefined;
 
   /**
    * Get games with filters (returns GamesResponse with pagination)
@@ -102,7 +104,10 @@ export class GameService {
     return from(
       this.fetchGamesWithPagination(filter, page, limit, currentUser.id),
     ).pipe(
-      tap((response) => this.gamesSubject.next(response.games)),
+      tap((response) => {
+        this.gamesSubject.next(response.games);
+        this.filteredGames.set(response.games);
+      }),
       catchError((error) => this.handleError(error, "Failed to fetch games")),
     );
   }
@@ -111,13 +116,17 @@ export class GameService {
    * Get games with filters (returns Game[] - for home page)
    */
   getGames(filters?: GameFilters): Observable<Game[]> {
+    this.lastFilters = filters;
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
       return throwError(() => new Error("User not authenticated"));
     }
 
     return from(this.fetchGames(filters, currentUser.id)).pipe(
-      tap((games) => this.gamesSubject.next(games)),
+      tap((games) => {
+        this.gamesSubject.next(games);
+        this.filteredGames.set(games);
+      }),
       catchError((error) => this.handleError(error, "Failed to fetch games")),
     );
   }
@@ -413,6 +422,16 @@ export class GameService {
         // Fetch with joins to get full data
         return this.getGameById(result.id);
       }),
+      tap((createdGame) => {
+        if (this.shouldIncludeGame(createdGame, this.lastFilters)) {
+          this.gamesSubject.next(
+            this.mergeGameIntoList(this.gamesSubject.value, createdGame),
+          );
+          this.filteredGames.set(
+            this.mergeGameIntoList(this.filteredGames(), createdGame),
+          );
+        }
+      }),
       catchError((error) => this.handleError(error, "Failed to create game")),
     );
   }
@@ -651,6 +670,69 @@ export class GameService {
   private handleError(error: any, defaultMessage: string): Observable<never> {
     const message = error?.message || defaultMessage;
     return throwError(() => new Error(message));
+  }
+
+  private shouldIncludeGame(
+    game: Game,
+    filters: GameFilters | undefined,
+  ): boolean {
+    if (!filters) {
+      return true;
+    }
+
+    if (filters.search?.trim()) {
+      const query = filters.search.trim().toLowerCase();
+      if (!game.title.toLowerCase().includes(query)) {
+        return false;
+      }
+    }
+
+    if (filters.platforms?.length) {
+      if (
+        !game.platform?.name ||
+        !filters.platforms.includes(game.platform.name)
+      ) {
+        return false;
+      }
+    }
+
+    if (filters.years?.length) {
+      if (!game.releaseYear || !filters.years.includes(game.releaseYear)) {
+        return false;
+      }
+    }
+
+    if (filters.developers?.length) {
+      if (
+        !game.developer?.name ||
+        !filters.developers.includes(game.developer.name)
+      ) {
+        return false;
+      }
+    }
+
+    if (filters.genres?.length) {
+      const genres = game.genre ?? [];
+      if (!filters.genres.some((genre) => genres.includes(genre))) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private mergeGameIntoList(games: Game[], createdGame: Game): Game[] {
+    const existingIndex = games.findIndex(
+      (game) => game.id === createdGame.id,
+    );
+    if (existingIndex === -1) {
+      return [createdGame, ...games];
+    }
+    return [
+      createdGame,
+      ...games.slice(0, existingIndex),
+      ...games.slice(existingIndex + 1),
+    ];
   }
 }
 
