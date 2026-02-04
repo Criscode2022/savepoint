@@ -160,6 +160,13 @@ body {
   --placeholder-color: var(--color-text-muted);
 }
 
+/* Force white icons in input items */
+.dark ion-item ion-icon[slot="start"],
+.dark ion-item ion-icon[slot="end"] {
+  color: white !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
 .dark ion-select {
   --background: var(--color-bg-input);
   --color: var(--color-text-primary);

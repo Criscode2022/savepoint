@@ -56,7 +56,7 @@ import { AuthService } from "../../services/auth.service";
           <!-- Login Card -->
           <ion-card class="gaming-card overflow-hidden">
             <ion-card-header class="pb-0">
-              <ion-card-title class="text-2xl text-center">
+              <ion-card-title class="text-2xl text-center text-white font-bold drop-shadow-sm">
                 {{ isRegisterMode() ? "Create Account" : "Welcome Back" }}
               </ion-card-title>
             </ion-card-header>
