@@ -308,10 +308,12 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
   styles: [`
     /* Component wrapper to handle FAB positioning */
     :host {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      position: relative;
+      display: contents;
+    }
+
+    /* CSS Variables for FAB positioning */
+    :host {
+      --fab-offset: 20px;
     }
 
     .header-toolbar {
@@ -674,8 +676,8 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     /* FAB - Positioned as sibling to ion-content for iOS visibility */
     .fab-container {
       position: fixed;
-      bottom: 20px;
-      right: 20px;
+      bottom: var(--fab-offset);
+      right: var(--fab-offset);
       z-index: 10000;
       pointer-events: auto;
     }
@@ -690,8 +692,8 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     /* iOS-specific safe area adjustments */
     @supports (padding-bottom: env(safe-area-inset-bottom)) {
       .fab-container {
-        bottom: calc(20px + env(safe-area-inset-bottom));
-        right: calc(20px + env(safe-area-inset-right));
+        bottom: calc(var(--fab-offset) + env(safe-area-inset-bottom));
+        right: calc(var(--fab-offset) + env(safe-area-inset-right));
       }
     }
 
