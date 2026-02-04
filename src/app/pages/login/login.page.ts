@@ -54,8 +54,8 @@ import { AuthService } from "../../services/auth.service";
           </div>
 
           <!-- Login Card -->
-          <ion-card class="gaming-card overflow-hidden">
-            <ion-card-header class="pb-0">
+          <ion-card class="gaming-card overflow-hidden mt-6" style="padding: 1.5rem;">
+            <ion-card-header class="pb-0" style="padding: 0 0 1rem 0;">
               <ion-card-title 
                 class="text-2xl text-center" 
                 style="color: white; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">

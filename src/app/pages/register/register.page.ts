@@ -33,7 +33,7 @@ import { AuthService } from '../../services/auth.service';
           <p class="logo-subtitle">Start building your game collection</p>
         </div>
 
-        <ion-card class="register-card animate-slide-in">
+        <ion-card class="register-card animate-slide-in mt-6">
           <ion-card-header>
             <ion-card-title class="gaming-font">Create Account</ion-card-title>
           </ion-card-header>
@@ -213,11 +213,12 @@ import { AuthService } from '../../services/auth.service';
       border: 1px solid rgba(139, 92, 246, 0.2);
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
       z-index: 1;
+      padding: 1.5rem;
     }
 
     ion-card-header {
       text-align: center;
-      padding: 2rem 2rem 1rem;
+      padding: 0 0 1rem 0;
     }
 
     ion-card-title {
@@ -226,7 +227,7 @@ import { AuthService } from '../../services/auth.service';
     }
 
     ion-card-content {
-      padding: 0 2rem 2rem;
+      padding: 0;
     }
 
     .input-item {
