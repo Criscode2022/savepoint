@@ -6,7 +6,7 @@ import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { 
   IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
   IonIcon, IonGrid, IonRow, IonCol, IonSearchbar, IonChip, IonLabel,
-  IonBadge, IonFab, IonFabButton, IonList, IonItem, IonThumbnail,
+  IonBadge, IonList, IonItem, IonThumbnail,
   IonSelect, IonSelectOption, IonToast
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -28,7 +28,7 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     CommonModule, FormsModule, RouterLink, GameCardComponent,
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
     IonIcon, IonGrid, IonRow, IonCol, IonSearchbar, IonChip, IonLabel,
-    IonBadge, IonFab, IonFabButton, IonList, IonItem, IonThumbnail,
+    IonBadge, IonList, IonItem, IonThumbnail,
     IonSelect, IonSelectOption, IonToast
   ],
   template: `
@@ -298,22 +298,15 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
       ></ion-toast>
     </ion-content>
 
-    <!-- FAB - Positioned outside ion-content for iOS visibility -->
-    <ion-fab vertical="bottom" horizontal="end" class="fab-container">
-      <ion-fab-button routerLink="/add" class="add-fab">
-        <ion-icon name="add-outline"></ion-icon>
-      </ion-fab-button>
-    </ion-fab>
+    <!-- Custom Add Button - Fixed Position for iOS compatibility -->
+    <button class="custom-add-button" routerLink="/add" title="Add Game">
+      <ion-icon name="add-outline"></ion-icon>
+    </button>
   `,
   styles: [`
     /* Component wrapper to handle FAB positioning */
     :host {
       display: contents;
-    }
-
-    /* CSS Variables for FAB positioning */
-    :host {
-      --fab-offset: 20px;
     }
 
     .header-toolbar {
@@ -673,27 +666,52 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
       --border-radius: 12px;
     }
 
-    /* FAB - Positioned as sibling to ion-content for iOS visibility */
-    .fab-container {
+    /* Custom Add Button - HTML button with fixed position for iOS compatibility */
+    .custom-add-button {
       position: fixed;
-      bottom: var(--fab-offset);
-      right: var(--fab-offset);
+      bottom: 20px;
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+      border: none;
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
       z-index: 10000;
+      transition: all 0.3s ease;
+      /* iOS-specific fixes */
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      /* Ensure button is above all content */
       pointer-events: auto;
     }
 
-    .add-fab {
-      --background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
-      --box-shadow: 0 4px 20px rgba(139, 92, 246, 0.5);
-      width: 56px;
-      height: 56px;
+    .custom-add-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 25px rgba(139, 92, 246, 0.7);
+    }
+
+    .custom-add-button:active {
+      transform: scale(0.95);
+    }
+
+    .custom-add-button ion-icon {
+      font-size: 28px;
+      color: white;
+      pointer-events: none;
     }
 
     /* iOS-specific safe area adjustments */
     @supports (padding-bottom: env(safe-area-inset-bottom)) {
-      .fab-container {
-        bottom: calc(var(--fab-offset) + env(safe-area-inset-bottom));
-        right: calc(var(--fab-offset) + env(safe-area-inset-right));
+      .custom-add-button {
+        bottom: calc(20px + env(safe-area-inset-bottom));
+        right: calc(20px + env(safe-area-inset-right));
       }
     }
 
