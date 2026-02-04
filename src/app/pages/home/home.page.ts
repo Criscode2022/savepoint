@@ -97,7 +97,9 @@ import { ThemeService } from "../../services/theme.service";
         </ion-title>
 
         <ion-buttons slot="end">
-          <ion-button (click)="toggleTheme()" class="theme-btn">
+          <ion-button (click)="toggleViewMode()" [class.active]="isListView" class="view-toggle-btn" [title]="isListView ? 'Grid View' : 'List View'">
+            <ion-icon [name]="isListView ? 'grid-outline' : 'list-outline'" slot="icon-only"></ion-icon>
+          </ion-button>
             <ion-icon
               [name]="isDarkMode ? 'sunny-outline' : 'moon-outline'"
             ></ion-icon>
