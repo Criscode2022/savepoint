@@ -56,7 +56,9 @@ import { AuthService } from "../../services/auth.service";
           <!-- Login Card -->
           <ion-card class="gaming-card overflow-hidden">
             <ion-card-header class="pb-0">
-              <ion-card-title class="text-2xl text-center text-white font-bold drop-shadow-sm">
+              <ion-card-title 
+                class="text-2xl text-center" 
+                style="color: white; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">
                 {{ isRegisterMode() ? "Create Account" : "Welcome Back" }}
               </ion-card-title>
             </ion-card-header>
@@ -73,7 +75,7 @@ import { AuthService } from "../../services/auth.service";
                     <ion-icon
                       name="person"
                       slot="start"
-                      class="text-white drop-shadow-md"
+                      class="text-white drop-shadow-md mr-3"
                     ></ion-icon>
                     <ion-input
                       formControlName="username"
@@ -88,7 +90,7 @@ import { AuthService } from "../../services/auth.service";
                   <ion-icon
                     name="mail"
                     slot="start"
-                    class="text-white drop-shadow-md"
+                    class="text-white drop-shadow-md mr-3"
                   ></ion-icon>
                   <ion-input
                     formControlName="email"
@@ -102,7 +104,7 @@ import { AuthService } from "../../services/auth.service";
                   <ion-icon
                     name="lock-closed-outline"
                     slot="start"
-                    class="text-white drop-shadow-md"
+                    class="text-white drop-shadow-md mr-3"
                   ></ion-icon>
                   <ion-input
                     formControlName="password"
