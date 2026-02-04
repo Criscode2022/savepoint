@@ -24,7 +24,7 @@ import { Game } from '../../models/game.model';
     <ion-card class="game-card" [class.completed]="game.completed">
       <div class="card-image-wrapper">
         <img 
-          [src]="game.coverImage || '/assets/images/game-placeholder.jpg'" 
+          [src]="coverImage || game.coverImage || '/assets/images/game-placeholder.jpg'" 
           [alt]="game.title"
           class="card-image"
           loading="lazy"
@@ -330,6 +330,7 @@ import { Game } from '../../models/game.model';
 })
 export class GameCardComponent {
   @Input() game!: Game;
+  @Input() coverImage?: string;
   @Output() onToggleCompleted = new EventEmitter<string>();
   @Output() onDelete = new EventEmitter<string>();
 
