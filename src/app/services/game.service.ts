@@ -86,6 +86,7 @@ export class GameService {
   private gamesSubject = new BehaviorSubject<Game[]>([]);
   games$ = this.gamesSubject.asObservable();
   readonly filteredGames = signal<Game[]>([]);
+  private lastFilters: GameFilters | undefined;
 
   /**
    * Get games with filters (returns GamesResponse with pagination)
@@ -115,6 +116,7 @@ export class GameService {
    * Get games with filters (returns Game[] - for home page)
    */
   getGames(filters?: GameFilters): Observable<Game[]> {
+    this.lastFilters = filters;
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
       return throwError(() => new Error("User not authenticated"));
@@ -421,15 +423,14 @@ export class GameService {
         return this.getGameById(result.id);
       }),
       tap((createdGame) => {
-        const updatedGames = [
-          createdGame,
-          ...this.gamesSubject.value.filter((game) => game.id !== createdGame.id),
-        ];
-        this.gamesSubject.next(updatedGames);
-        this.filteredGames.set([
-          createdGame,
-          ...this.filteredGames().filter((game) => game.id !== createdGame.id),
-        ]);
+        if (this.shouldIncludeGame(createdGame, this.lastFilters)) {
+          this.gamesSubject.next(
+            this.mergeGameIntoList(this.gamesSubject.value, createdGame),
+          );
+          this.filteredGames.set(
+            this.mergeGameIntoList(this.filteredGames(), createdGame),
+          );
+        }
       }),
       catchError((error) => this.handleError(error, "Failed to create game")),
     );
@@ -669,6 +670,62 @@ export class GameService {
   private handleError(error: any, defaultMessage: string): Observable<never> {
     const message = error?.message || defaultMessage;
     return throwError(() => new Error(message));
+  }
+
+  private shouldIncludeGame(
+    game: Game,
+    filters: GameFilters | undefined,
+  ): boolean {
+    if (!filters) {
+      return true;
+    }
+
+    if (filters.search?.trim()) {
+      const query = filters.search.trim().toLowerCase();
+      if (!game.title.toLowerCase().includes(query)) {
+        return false;
+      }
+    }
+
+    if (filters.platforms?.length) {
+      if (
+        !game.platform?.name ||
+        !filters.platforms.includes(game.platform.name)
+      ) {
+        return false;
+      }
+    }
+
+    if (filters.years?.length) {
+      if (!game.releaseYear || !filters.years.includes(game.releaseYear)) {
+        return false;
+      }
+    }
+
+    if (filters.developers?.length) {
+      if (
+        !game.developer?.name ||
+        !filters.developers.includes(game.developer.name)
+      ) {
+        return false;
+      }
+    }
+
+    if (filters.genres?.length) {
+      const genres = game.genre ?? [];
+      if (!filters.genres.some((genre) => genres.includes(genre))) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private mergeGameIntoList(games: Game[], createdGame: Game): Game[] {
+    return [
+      createdGame,
+      ...games.filter((game) => game.id !== createdGame.id),
+    ];
   }
 }
 

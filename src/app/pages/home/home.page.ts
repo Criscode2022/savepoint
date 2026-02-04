@@ -841,7 +841,11 @@ export class HomePage implements OnInit, OnDestroy {
     };
 
     this.gameService.getGames(filters).pipe(takeUntil(this.destroy$))
-      .subscribe();
+      .subscribe({
+        error: () => {
+          this.showToast('Failed to load games', 'danger');
+        }
+      });
   }
 
   // View toggle
