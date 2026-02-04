@@ -2,11 +2,11 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { 
+import {
   IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonTitle, IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
   IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-  IonTextarea, IonToggle, IonToast
+  IonTextarea, IonToggle, IonToast, IonFooter
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline, saveOutline, imageOutline } from 'ionicons/icons';
@@ -21,7 +21,7 @@ import { GameService } from '../../services/game.service';
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
     IonTitle, IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
     IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-    IonTextarea, IonToggle, IonToast
+    IonTextarea, IonToggle, IonToast, IonFooter
   ],
   template: `
     <ion-header class="ion-no-border">
@@ -182,35 +182,8 @@ import { GameService } from '../../services/game.service';
                     placeholder="Any notes about the game..."></ion-textarea>
                 </ion-item>
               </div>
-
-              <!-- Submit -->
-              <div class="form-actions">
-                <ion-button
-                  type="submit"
-                  [disabled]="isSubmitting || !gameForm.valid"
-                  class="submit-btn">
-                  <ion-icon name="save-outline" slot="start"></ion-icon>
-                  <span *ngIf="!isSubmitting">Save Game</span>
-                  <span *ngIf="isSubmitting">Saving... </span>
-                </ion-button>
-              </div>
             </form>
           </div>
-        </div>
-      </div>
-
-      <div class="form-actions">
-        <ion-button
-          type="submit"
-          [disabled]="isSubmitting || !gameForm.valid"
-          class="submit-btn"
-          (click)="onSubmit()"
-        >
-          <ion-icon name="save-outline" slot="start"></ion-icon>
-          <span *ngIf="!isSubmitting">Save Game</span>
-          <span *ngIf="isSubmitting">Saving...</span>
-        </ion-button>
-      </div>
 
       <ion-toast
         [isOpen]="!!toastMessage"
@@ -221,6 +194,20 @@ import { GameService } from '../../services/game.service';
         (didDismiss)="toastMessage = ''">
       </ion-toast>
     </ion-content>
+
+    <ion-footer class="ion-no-border form-footer">
+      <div class="footer-content">
+        <ion-button
+          (click)="onSubmit()"
+          [disabled]="isSubmitting"
+          class="submit-btn"
+          expand="block">
+          <ion-icon name="save-outline" slot="start"></ion-icon>
+          <span *ngIf="!isSubmitting">Save Game</span>
+          <span *ngIf="isSubmitting">Saving...</span>
+        </ion-button>
+      </div>
+    </ion-footer>
   `,
   styles: [`
     .form-toolbar {
@@ -236,7 +223,7 @@ import { GameService } from '../../services/game.service';
     .form-wrapper {
       max-width: 800px;
       margin: 0 auto;
-      padding: 1rem 1rem 140px 1rem;
+      padding: 1rem;
       min-height: 100%;
     }
 
@@ -332,68 +319,65 @@ import { GameService } from '../../services/game.service';
       border: 1px solid #8b5cf6;
     }
 
-    .form-actions {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: center;
-      padding: 1rem;
-      background: linear-gradient(to top, rgba(15, 15, 26, 1) 0%, rgba(15, 15, 26, 0.95) 70%, transparent 100%);
-      z-index: 1000;
+    .form-footer {
+      --background: rgba(15, 15, 26, 0.98);
+      border-top: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    .footer-content {
+      padding: 0.75rem 1rem;
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+      max-width: 800px;
+      margin: 0 auto;
     }
 
     .submit-btn {
       --background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
       --background-hover: linear-gradient(135deg, #a78bfa 0%, #67e8f9 100%);
       --border-radius: 12px;
-      --padding-start: 32px;
-      --padding-end: 32px;
       height: 52px;
       font-weight: 600;
       font-size: 1rem;
-      min-width: 200px;
       box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+      margin: 0;
     }
 
     @media (min-width: 768px) {
       .form-wrapper {
-        padding: 1.5rem 1.5rem 120px 1.5rem;
+        padding: 1.5rem;
       }
 
       .game-form {
         padding: 1.5rem;
       }
 
-      .form-actions {
-        position: static;
-        background: transparent;
+      .footer-content {
+        padding: 1rem 1.5rem;
+        display: flex;
         justify-content: flex-end;
-        padding: 0;
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid rgba(139, 92, 246, 0.1);
       }
 
       .submit-btn {
-        min-width: auto;
+        width: auto;
+        min-width: 200px;
       }
     }
 
     @media (max-width: 480px) {
       .form-wrapper {
-        padding: 0.75rem 0.75rem 120px 0.75rem;
+        padding: 0.75rem;
       }
 
       .game-form {
         padding: 1rem;
       }
 
+      .footer-content {
+        padding: 0.5rem 0.75rem;
+        padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+      }
+
       .submit-btn {
-        min-width: 160px;
-        --padding-start: 24px;
-        --padding-end: 24px;
         height: 48px;
       }
     }
