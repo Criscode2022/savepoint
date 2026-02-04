@@ -663,15 +663,26 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
       --border-radius: 12px;
     }
 
-    /* FAB */
+    /* FAB - Aggressive iOS fixes */
     ion-fab {
-      z-index: 9999;
+      z-index: 99999 !important;
+      position: fixed !important;
+      isolation: isolate;
     }
 
     .add-fab {
       --background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
       --box-shadow: 0 4px 20px rgba(139, 92, 246, 0.5);
-      transform: translateZ(0);
+      transform: translateZ(0) !important;
+      -webkit-transform: translateZ(0) !important;
+      will-change: transform;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      perspective: 1000px;
+      -webkit-perspective: 1000px;
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
     }
 
     @keyframes slideIn {
