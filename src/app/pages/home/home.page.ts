@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -87,7 +87,7 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
           <div class="stats-bar">
             <div class="stat-item">
               <ion-icon [name]="isListView ? 'list-outline' : 'grid-outline'"></ion-icon>
-              <span>{{filteredGames.length}} games</span>
+              <span>{{filteredGames().length}} games</span>
             </div>
             <div class="stat-item">
               <ion-icon name="checkmark-circle-outline"></ion-icon>
@@ -209,9 +209,9 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
         </div>
 
         <!-- Games Grid View -->
-        <div class="games-grid" *ngIf="!isListView && filteredGames.length > 0">
+        <div class="games-grid" *ngIf="!isListView && filteredGames().length > 0">
           <app-game-card
-            *ngFor="let game of filteredGames; trackBy: trackByGameId"
+            *ngFor="let game of filteredGames(); trackBy: trackByGameId"
             [game]="game"
             [coverImage]="getGameCoverImage(game)"
             (onToggleCompleted)="toggleCompleted($event)"
@@ -221,9 +221,9 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
         </div>
 
         <!-- Games List View -->
-        <ion-list class="games-list" *ngIf="isListView && filteredGames.length > 0">
+        <ion-list class="games-list" *ngIf="isListView && filteredGames().length > 0">
           <ion-item
-            *ngFor="let game of filteredGames; trackBy: trackByGameId"
+            *ngFor="let game of filteredGames(); trackBy: trackByGameId"
             class="game-list-item"
             button
             detail="false"
@@ -268,7 +268,7 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
         </ion-list>
 
         <!-- Empty State -->
-        <div class="empty-state" *ngIf="filteredGames.length === 0">
+        <div class="empty-state" *ngIf="filteredGames().length === 0">
           <div class="empty-icon">
             <ion-icon name="game-controller-outline"></ion-icon>
           </div>
@@ -736,7 +736,7 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
 })
 export class HomePage implements OnInit, OnDestroy {
   games: Game[] = [];
-  filteredGames: Game[] = [];
+  readonly filteredGames: Signal<Game[]>;
 
   // View mode
   isListView = false;
@@ -772,6 +772,7 @@ export class HomePage implements OnInit, OnDestroy {
     private authService: AuthService,
     private router: Router
   ) {
+    this.filteredGames = this.gameService.filteredGames;
     addIcons({
       gameControllerOutline, addOutline, searchOutline, filterOutline,
       logOutOutline, gridOutline, listOutline,
@@ -840,9 +841,7 @@ export class HomePage implements OnInit, OnDestroy {
     };
 
     this.gameService.getGames(filters).pipe(takeUntil(this.destroy$))
-      .subscribe(games => {
-        this.filteredGames = games;
-      });
+      .subscribe();
   }
 
   // View toggle
@@ -1011,10 +1010,10 @@ export class HomePage implements OnInit, OnDestroy {
 
   // Stats
   get completedCount(): number {
-    return this.filteredGames.filter(g => g.completed).length;
+    return this.filteredGames().filter(g => g.completed).length;
   }
 
   get totalPlaytime(): number {
-    return this.filteredGames.reduce((sum, g) => sum + (g.playtime || 0), 0);
+    return this.filteredGames().reduce((sum, g) => sum + (g.playtime || 0), 0);
   }
 }

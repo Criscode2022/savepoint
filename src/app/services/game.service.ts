@@ -1,4 +1,4 @@
-import { Injectable, inject } from "@angular/core";
+import { Injectable, inject, signal } from "@angular/core";
 import {
   BehaviorSubject,
   Observable,
@@ -85,6 +85,7 @@ export class GameService {
 
   private gamesSubject = new BehaviorSubject<Game[]>([]);
   games$ = this.gamesSubject.asObservable();
+  readonly filteredGames = signal<Game[]>([]);
 
   /**
    * Get games with filters (returns GamesResponse with pagination)
@@ -102,7 +103,10 @@ export class GameService {
     return from(
       this.fetchGamesWithPagination(filter, page, limit, currentUser.id),
     ).pipe(
-      tap((response) => this.gamesSubject.next(response.games)),
+      tap((response) => {
+        this.gamesSubject.next(response.games);
+        this.filteredGames.set(response.games);
+      }),
       catchError((error) => this.handleError(error, "Failed to fetch games")),
     );
   }
@@ -117,7 +121,10 @@ export class GameService {
     }
 
     return from(this.fetchGames(filters, currentUser.id)).pipe(
-      tap((games) => this.gamesSubject.next(games)),
+      tap((games) => {
+        this.gamesSubject.next(games);
+        this.filteredGames.set(games);
+      }),
       catchError((error) => this.handleError(error, "Failed to fetch games")),
     );
   }
@@ -412,6 +419,17 @@ export class GameService {
       switchMap((result: DbGame) => {
         // Fetch with joins to get full data
         return this.getGameById(result.id);
+      }),
+      tap((createdGame) => {
+        const updatedGames = [
+          createdGame,
+          ...this.gamesSubject.value.filter((game) => game.id !== createdGame.id),
+        ];
+        this.gamesSubject.next(updatedGames);
+        this.filteredGames.set([
+          createdGame,
+          ...this.filteredGames().filter((game) => game.id !== createdGame.id),
+        ]);
       }),
       catchError((error) => this.handleError(error, "Failed to create game")),
     );
