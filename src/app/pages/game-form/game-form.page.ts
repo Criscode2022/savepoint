@@ -204,23 +204,25 @@ import { GameService } from '../../services/game.service';
     </ion-content>
 
     <ion-footer class="ion-no-border form-footer">
-      <div class="footer-content">
-        <ion-button
-          fill="outline"
-          routerLink="/home"
-          class="cancel-btn">
-          Cancel
-        </ion-button>
+      <ion-toolbar class="footer-toolbar">
+        <div class="footer-content">
+          <ion-button
+            fill="outline"
+            routerLink="/home"
+            class="cancel-btn">
+            Cancel
+          </ion-button>
 
-        <ion-button
-          (click)="onSubmit()"
-          [disabled]="isSubmitting"
-          class="submit-btn">
-          <ion-icon name="save-outline" slot="start"></ion-icon>
-          <span *ngIf="!isSubmitting">{{ isEdit ? 'Save Changes' : 'Save Game' }}</span>
-          <span *ngIf="isSubmitting">Saving...</span>
-        </ion-button>
-      </div>
+          <ion-button
+            (click)="onSubmit()"
+            [disabled]="isSubmitting"
+            class="submit-btn">
+            <ion-icon name="save-outline" slot="start"></ion-icon>
+            <span *ngIf="!isSubmitting">{{ isEdit ? 'Save Changes' : 'Save Game' }}</span>
+            <span *ngIf="isSubmitting">Saving...</span>
+          </ion-button>
+        </div>
+      </ion-toolbar>
     </ion-footer>
   `,
   styles: [`
@@ -332,8 +334,18 @@ import { GameService } from '../../services/game.service';
     }
 
     .form-footer {
+      --background: transparent;
+    }
+
+    .footer-toolbar {
       --background: rgba(15, 15, 26, 0.98);
-      border-top: 1px solid rgba(139, 92, 246, 0.2);
+      --border-width: 1px 0 0 0;
+      --border-color: rgba(139, 92, 246, 0.2);
+      --padding-top: 0;
+      --padding-bottom: 0;
+      --padding-start: 0;
+      --padding-end: 0;
+      padding-bottom: env(safe-area-inset-bottom);
     }
 
     .footer-content {
@@ -341,7 +353,6 @@ import { GameService } from '../../services/game.service';
       justify-content: flex-end;
       gap: 1rem;
       padding: 0.75rem 1rem;
-      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
       max-width: 800px;
       margin: 0 auto;
     }
@@ -372,7 +383,6 @@ import { GameService } from '../../services/game.service';
 
       .footer-content {
         padding: 0.5rem 0.75rem;
-        padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
       }
 
       .cancel-btn, .submit-btn {
