@@ -2,11 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { 
+import {
   IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonTitle, IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
   IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-  IonTextarea, IonToggle, IonToast, IonChip
+  IonTextarea, IonToggle, IonToast, IonChip, IonFooter
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline, saveOutline, imageOutline } from 'ionicons/icons';
@@ -21,7 +21,7 @@ import { GameService } from '../../services/game.service';
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
     IonTitle, IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
     IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-    IonTextarea, IonToggle, IonToast, IonChip
+    IonTextarea, IonToggle, IonToast, IonChip, IonFooter
   ],
   template: `
     <ion-header class="ion-no-border">
@@ -188,26 +188,6 @@ import { GameService } from '../../services/game.service';
                     placeholder="Any notes about the game..."></ion-textarea>
                 </ion-item>
               </div>
-
-              <!-- Submit -->
-              <div class="form-actions">
-                <ion-button
-                  type="button"
-                  fill="outline"
-                  routerLink="/home"
-                  class="cancel-btn">
-                  Cancel
-                </ion-button>
-                
-                <ion-button
-                  type="submit"
-                  [disabled]="isSubmitting || !gameForm.valid"
-                  class="submit-btn">
-                  <ion-icon name="save-outline" slot="start"></ion-icon>
-                  <span *ngIf="!isSubmitting">{{ isEdit ? 'Save Changes' : 'Save Game' }}</span>
-                  <span *ngIf="isSubmitting">Saving...</span>
-                </ion-button>
-              </div>
             </form>
           </ion-card-content>
         </ion-card>
@@ -222,6 +202,26 @@ import { GameService } from '../../services/game.service';
         (didDismiss)="toastMessage = ''">
       </ion-toast>
     </ion-content>
+
+    <ion-footer class="ion-no-border form-footer">
+      <div class="footer-content">
+        <ion-button
+          fill="outline"
+          routerLink="/home"
+          class="cancel-btn">
+          Cancel
+        </ion-button>
+
+        <ion-button
+          (click)="onSubmit()"
+          [disabled]="isSubmitting"
+          class="submit-btn">
+          <ion-icon name="save-outline" slot="start"></ion-icon>
+          <span *ngIf="!isSubmitting">{{ isEdit ? 'Save Changes' : 'Save Game' }}</span>
+          <span *ngIf="isSubmitting">Saving...</span>
+        </ion-button>
+      </div>
+    </ion-footer>
   `,
   styles: [`
     .form-toolbar {
@@ -331,18 +331,27 @@ import { GameService } from '../../services/game.service';
       border: 1px solid #8b5cf6;
     }
 
-    .form-actions {
+    .form-footer {
+      --background: rgba(15, 15, 26, 0.98);
+      border-top: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    .footer-content {
       display: flex;
       justify-content: flex-end;
       gap: 1rem;
-      padding-top: 1rem;
-      border-top: 1px solid rgba(139, 92, 246, 0.1);
+      padding: 0.75rem 1rem;
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+      max-width: 800px;
+      margin: 0 auto;
     }
 
     .cancel-btn {
       --border-color: rgba(139, 92, 246, 0.3);
       --color: #94a3b8;
       --border-radius: 12px;
+      height: 48px;
+      min-width: 100px;
     }
 
     .submit-btn {
@@ -353,6 +362,7 @@ import { GameService } from '../../services/game.service';
       --padding-end: 24px;
       height: 48px;
       font-weight: 600;
+      min-width: 140px;
     }
 
     @media (max-width: 480px) {
@@ -360,12 +370,14 @@ import { GameService } from '../../services/game.service';
         padding: 1rem;
       }
 
-      .form-actions {
-        flex-direction: column;
+      .footer-content {
+        padding: 0.5rem 0.75rem;
+        padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
       }
 
       .cancel-btn, .submit-btn {
-        width: 100%;
+        flex: 1;
+        min-width: 0;
       }
     }
   `]
