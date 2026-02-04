@@ -6,7 +6,7 @@ import {
   IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonTitle, IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
   IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-  IonTextarea, IonToggle, IonToast, IonChip, IonFooter
+  IonTextarea, IonToggle, IonToast, IonChip
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline, saveOutline, imageOutline } from 'ionicons/icons';
@@ -21,7 +21,7 @@ import { GameService } from '../../services/game.service';
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
     IonTitle, IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
     IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-    IonTextarea, IonToggle, IonToast, IonChip, IonFooter
+    IonTextarea, IonToggle, IonToast, IonChip
   ],
   template: `
     <ion-header class="ion-no-border">
@@ -193,19 +193,9 @@ import { GameService } from '../../services/game.service';
         </ion-card>
       </div>
 
-      <ion-toast
-        [isOpen]="!!toastMessage"
-        [message]="toastMessage"
-        [color]="toastColor"
-        duration="3000"
-        position="bottom"
-        (didDismiss)="toastMessage = ''">
-      </ion-toast>
-    </ion-content>
-
-    <ion-footer class="ion-no-border form-footer">
-      <ion-toolbar class="footer-toolbar">
-        <div class="footer-content">
+      <!-- Fixed action buttons -->
+      <div class="fixed-actions">
+        <div class="actions-content">
           <ion-button
             fill="outline"
             routerLink="/home"
@@ -222,8 +212,17 @@ import { GameService } from '../../services/game.service';
             <span *ngIf="isSubmitting">Saving...</span>
           </ion-button>
         </div>
-      </ion-toolbar>
-    </ion-footer>
+      </div>
+
+      <ion-toast
+        [isOpen]="!!toastMessage"
+        [message]="toastMessage"
+        [color]="toastColor"
+        duration="3000"
+        position="top"
+        (didDismiss)="toastMessage = ''">
+      </ion-toast>
+    </ion-content>
   `,
   styles: [`
     .form-toolbar {
@@ -240,6 +239,7 @@ import { GameService } from '../../services/game.service';
       max-width: 800px;
       margin: 0 auto;
       padding: 1.5rem;
+      padding-bottom: 100px;
     }
 
     .form-card {
@@ -333,22 +333,18 @@ import { GameService } from '../../services/game.service';
       border: 1px solid #8b5cf6;
     }
 
-    .form-footer {
-      --background: transparent;
-    }
-
-    .footer-toolbar {
-      --background: rgba(15, 15, 26, 0.98);
-      --border-width: 1px 0 0 0;
-      --border-color: rgba(139, 92, 246, 0.2);
-      --padding-top: 0;
-      --padding-bottom: 0;
-      --padding-start: 0;
-      --padding-end: 0;
+    .fixed-actions {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15, 15, 26, 0.98);
+      border-top: 1px solid rgba(139, 92, 246, 0.2);
       padding-bottom: env(safe-area-inset-bottom);
+      z-index: 999;
     }
 
-    .footer-content {
+    .actions-content {
       display: flex;
       justify-content: flex-end;
       gap: 1rem;
@@ -359,7 +355,7 @@ import { GameService } from '../../services/game.service';
 
     .cancel-btn {
       --border-color: rgba(139, 92, 246, 0.3);
-      --color: #94a3b8;
+      --color: #e2e8f0;
       --border-radius: 12px;
       height: 48px;
       min-width: 100px;
@@ -379,9 +375,10 @@ import { GameService } from '../../services/game.service';
     @media (max-width: 480px) {
       .form-container {
         padding: 1rem;
+        padding-bottom: 100px;
       }
 
-      .footer-content {
+      .actions-content {
         padding: 0.5rem 0.75rem;
       }
 

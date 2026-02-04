@@ -197,7 +197,7 @@ import { AuthService } from '../../services/auth.service';
     }
 
     .logo-subtitle {
-      color: #94a3b8;
+      color: #e2e8f0;
       margin-top: 0.5rem;
       font-size: 1rem;
     }
@@ -269,7 +269,7 @@ import { AuthService } from '../../services/auth.service';
     .login-link {
       text-align: center;
       margin-top: 1.5rem;
-      color: #94a3b8;
+      color: #e2e8f0;
     }
 
     .login-link a {
