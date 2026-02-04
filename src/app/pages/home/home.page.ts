@@ -682,10 +682,7 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
       -webkit-perspective: 1000px;
       opacity: 1 !important;
       visibility: visible !important;
-      display: block !important;
       pointer-events: auto !important;
-      position: relative !important;
-      z-index: 1 !important;
     }
 
     @keyframes slideIn {
