@@ -299,12 +299,12 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     </ion-content>
 
     <!-- Custom Add Button - Fixed Position for iOS compatibility -->
-    <button class="custom-add-button" routerLink="/add" title="Add Game">
+    <button type="button" class="custom-add-button" routerLink="/add" aria-label="Add Game">
       <ion-icon name="add-outline"></ion-icon>
     </button>
   `,
   styles: [`
-    /* Component wrapper to handle FAB positioning */
+    /* Component wrapper styling */
     :host {
       display: contents;
     }
@@ -682,7 +682,7 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
       justify-content: center;
       cursor: pointer;
       z-index: 10000;
-      transition: all 0.3s ease;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
       /* iOS-specific fixes */
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
@@ -692,9 +692,12 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
       pointer-events: auto;
     }
 
-    .custom-add-button:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 25px rgba(139, 92, 246, 0.7);
+    /* Only apply hover effects on devices that support hover */
+    @media (hover: hover) {
+      .custom-add-button:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 25px rgba(139, 92, 246, 0.7);
+      }
     }
 
     .custom-add-button:active {
