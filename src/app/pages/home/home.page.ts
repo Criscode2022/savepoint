@@ -79,8 +79,7 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
               title="Toggle Filters"
             >
               <ion-icon name="filter-outline" slot="icon-only"></ion-icon>
-              <ion-badge *ngIf="activeFilterCount > 0" class="filter-badge"
-003e{{activeFilterCount}}</ion-badge>
+              <ion-badge *ngIf="activeFilterCount > 0" class="filter-badge">{{activeFilterCount}}</ion-badge>
             </ion-button>
           </div>
 
