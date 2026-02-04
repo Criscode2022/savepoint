@@ -35,7 +35,7 @@ import { AuthService } from "../../services/auth.service";
   selector: "app-login",
   template: `
     <ion-content class="ion-padding" [fullscreen]="true">
-      <div class="min-h-screen flex items-center justify-center">
+      <div class="min-h-screen flex items-end justify-center pb-12">
         <div class="w-full max-w-md">
           <!-- Logo -->
           <div class="text-center mb-8 animate-slide-up">
@@ -54,7 +54,7 @@ import { AuthService } from "../../services/auth.service";
           </div>
 
           <!-- Login Card -->
-          <ion-card class="gaming-card overflow-hidden mt-6" style="padding: 1.5rem;">
+          <ion-card class="gaming-card overflow-hidden" style="padding: 1.5rem;">
             <ion-card-header class="pb-0" style="padding: 0 0 1rem 0;">
               <ion-card-title 
                 class="text-2xl text-center" 
