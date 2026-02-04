@@ -197,9 +197,11 @@ import { AuthService } from '../../services/auth.service';
     }
 
     .logo-subtitle {
-      color: #e2e8f0;
+      color: #ffffff;
       margin-top: 0.5rem;
       font-size: 1rem;
+      font-weight: 500;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     }
 
     .register-card {
@@ -239,9 +241,10 @@ import { AuthService } from '../../services/auth.service';
     }
 
     .input-item ion-icon {
-      color: #8b5cf6;
+      color: #ffffff;
       font-size: 20px;
       margin-right: 12px;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
     }
 
     .input-item:focus-within {
@@ -269,7 +272,8 @@ import { AuthService } from '../../services/auth.service';
     .login-link {
       text-align: center;
       margin-top: 1.5rem;
-      color: #e2e8f0;
+      color: #ffffff;
+      font-weight: 500;
     }
 
     .login-link a {

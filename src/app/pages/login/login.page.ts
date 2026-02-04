@@ -50,7 +50,7 @@ import { AuthService } from "../../services/auth.service";
             <h1 class="text-4xl font-bold mb-2 gaming-gradient-text">
               GameVault
             </h1>
-            <p class="text-[#e2e8f0]">Your ultimate game collection manager</p>
+            <p class="text-white font-medium drop-shadow-sm">Your ultimate game collection manager</p>
           </div>
 
           <!-- Login Card -->
@@ -73,7 +73,7 @@ import { AuthService } from "../../services/auth.service";
                     <ion-icon
                       name="person"
                       slot="start"
-                      class="text-[#a855f7]"
+                      class="text-white drop-shadow-md"
                     ></ion-icon>
                     <ion-input
                       formControlName="username"
@@ -88,7 +88,7 @@ import { AuthService } from "../../services/auth.service";
                   <ion-icon
                     name="mail"
                     slot="start"
-                    class="text-[#a855f7]"
+                    class="text-white drop-shadow-md"
                   ></ion-icon>
                   <ion-input
                     formControlName="email"
@@ -102,7 +102,7 @@ import { AuthService } from "../../services/auth.service";
                   <ion-icon
                     name="lock-closed-outline"
                     slot="start"
-                    class="text-[#a855f7]"
+                    class="text-white drop-shadow-md"
                   ></ion-icon>
                   <ion-input
                     formControlName="password"
@@ -135,7 +135,7 @@ import { AuthService } from "../../services/auth.service";
 
                 <!-- Toggle Mode -->
                 <div class="text-center mt-4">
-                  <p class="text-[#e2e8f0]">
+                  <p class="text-white font-medium">
                     {{
                       isRegisterMode()
                         ? "Already have an account?"
@@ -143,7 +143,7 @@ import { AuthService } from "../../services/auth.service";
                     }}
                     <a
                       (click)="toggleMode()"
-                      class="text-[#a855f7] cursor-pointer ml-1 hover:underline"
+                      class="text-[#d8b4fe] cursor-pointer ml-1 hover:underline font-semibold"
                     >
                       {{ isRegisterMode() ? "Sign In" : "Create one" }}
                     </a>
