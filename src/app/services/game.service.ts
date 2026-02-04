@@ -722,9 +722,16 @@ export class GameService {
   }
 
   private mergeGameIntoList(games: Game[], createdGame: Game): Game[] {
+    const existingIndex = games.findIndex(
+      (game) => game.id === createdGame.id,
+    );
+    if (existingIndex === -1) {
+      return [createdGame, ...games];
+    }
     return [
       createdGame,
-      ...games.filter((game) => game.id !== createdGame.id),
+      ...games.slice(0, existingIndex),
+      ...games.slice(existingIndex + 1),
     ];
   }
 }

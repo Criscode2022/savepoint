@@ -842,6 +842,7 @@ export class HomePage implements OnInit, OnDestroy {
 
     this.gameService.getGames(filters).pipe(takeUntil(this.destroy$))
       .subscribe({
+        next: () => undefined,
         error: () => {
           this.showToast('Failed to load games', 'danger');
         }
