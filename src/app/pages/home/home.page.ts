@@ -667,6 +667,22 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     .add-fab {
       --background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
       --box-shadow: 0 4px 20px rgba(139, 92, 246, 0.5);
+      /* iOS Safari fixes */
+      margin-bottom: env(safe-area-inset-bottom, 16px);
+      margin-right: 16px;
+    }
+
+    /* Ensure FAB is visible on iOS Safari */
+    ion-fab {
+      z-index: 9999;
+    }
+
+    @supports (-webkit-touch-callout: none) {
+      /* iOS specific */
+      ion-fab {
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+        right: 16px !important;
+      }
     }
 
     @keyframes slideIn {
