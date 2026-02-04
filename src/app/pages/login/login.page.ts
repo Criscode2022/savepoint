@@ -50,7 +50,7 @@ import { AuthService } from "../../services/auth.service";
             <h1 class="text-4xl font-bold mb-2 gaming-gradient-text">
               GameVault
             </h1>
-            <p class="text-[#94a3b8]">Your ultimate game collection manager</p>
+            <p class="text-[#e2e8f0]">Your ultimate game collection manager</p>
           </div>
 
           <!-- Login Card -->
@@ -135,7 +135,7 @@ import { AuthService } from "../../services/auth.service";
 
                 <!-- Toggle Mode -->
                 <div class="text-center mt-4">
-                  <p class="text-[#94a3b8]">
+                  <p class="text-[#e2e8f0]">
                     {{
                       isRegisterMode()
                         ? "Already have an account?"
