@@ -664,9 +664,14 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     }
 
     /* FAB */
+    ion-fab {
+      z-index: 9999;
+    }
+
     .add-fab {
       --background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
       --box-shadow: 0 4px 20px rgba(139, 92, 246, 0.5);
+      transform: translateZ(0);
     }
 
     @keyframes slideIn {
