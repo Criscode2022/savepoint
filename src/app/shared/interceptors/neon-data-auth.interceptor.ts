@@ -3,12 +3,12 @@ import {
   HttpHandler,
   HttpInterceptor,
   HttpRequest,
-} from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
-import { Observable, from } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
-import { environment } from '../../../environments/environment';
-import { AuthService } from '../../services/auth.service';
+} from "@angular/common/http";
+import { Injectable, inject } from "@angular/core";
+import { Observable, from } from "rxjs";
+import { switchMap } from "rxjs/operators";
+import { environment } from "../../../environments/environment";
+import { AuthService } from "../../services/auth.service";
 
 @Injectable()
 export class NeonDataAuthInterceptor implements HttpInterceptor {
@@ -30,7 +30,7 @@ export class NeonDataAuthInterceptor implements HttpInterceptor {
     }
 
     // Don't override if already set
-    if (req.headers.has('Authorization')) {
+    if (req.headers.has("Authorization")) {
       return next.handle(req);
     }
 

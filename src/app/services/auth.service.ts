@@ -1,17 +1,21 @@
-import { Injectable, inject } from '@angular/core';
-import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, filter, take } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { authClient } from '../../lib/auth';
-import { AuthUser, LoginCredentials, RegisterCredentials } from '../models/auth.model';
+import { Injectable, inject } from "@angular/core";
+import { Router } from "@angular/router";
+import { BehaviorSubject, Observable, filter, take } from "rxjs";
+import { map } from "rxjs/operators";
+import { authClient } from "../../lib/auth";
+import {
+  AuthUser,
+  LoginCredentials,
+  RegisterCredentials,
+} from "../models/auth.model";
 
-export type UserRole = 'admin' | 'user';
+export type UserRole = "admin" | "user";
 
 // LocalStorage key for iOS fallback session
-const SESSION_STORAGE_KEY = 'neon_auth_session_fallback';
+const SESSION_STORAGE_KEY = "neon_auth_session_fallback";
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class AuthService {
   private readonly router = inject(Router);
@@ -20,6 +24,9 @@ export class AuthService {
   private initialized = new BehaviorSubject<boolean>(false);
   private currentUser: AuthUser | null = null;
   private accessToken: string | null = null;
+
+  private readonly jwtRegex =
+    /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
   constructor() {
     this.initializeAuth();
@@ -32,7 +39,79 @@ export class AuthService {
     if (!token) {
       return false;
     }
-    return token.split('.').length === 3;
+
+    if (token.split(".").length !== 3) {
+      return false;
+    }
+
+    // Avoid treating arbitrary dotted strings as JWTs
+    return this.jwtRegex.test(token);
+  }
+
+  /**
+   * Attempt to read a JWT out of document.cookie.
+   *
+   * Notes:
+   * - If the auth cookie is HttpOnly, browsers won't expose it to JS and this will return null.
+   * - Some setups store a JWT directly as a cookie value, others store a JSON blob.
+   */
+  private readJwtFromCookie(): string | null {
+    if (typeof document === "undefined" || !document.cookie) {
+      return null;
+    }
+
+    const cookies = document.cookie.split(";");
+    for (const cookie of cookies) {
+      const eqIndex = cookie.indexOf("=");
+      if (eqIndex === -1) {
+        continue;
+      }
+
+      const rawValue = cookie.slice(eqIndex + 1).trim();
+      if (!rawValue) {
+        continue;
+      }
+
+      // Cookie values may be URL encoded
+      let value: string = rawValue;
+      try {
+        value = decodeURIComponent(rawValue);
+      } catch {
+        // ignore decode errors
+      }
+
+      if (this.isJwt(value)) {
+        return value;
+      }
+
+      // Some providers store a JSON string in the cookie
+      // NOTE: Angular's compiler plugin can sometimes mis-infer `value` as `never`
+      // in this specific pattern, even though it's a `string`.
+      // Using String.prototype.* avoids that inference issue.
+      const maybeJson = value;
+      if (
+        typeof maybeJson === "string" &&
+        String.prototype.startsWith.call(maybeJson, "{") &&
+        String.prototype.endsWith.call(maybeJson, "}")
+      ) {
+        try {
+          const parsed = JSON.parse(maybeJson) as Record<string, unknown>;
+          const maybeToken =
+            (parsed["token"] as string | undefined) ||
+            (parsed["access_token"] as string | undefined) ||
+            (parsed["accessToken"] as string | undefined) ||
+            (parsed["jwt"] as string | undefined);
+
+          if (this.isJwt(maybeToken)) {
+            return maybeToken;
+          }
+        } catch {
+          // ignore parse errors
+        }
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -44,7 +123,8 @@ export class AuthService {
     // Try session object first
     const session = data.session;
     if (session) {
-      const sessionToken = session.token || session.access_token || session.accessToken;
+      const sessionToken =
+        session.token || session.access_token || session.accessToken;
       if (this.isJwt(sessionToken)) {
         return sessionToken;
       }
@@ -76,9 +156,9 @@ export class AuthService {
       const authWithJwt = authClient as unknown as {
         getJWTToken?: () => Promise<string | null>;
       };
-      const jwt = await authWithJwt.getJWTToken?.();
-      if (this.isJwt(jwt)) {
-        return jwt;
+      const maybeJwt = await authWithJwt.getJWTToken?.();
+      if (this.isJwt(maybeJwt)) {
+        return maybeJwt;
       }
     } catch {
       // Ignore and fall back
@@ -100,7 +180,8 @@ export class AuthService {
     try {
       const { data } = await authClient.getSession();
       if (this.hasValidSession(data)) {
-        this.accessToken = this.extractToken(data) || await this.fetchJwtFromSdk();
+        this.accessToken =
+          this.extractToken(data) || (await this.fetchJwtFromSdk());
 
         this.currentUser = {
           id: data!.user!.id,
@@ -130,8 +211,8 @@ export class AuthService {
    */
   waitForInitialization(): Observable<boolean> {
     return this.initialized.pipe(
-      filter(initialized => initialized),
-      take(1)
+      filter((initialized) => initialized),
+      take(1),
     );
   }
 
@@ -181,7 +262,7 @@ export class AuthService {
       this.currentUser = {
         id: sessionData.id,
         username: sessionData.username,
-        email: sessionData.email || '',
+        email: sessionData.email || "",
         accessToken: null,
       };
 
@@ -239,14 +320,17 @@ export class AuthService {
    * Login with email/password
    */
   async login(credentials: LoginCredentials): Promise<void> {
-    const { data, error } = await authClient.signIn(credentials.email, credentials.password);
+    const { data, error } = await authClient.signIn(
+      credentials.email,
+      credentials.password,
+    );
 
     if (error || !data?.user) {
-      throw new Error(error?.message || 'Login failed');
+      throw new Error(error?.message || "Login failed");
     }
 
     // Get JWT token from response or SDK
-    const token = this.extractToken(data) || await this.fetchJwtFromSdk();
+    const token = this.extractToken(data) || (await this.fetchJwtFromSdk());
 
     this.setNeonAuthSession({
       id: data.user.id,
@@ -261,15 +345,19 @@ export class AuthService {
    * Register with email/password
    */
   async register(credentials: RegisterCredentials): Promise<void> {
-    const name = credentials.username || credentials.email.split('@')[0];
-    const { data, error } = await authClient.signUp(credentials.email, credentials.password, name);
+    const name = credentials.username || credentials.email.split("@")[0];
+    const { data, error } = await authClient.signUp(
+      credentials.email,
+      credentials.password,
+      name,
+    );
 
     if (error || !data?.user) {
-      throw new Error(error?.message || 'Registration failed');
+      throw new Error(error?.message || "Registration failed");
     }
 
     // Get JWT token from response or SDK
-    const token = this.extractToken(data) || await this.fetchJwtFromSdk();
+    const token = this.extractToken(data) || (await this.fetchJwtFromSdk());
 
     this.setNeonAuthSession({
       id: data.user.id,
@@ -301,7 +389,10 @@ export class AuthService {
         return false;
       }
 
-      this.accessToken = this.extractToken(data) || (await this.fetchJwtFromSdk()) || this.accessToken;
+      this.accessToken =
+        this.extractToken(data) ||
+        (await this.fetchJwtFromSdk()) ||
+        this.accessToken;
 
       // Update current user from session data
       this.currentUser = {
@@ -336,7 +427,7 @@ export class AuthService {
       // Ignore errors during sign out
     }
     this.clearSession();
-    this.router.navigateByUrl('/login', { replaceUrl: true });
+    this.router.navigateByUrl("/login", { replaceUrl: true });
   }
 
   /**
@@ -357,6 +448,13 @@ export class AuthService {
       return this.accessToken;
     }
 
+    // If a non-HttpOnly JWT cookie is present, use it.
+    const cookieJwt = this.readJwtFromCookie();
+    if (this.isJwt(cookieJwt)) {
+      this.accessToken = cookieJwt;
+      return cookieJwt;
+    }
+
     const jwt = await this.fetchJwtFromSdk();
     this.accessToken = jwt;
     return jwt;
@@ -373,7 +471,18 @@ export class AuthService {
    * Get token (synchronous)
    */
   getToken(): string | null {
-    return this.accessToken;
+    if (this.isJwt(this.accessToken)) {
+      return this.accessToken;
+    }
+
+    // Synchronous fallback when token only exists in a cookie-based session.
+    const cookieJwt = this.readJwtFromCookie();
+    if (this.isJwt(cookieJwt)) {
+      this.accessToken = cookieJwt;
+      return cookieJwt;
+    }
+
+    return null;
   }
 
   /**
@@ -394,8 +503,6 @@ export class AuthService {
    * Get current user observable
    */
   getCurrentUser$(): Observable<AuthUser | null> {
-    return this.isAuthenticated.pipe(
-      map(() => this.currentUser)
-    );
+    return this.isAuthenticated.pipe(map(() => this.currentUser));
   }
 }

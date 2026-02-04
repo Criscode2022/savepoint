@@ -86,12 +86,22 @@
           "options": {
             "buildTarget": "videogames-library:build"
           }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "src/**/*.ts",
+              "src/**/*.html"
+            ]
+          }
         }
       }
     }
   },
   "cli": {
     "schematicCollections": [
+      "angular-eslint",
       "@ionic/angular-toolkit"
     ],
     "analytics": false
