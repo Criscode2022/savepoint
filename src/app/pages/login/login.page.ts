@@ -38,7 +38,7 @@ import { AuthService } from "../../services/auth.service";
       <div class="min-h-screen flex items-end justify-center pb-12">
         <div class="w-full max-w-md">
           <!-- Logo -->
-          <div class="text-center mb-10 animate-slide-up">
+          <div class="text-center mb-16 animate-slide-up">
             <div
               class="w-24 h-24 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#a855f7] to-[#06b6d4] flex items-center justify-center shadow-[0_0_30px_rgba(168,85,247,0.4)]"
             >
@@ -55,7 +55,7 @@ import { AuthService } from "../../services/auth.service";
 
           <!-- Login Card -->
           <ion-card class="gaming-card overflow-hidden" style="padding: 1.5rem;">
-            <ion-card-header class="pb-0" style="padding: 0 0 1rem 0;">
+            <ion-card-header class="pb-0" style="padding: 0 0 1.5rem 0;">
               <ion-card-title 
                 class="text-2xl text-center" 
                 style="color: white; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">
@@ -63,11 +63,11 @@ import { AuthService } from "../../services/auth.service";
               </ion-card-title>
             </ion-card-header>
 
-            <ion-card-content>
+            <ion-card-content style="padding-top: 0;">
               <form
                 [formGroup]="authForm"
                 (ngSubmit)="onSubmit()"
-                class="space-y-4"
+                class="space-y-5"
               >
                 <!-- Username (Register only) -->
                 @if (isRegisterMode()) {
