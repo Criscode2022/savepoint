@@ -38,7 +38,7 @@ import { AuthService } from "../../services/auth.service";
       <div class="min-h-screen flex items-end justify-center pb-12">
         <div class="w-full max-w-md">
           <!-- Logo -->
-          <div class="text-center mb-8 animate-slide-up">
+          <div class="text-center mb-10 animate-slide-up">
             <div
               class="w-24 h-24 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#a855f7] to-[#06b6d4] flex items-center justify-center shadow-[0_0_30px_rgba(168,85,247,0.4)]"
             >

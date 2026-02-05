@@ -166,7 +166,7 @@ import { AuthService } from '../../services/auth.service';
 
     .logo-section {
       text-align: center;
-      margin-bottom: 2rem;
+      margin-bottom: 2.5rem;
       z-index: 1;
     }
 
