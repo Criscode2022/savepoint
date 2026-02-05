@@ -224,14 +224,14 @@ import { Game } from '../../models/game.model';
     }
 
     ion-card-header {
-      padding: 1rem 1rem 0.5rem;
+      padding: 1.25rem 1.25rem 0.75rem;
     }
 
     .game-title {
       font-size: 1.125rem;
       font-weight: 700;
       color: #f8fafc;
-      margin: 0 0 0.5rem;
+      margin: 0 0 0.625rem;
       line-height: 1.3;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -242,7 +242,7 @@ import { Game } from '../../models/game.model';
     .game-meta {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.625rem;
       font-size: 0.875rem;
       color: #94a3b8;
     }
@@ -257,14 +257,14 @@ import { Game } from '../../models/game.model';
     }
 
     ion-card-content {
-      padding: 0.5rem 1rem 1rem;
+      padding: 0.75rem 1.25rem 1.25rem;
     }
 
     .game-description {
       color: #64748b;
       font-size: 0.875rem;
       line-height: 1.5;
-      margin: 0 0 1rem;
+      margin: 0 0 1.25rem;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
@@ -273,8 +273,8 @@ import { Game } from '../../models/game.model';
 
     .game-stats {
       display: flex;
-      gap: 1rem;
-      margin-bottom: 1rem;
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
     }
 
     .stat {
@@ -294,7 +294,7 @@ import { Game } from '../../models/game.model';
     .game-genres {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.375rem;
+      gap: 0.5rem;
     }
 
     .genre-chip {
@@ -306,7 +306,7 @@ import { Game } from '../../models/game.model';
     }
 
     .card-footer {
-      padding: 0 1rem 1rem;
+      padding: 0.5rem 1.25rem 1.25rem;
       border-top: 1px solid rgba(139, 92, 246, 0.1);
     }
 

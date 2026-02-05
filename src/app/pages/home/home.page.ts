@@ -337,19 +337,19 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     .content-wrapper {
       max-width: 1600px;
       margin: 0 auto;
-      padding: 1.5rem;
+      padding: 2rem;
     }
 
     /* Search Section */
     .search-section {
-      margin-bottom: 1.5rem;
+      margin-bottom: 2rem;
     }
 
     .search-bar-container {
       display: flex;
-      gap: 0.75rem;
+      gap: 1rem;
       align-items: center;
-      margin-bottom: 1rem;
+      margin-bottom: 1.25rem;
     }
 
     .gaming-searchbar {
@@ -399,11 +399,24 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     /* Stats Bar */
     .stats-bar {
       display: flex;
-      gap: 2rem;
-      padding: 1rem 1.5rem;
+      gap: 2.5rem;
+      padding: 1.25rem 1.75rem;
       background: rgba(30, 30, 54, 0.5);
       border-radius: 12px;
       border: 1px solid rgba(139, 92, 246, 0.1);
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: #94a3b8;
+      font-size: 0.875rem;
+    }
+
+    .stat-item ion-icon {
+      color: #8b5cf6;
+      font-size: 1.25rem;
     }
 
     .stat-item {
@@ -423,8 +436,8 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     .filters-panel {
       background: rgba(22, 22, 42, 0.9);
       border-radius: 16px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
+      padding: 2rem;
+      margin-bottom: 2rem;
       border: 1px solid rgba(139, 92, 246, 0.2);
     }
 
@@ -432,7 +445,7 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1rem;
+      margin-bottom: 1.25rem;
     }
 
     .filters-header h3 {
@@ -442,14 +455,14 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     }
 
     .filter-group {
-      margin-bottom: 1rem;
+      margin-bottom: 1.25rem;
     }
 
     .filter-group label {
       display: block;
       color: #94a3b8;
       font-size: 0.875rem;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.625rem;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -457,7 +470,7 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     .filter-chips {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5rem;
+      gap: 0.625rem;
     }
 
     ion-chip {
@@ -495,9 +508,9 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     .active-filters {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 1rem;
-      padding-top: 1rem;
+      gap: 0.625rem;
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
       border-top: 1px solid rgba(139, 92, 246, 0.1);
     }
 
@@ -511,7 +524,7 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     .games-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 1.5rem;
+      gap: 2rem;
     }
 
     .game-card-wrapper {
@@ -527,11 +540,11 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     .game-list-item {
       --background: rgba(30, 30, 54, 0.6);
       --border-radius: 12px;
-      --padding-start: 16px;
-      --padding-end: 16px;
-      --padding-top: 12px;
-      --padding-bottom: 12px;
-      margin-bottom: 0.75rem;
+      --padding-start: 20px;
+      --padding-end: 20px;
+      --padding-top: 16px;
+      --padding-bottom: 16px;
+      margin-bottom: 1rem;
       border: 1px solid rgba(139, 92, 246, 0.1);
       border-radius: 12px;
       cursor: pointer;
@@ -732,17 +745,17 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     /* Responsive */
     @media (max-width: 768px) {
       .content-wrapper {
-        padding: 1rem;
+        padding: 1.25rem;
       }
 
       .stats-bar {
         flex-wrap: wrap;
-        gap: 1rem;
+        gap: 1.25rem;
       }
 
       .games-grid {
         grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 1rem;
+        gap: 1.25rem;
       }
 
       .game-thumbnail {
@@ -751,6 +764,10 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
 
       .game-title {
         font-size: 1rem;
+      }
+
+      .filters-panel {
+        padding: 1.25rem;
       }
     }
 
