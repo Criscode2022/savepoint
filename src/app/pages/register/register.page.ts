@@ -166,7 +166,7 @@ import { AuthService } from '../../services/auth.service';
 
     .logo-section {
       text-align: center;
-      margin-bottom: 3.5rem;
+      margin-bottom: 3rem;
       z-index: 1;
     }
 
@@ -218,7 +218,7 @@ import { AuthService } from '../../services/auth.service';
 
     ion-card-header {
       text-align: center;
-      padding: 0 0 1.5rem 0;
+      padding: 0 0 1.25rem 0;
     }
 
     ion-card-title {
@@ -254,7 +254,7 @@ import { AuthService } from '../../services/auth.service';
     }
 
     .register-button {
-      margin-top: 2rem;
+      margin-top: 1.75rem;
       --background: linear-gradient(135deg, #f472b6 0%, #8b5cf6 100%);
       --background-hover: linear-gradient(135deg, #f9a8d4 0%, #a78bfa 100%);
       --border-radius: 12px;
@@ -272,7 +272,7 @@ import { AuthService } from '../../services/auth.service';
 
     .login-link {
       text-align: center;
-      margin-top: 2rem;
+      margin-top: 1.75rem;
       color: #ffffff;
       font-weight: 500;
     }
