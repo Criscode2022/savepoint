@@ -1,0 +1,469 @@
+/* ─── Shared form layout ─────────────────────────────────────────── */
+
+.form-content,
+.profile-content,
+.home-content {
+  --background: var(--color-bg-primary);
+}
+
+.form-container,
+.profile-container,
+.content-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 2rem;
+}
+
+.form-container {
+  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
+}
+
+.content-wrapper {
+  max-width: 1600px;
+  padding: 1.25rem 1rem 5rem;
+}
+
+/* ─── Cards ─────────────────────────────────────────────────────── */
+
+.form-card,
+.progress-card,
+.recent-games-card,
+.actions-card,
+.stat-card {
+  background: rgba(18, 18, 32, 0.92);
+  border-radius: 20px;
+  border: 1px solid rgba(168, 85, 247, 0.18);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  margin: 0 0 1.25rem;
+}
+
+.form-card ion-card-header,
+.filters-panel .filters-header {
+  padding: 1.25rem 1.25rem 0.5rem;
+}
+
+.form-card ion-card-title {
+  font-size: 1.35rem;
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.form-card ion-card-content {
+  padding: 0.75rem 1.25rem 1.5rem;
+}
+
+.filters-panel {
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  background: rgba(18, 18, 32, 0.92);
+  border-radius: 20px;
+  border: 1px solid rgba(168, 85, 247, 0.18);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+/* ─── Sections ──────────────────────────────────────────────────── */
+
+.form-section {
+  margin-bottom: 1.75rem;
+}
+
+.form-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-title,
+.filter-group label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #a855f7;
+  margin: 0 0 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.filter-group {
+  margin-bottom: 1rem;
+}
+
+.filter-group label {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+}
+
+/* ─── Form fields (ion-item) ────────────────────────────────────── */
+
+.dark ion-item.form-item,
+.dark ion-item.toggle-item,
+.form-item,
+.toggle-item,
+.gaming-select,
+.filter-group ion-select {
+  --background: rgba(15, 15, 28, 0.95);
+  --border-radius: 14px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 10px;
+  --padding-bottom: 10px;
+  --inner-padding-end: 0;
+  --inner-padding-start: 0;
+  --min-height: 68px;
+  --highlight-color-focused: #a855f7;
+  --highlight-color-valid: #a855f7;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  overflow: visible;
+  margin-bottom: 0.875rem;
+  width: 100%;
+}
+
+.form-item:last-child {
+  margin-bottom: 0;
+}
+
+.dark ion-item.form-item.item-has-focus,
+.dark ion-item.form-item:focus-within,
+.form-item.item-has-focus,
+.form-item:focus-within,
+.gaming-select:focus-within,
+.filter-group ion-select:focus-within {
+  border-color: rgba(168, 85, 247, 0.55);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+}
+
+.form-item ion-label,
+.form-item ion-label[position="stacked"] {
+  margin-bottom: 6px !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  color: #cbd5e1 !important;
+  transform: none !important;
+  opacity: 1 !important;
+}
+
+.form-item ion-input,
+.form-item ion-textarea,
+.form-item ion-select,
+.gaming-select,
+.filter-group ion-select {
+  --padding-start: 0;
+  --padding-end: 0;
+  --padding-top: 6px;
+  --padding-bottom: 6px;
+  --color: #f8fafc;
+  --placeholder-color: #64748b;
+  --placeholder-opacity: 1;
+  font-size: 0.95rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.form-item ion-input,
+.form-item ion-select,
+.gaming-select,
+.filter-group ion-select {
+  min-height: 32px;
+}
+
+.form-item ion-textarea {
+  min-height: 110px;
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+}
+
+.form-item ion-select::part(text),
+.form-item ion-select::part(placeholder),
+.gaming-select::part(text),
+.gaming-select::part(placeholder),
+.filter-group ion-select::part(text),
+.filter-group ion-select::part(placeholder) {
+  color: #f8fafc;
+}
+
+.form-item ion-select::part(icon),
+.gaming-select::part(icon),
+.filter-group ion-select::part(icon) {
+  color: #94a3b8;
+  opacity: 1;
+}
+
+/* Toggle row */
+.toggle-item {
+  --min-height: 56px;
+  --padding-top: 14px;
+  --padding-bottom: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.toggle-item ion-label {
+  margin-bottom: 0 !important;
+  color: #f8fafc !important;
+  font-size: 0.95rem !important;
+}
+
+ion-toggle {
+  --track-background: rgba(148, 163, 184, 0.25);
+  --track-background-checked: rgba(168, 85, 247, 0.45);
+  --handle-background: #f8fafc;
+  --handle-background-checked: #f8fafc;
+  padding-inline-end: 4px;
+}
+
+/* ─── Search field (home) ─────────────────────────────────────────── */
+
+.search-bar-container {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.search-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 14px;
+  background: rgba(15, 15, 28, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.search-field:focus-within {
+  border-color: rgba(168, 85, 247, 0.55);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+}
+
+.search-field__icon {
+  color: #a855f7;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.search-field ion-input.search-field__input,
+.search-field__input {
+  flex: 1;
+  min-width: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  --background: transparent;
+  --color: #f8fafc;
+  --placeholder-color: #64748b;
+  --placeholder-opacity: 1;
+  --highlight-color-focused: transparent;
+  font-size: 0.95rem;
+}
+
+.search-field ion-input.search-field__input::part(native),
+.search-field__input::part(native) {
+  padding: 0;
+}
+
+/* Legacy ion-searchbar (if used elsewhere) */
+.gaming-searchbar {
+  --background: rgba(15, 15, 28, 0.95);
+  --color: #f8fafc;
+  --placeholder-color: #64748b;
+  --icon-color: #a855f7;
+  --clear-button-color: #94a3b8;
+  --border-radius: 14px;
+  --box-shadow: none;
+  padding: 0;
+  height: 48px;
+  border: none;
+}
+
+.dark ion-searchbar:not(.gaming-searchbar) {
+  --background: var(--color-bg-input);
+  --color: var(--color-text-primary);
+  --placeholder-color: var(--color-text-muted);
+  --icon-color: var(--color-text-secondary);
+  --box-shadow: none;
+  border: var(--border-glow);
+  border-radius: 12px;
+}
+
+.gaming-select,
+.filter-group ion-select {
+  --padding-start: 14px;
+  --padding-end: 14px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  --min-height: 52px;
+  margin-bottom: 0;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-chips ion-chip,
+.genre-selector ion-chip {
+  --background: rgba(15, 15, 28, 0.95);
+  --color: #94a3b8;
+  margin: 0;
+  min-height: 34px;
+  padding-inline: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-chips ion-chip.selected,
+.genre-selector ion-chip.selected {
+  --background: rgba(168, 85, 247, 0.22);
+  --color: #f8fafc;
+  border-color: rgba(168, 85, 247, 0.55);
+}
+
+.genre-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+/* ─── Toolbars ──────────────────────────────────────────────────── */
+
+.form-toolbar,
+.profile-toolbar,
+.header-toolbar {
+  --background: rgba(15, 15, 26, 0.95);
+  --border-color: rgba(168, 85, 247, 0.18);
+  backdrop-filter: blur(20px);
+}
+
+/* ─── Action bars ───────────────────────────────────────────────── */
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.875rem;
+  padding-top: 1.25rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid rgba(168, 85, 247, 0.12);
+}
+
+.fixed-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(12, 12, 22, 0.96);
+  border-top: 1px solid rgba(168, 85, 247, 0.18);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 999;
+  backdrop-filter: blur(16px);
+}
+
+.actions-content {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.cancel-btn {
+  --border-color: rgba(168, 85, 247, 0.35);
+  --color: #e2e8f0;
+  --border-radius: 12px;
+  height: 48px;
+  min-width: 108px;
+}
+
+.submit-btn {
+  --background: linear-gradient(135deg, #a855f7 0%, #7c3aed 45%, #06b6d4 100%);
+  --background-hover: linear-gradient(135deg, #c084fc 0%, #8b5cf6 45%, #22d3ee 100%);
+  --border-radius: 12px;
+  --padding-start: 22px;
+  --padding-end: 22px;
+  height: 48px;
+  font-weight: 700;
+  min-width: 140px;
+}
+
+/* ─── List items (profile, home) ────────────────────────────────── */
+
+.recent-games-card ion-item,
+.game-list-item {
+  --background: rgba(15, 15, 28, 0.95);
+  --padding-start: 14px;
+  --padding-end: 14px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  --inner-padding-end: 8px;
+  --min-height: 72px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 14px;
+  margin-bottom: 0.625rem;
+}
+
+.recent-games-card ion-item h3,
+.game-list-item .game-title {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.recent-games-card ion-item p,
+.game-list-item .game-meta,
+.game-list-item .game-details {
+  color: #94a3b8;
+}
+
+.recent-games-card ion-card-content,
+.progress-card ion-card-content,
+.actions-card ion-card-content {
+  padding: 0.75rem 1.25rem 1.25rem;
+}
+
+/* ─── Responsive ────────────────────────────────────────────────── */
+
+@media (min-width: 768px) {
+  .form-container,
+  .profile-container {
+    padding: 1.75rem 1.5rem 2rem;
+  }
+
+  .form-container {
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
+  }
+
+  .content-wrapper {
+    padding: 1.75rem 1.5rem 5rem;
+  }
+
+  .form-card ion-card-content {
+    padding: 0.75rem 1.5rem 1.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .cancel-btn,
+  .submit-btn,
+  .actions-content .cancel-btn,
+  .actions-content .submit-btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .actions-content {
+    padding: 0.75rem 0.875rem;
+  }
+}

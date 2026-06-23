@@ -5,7 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { 
   IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
-  IonIcon, IonGrid, IonRow, IonCol, IonSearchbar, IonChip, IonLabel,
+  IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip, IonLabel,
   IonBadge, IonList, IonItem, IonThumbnail,
   IonSelect, IonSelectOption, IonToast
 } from '@ionic/angular/standalone';
@@ -27,7 +27,7 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
   imports: [
     CommonModule, FormsModule, RouterLink, GameCardComponent,
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
-    IonIcon, IonGrid, IonRow, IonCol, IonSearchbar, IonChip, IonLabel,
+    IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip, IonLabel,
     IonBadge, IonList, IonItem, IonThumbnail,
     IonSelect, IonSelectOption, IonToast
   ],
@@ -64,13 +64,17 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
         <!-- Search and Stats Bar -->
         <div class="search-section">
           <div class="search-bar-container">
-            <ion-searchbar
-              [(ngModel)]="searchQuery"
-              (ionInput)="onSearch($event)"
-              placeholder="Search games..."
-              class="gaming-searchbar"
-              animated="true"
-            ></ion-searchbar>
+            <div class="search-field">
+              <ion-icon name="search-outline" class="search-field__icon" aria-hidden="true"></ion-icon>
+              <ion-input
+                [(ngModel)]="searchQuery"
+                (ionInput)="onSearch($event)"
+                placeholder="Search games..."
+                class="search-field__input"
+                clearInput="true"
+                enterkeyhint="search"
+              ></ion-input>
+            </div>
 
             <ion-button
               (click)="showFilters = !showFilters"
@@ -310,9 +314,7 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     }
 
     .header-toolbar {
-      --background: rgba(15, 15, 26, 0.95);
-      --border-color: rgba(139, 92, 246, 0.2);
-      backdrop-filter: blur(20px);
+      --color: #94a3b8;
     }
 
     .title-icon {
@@ -330,16 +332,6 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
       --color: #8b5cf6;
     }
 
-    .home-content {
-      --background: var(--color-bg-primary);
-    }
-
-    .content-wrapper {
-      max-width: 1600px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
-
     /* Search Section */
     .search-section {
       margin-bottom: 2rem;
@@ -347,37 +339,29 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
 
     .search-bar-container {
       display: flex;
-      gap: 1rem;
+      gap: 0.75rem;
       align-items: center;
-      margin-bottom: 1.25rem;
-    }
-
-    .gaming-searchbar {
-      --background: rgba(30, 30, 54, 0.8);
-      --color: #f8fafc;
-      --placeholder-color: #64748b;
-      --icon-color: #8b5cf6;
-      --clear-button-color: #64748b;
-      --border-radius: 16px;
-      --box-shadow: none;
-      flex: 1;
-      padding: 0;
-    }
-
-    .gaming-searchbar:focus-within {
-      --background: rgba(30, 30, 54, 1);
-      box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3);
+      margin-bottom: 1rem;
     }
 
     .filter-toggle-btn {
-      --background: rgba(30, 30, 54, 0.8);
+      --background: rgba(15, 15, 28, 0.95);
       --color: #94a3b8;
-      --background-hover: rgba(139, 92, 246, 0.2);
-      --border-radius: 12px;
+      --background-hover: rgba(168, 85, 247, 0.2);
+      --border-radius: 14px;
+      --padding-start: 0;
+      --padding-end: 0;
       height: 48px;
       width: 48px;
+      min-width: 48px;
       margin: 0;
       position: relative;
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      flex-shrink: 0;
+    }
+
+    .filter-toggle-btn::part(native) {
+      border-radius: 14px;
     }
 
     .filter-toggle-btn.active {
@@ -399,99 +383,36 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
     /* Stats Bar */
     .stats-bar {
       display: flex;
-      gap: 2.5rem;
-      padding: 1.25rem 1.75rem;
-      background: rgba(30, 30, 54, 0.5);
-      border-radius: 12px;
-      border: 1px solid rgba(139, 92, 246, 0.1);
+      gap: 1.5rem;
+      padding: 1rem 1.25rem;
+      background: rgba(15, 15, 28, 0.95);
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      flex-wrap: wrap;
     }
 
     .stat-item {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.625rem;
       color: #94a3b8;
       font-size: 0.875rem;
     }
 
     .stat-item ion-icon {
-      color: #8b5cf6;
-      font-size: 1.25rem;
-    }
-
-    .stat-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: #94a3b8;
-      font-size: 0.875rem;
-    }
-
-    .stat-item ion-icon {
-      color: #8b5cf6;
+      color: #a855f7;
       font-size: 1.125rem;
-    }
-
-    /* Filters Panel */
-    .filters-panel {
-      background: rgba(22, 22, 42, 0.9);
-      border-radius: 16px;
-      padding: 2rem;
-      margin-bottom: 2rem;
-      border: 1px solid rgba(139, 92, 246, 0.2);
     }
 
     .filters-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1.25rem;
+      margin-bottom: 1rem;
     }
 
-    .filters-header h3 {
-      margin: 0;
-      font-size: 1.125rem;
-      color: #f8fafc;
-    }
-
-    .filter-group {
-      margin-bottom: 1.25rem;
-    }
-
-    .filter-group label {
-      display: block;
-      color: #94a3b8;
-      font-size: 0.875rem;
-      margin-bottom: 0.625rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .filter-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.625rem;
-    }
-
-    ion-chip {
-      --background: rgba(30, 30, 54, 0.8);
-      --color: #94a3b8;
-      margin: 0;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    ion-chip.selected {
-      --background: rgba(139, 92, 246, 0.3);
-      --color: #f8fafc;
-      border: 1px solid var(--platform-color, #8b5cf6);
-    }
-
-    .gaming-select {
-      --background: rgba(30, 30, 54, 0.8);
-      --color: #f8fafc;
-      --placeholder-color: #64748b;
-      border-radius: 8px;
+    .filter-chips ion-chip.selected {
+      border-color: var(--platform-color, #a855f7);
     }
 
     .sort-controls {
@@ -744,13 +665,8 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
 
     /* Responsive */
     @media (max-width: 768px) {
-      .content-wrapper {
-        padding: 1.25rem;
-      }
-
       .stats-bar {
-        flex-wrap: wrap;
-        gap: 1.25rem;
+        gap: 1rem;
       }
 
       .games-grid {
@@ -765,28 +681,22 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
       .game-title {
         font-size: 1rem;
       }
-
-      .filters-panel {
-        padding: 1.25rem;
-      }
     }
 
     @media (max-width: 480px) {
       .search-bar-container {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
       }
 
-      .gaming-searchbar {
-        width: 100%;
-        order: 1;
-      }
-
-      .filter-toggle-btn,
-      .view-toggle-btn {
-        order: 2;
+      .search-field {
         flex: 1;
-        width: auto;
-        height: 44px;
+        min-width: 0;
+      }
+
+      .filter-toggle-btn {
+        height: 48px;
+        width: 48px;
+        min-width: 48px;
       }
 
       .games-grid {

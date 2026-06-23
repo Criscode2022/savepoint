@@ -139,12 +139,20 @@ body {
   border: var(--border-glow);
 }
 
-.dark ion-item {
+.dark ion-input,
+.dark ion-textarea,
+.dark ion-select {
+  --background: transparent;
+  --color: var(--color-text-primary);
+  --placeholder-color: var(--color-text-muted);
+}
+
+.dark ion-item:not(.form-item):not(.toggle-item):not(.game-list-item) {
   --background: transparent;
   --border-color: var(--border-color);
 }
 
-.dark ion-searchbar {
+.dark ion-searchbar:not(.gaming-searchbar) {
   --background: var(--color-bg-input);
   --color: var(--color-text-primary);
   --placeholder-color: var(--color-text-muted);

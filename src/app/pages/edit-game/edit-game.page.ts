@@ -47,7 +47,7 @@ import { GameService } from '../../services/game.service';
               <div class="form-section">
                 <h3 class="section-title">Basic Information</h3>
 
-                <ion-item class="form-item">
+                <ion-item class="form-item" lines="none">
                   <ion-label position="stacked">Title *</ion-label>
                   <ion-input
                     [(ngModel)]="game.title"
@@ -56,7 +56,7 @@ import { GameService } from '../../services/game.service';
                     placeholder="Enter game title"></ion-input>
                 </ion-item>
 
-                <ion-item class="form-item">
+                <ion-item class="form-item" lines="none">
                   <ion-label position="stacked">Description</ion-label>
                   <ion-textarea
                     [(ngModel)]="game.description"
@@ -65,7 +65,7 @@ import { GameService } from '../../services/game.service';
                     placeholder="Brief description of the game"></ion-textarea>
                 </ion-item>
 
-                <ion-item class="form-item">
+                <ion-item class="form-item" lines="none">
                   <ion-label position="stacked">Cover Image URL</ion-label>
                   <ion-input
                     [(ngModel)]="game.coverImage"
@@ -79,7 +79,7 @@ import { GameService } from '../../services/game.service';
               <div class="form-section">
                 <h3 class="section-title">Platform & Release</h3>
 
-                <ion-item class="form-item">
+                <ion-item class="form-item" lines="none">
                   <ion-label position="stacked">Platform *</ion-label>
                   <ion-select
                     [(ngModel)]="selectedPlatformId"
@@ -94,7 +94,7 @@ import { GameService } from '../../services/game.service';
                   </ion-select>
                 </ion-item>
 
-                <ion-item class="form-item">
+                <ion-item class="form-item" lines="none">
                   <ion-label position="stacked">Release Year *</ion-label>
                   <ion-input
                     [(ngModel)]="game.releaseYear"
@@ -111,7 +111,7 @@ import { GameService } from '../../services/game.service';
               <div class="form-section">
                 <h3 class="section-title">Developer Information</h3>
 
-                <ion-item class="form-item">
+                <ion-item class="form-item" lines="none">
                   <ion-label position="stacked">Developer *</ion-label>
                   <ion-input
                     [(ngModel)]="developerName"
@@ -120,7 +120,7 @@ import { GameService } from '../../services/game.service';
                     placeholder="Developer company name"></ion-input>
                 </ion-item>
 
-                <ion-item class="form-item">
+                <ion-item class="form-item" lines="none">
                   <ion-label position="stacked">Director</ion-label>
                   <ion-input
                     [(ngModel)]="game.director"
@@ -147,7 +147,7 @@ import { GameService } from '../../services/game.service';
               <div class="form-section">
                 <h3 class="section-title">Your Stats</h3>
 
-                <ion-item class="form-item">
+                <ion-item class="form-item" lines="none">
                   <ion-label position="stacked">Your Rating (0-10)</ion-label>
                   <ion-input
                     [(ngModel)]="game.rating"
@@ -159,7 +159,7 @@ import { GameService } from '../../services/game.service';
                     placeholder="8.5"></ion-input>
                 </ion-item>
 
-                <ion-item class="form-item">
+                <ion-item class="form-item" lines="none">
                   <ion-label position="stacked">Playtime (hours)</ion-label>
                   <ion-input
                     [(ngModel)]="game.playtime"
@@ -169,7 +169,7 @@ import { GameService } from '../../services/game.service';
                     placeholder="25"></ion-input>
                 </ion-item>
 
-                <ion-item class="form-item toggle-item">
+                <ion-item class="form-item toggle-item" lines="none">
                   <ion-label>Completed</ion-label>
                   <ion-toggle
                     [(ngModel)]="game.completed"
@@ -181,7 +181,7 @@ import { GameService } from '../../services/game.service';
               <div class="form-section">
                 <h3 class="section-title">Notes</h3>
 
-                <ion-item class="form-item">
+                <ion-item class="form-item" lines="none">
                   <ion-textarea
                     [(ngModel)]="game.notes"
                     name="notes"
@@ -224,152 +224,7 @@ import { GameService } from '../../services/game.service';
       </ion-toast>
     </ion-content>
   `,
-  styles: [`
-    .form-toolbar {
-      --background: rgba(15, 15, 26, 0.95);
-      --border-color: rgba(139, 92, 246, 0.2);
-      backdrop-filter: blur(20px);
-    }
-
-    .form-content {
-      --background: var(--color-bg-primary);
-    }
-
-    .form-container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 1.5rem;
-    }
-
-    .form-card {
-      background: rgba(22, 22, 42, 0.8);
-      border-radius: 16px;
-      border: 1px solid rgba(139, 92, 246, 0.1);
-    }
-
-    ion-card-header {
-      padding: 1.5rem 1.5rem 0;
-    }
-
-    ion-card-title {
-      font-size: 1.5rem;
-      color: #f8fafc;
-    }
-
-    ion-card-content {
-      padding: 1.5rem;
-    }
-
-    .form-section {
-      margin-bottom: 2rem;
-    }
-
-    .section-title {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #8b5cf6;
-      margin: 0 0 1rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .form-item {
-      --background: rgba(30, 30, 54, 0.5);
-      --border-color: rgba(139, 92, 246, 0.2);
-      --border-radius: 12px;
-      margin-bottom: 1rem;
-      border-radius: 12px;
-    }
-
-    .form-item:focus-within {
-      --border-color: #8b5cf6;
-    }
-
-    ion-label {
-      color: #94a3b8 !important;
-      font-size: 0.875rem !important;
-      margin-bottom: 0.5rem;
-    }
-
-    ion-input, ion-textarea, ion-select {
-      --color: #f8fafc;
-      --placeholder-color: #475569;
-    }
-
-    .toggle-item {
-      --padding-start: 16px;
-      --padding-end: 16px;
-    }
-
-    .toggle-item ion-label {
-      margin-bottom: 0;
-    }
-
-    ion-toggle {
-      --background: rgba(139, 92, 246, 0.2);
-      --background-checked: #8b5cf6;
-      --handle-background: #f8fafc;
-      --handle-background-checked: #f8fafc;
-    }
-
-    .genre-selector {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .genre-selector ion-chip {
-      --background: rgba(30, 30, 54, 0.8);
-      --color: #94a3b8;
-      margin: 0;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .genre-selector ion-chip.selected {
-      --background: rgba(139, 92, 246, 0.3);
-      --color: #f8fafc;
-      border: 1px solid #8b5cf6;
-    }
-
-    .form-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 1rem;
-      padding-top: 1rem;
-      border-top: 1px solid rgba(139, 92, 246, 0.1);
-    }
-
-    .cancel-btn {
-      --border-color: rgba(139, 92, 246, 0.3);
-      --color: #94a3b8;
-      --border-radius: 12px;
-    }
-
-    .submit-btn {
-      --background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
-      --background-hover: linear-gradient(135deg, #a78bfa 0%, #67e8f9 100%);
-      --border-radius: 12px;
-      --padding-start: 24px;
-      --padding-end: 24px;
-      height: 48px;
-      font-weight: 600;
-    }
-
-    @media (max-width: 480px) {
-      .form-container {
-        padding: 1rem;
-      }
-
-      .form-actions {
-        flex-direction: column;
-      }
-
-      .cancel-btn, .submit-btn {
-        width: 100%;
-      }
-    }
-  `]
+  styles: [],
 })
 export class EditGamePage implements OnInit {
   platforms = PLATFORMS;

@@ -147,7 +147,7 @@ import { Subject, takeUntil } from 'rxjs';
           </ion-card-header>
           <ion-card-content>
             <ion-list lines="none">
-              <ion-item *ngFor="let game of recentGames" [routerLink]="['/game', game.id]">
+              <ion-item *ngFor="let game of recentGames" [routerLink]="['/game', game.id]" lines="none">
                 <ion-avatar slot="start">
                   <img [src]="game.coverImage || '/assets/images/game-placeholder.jpg'" />
                 </ion-avatar>
@@ -189,19 +189,11 @@ import { Subject, takeUntil } from 'rxjs';
   `,
   styles: [`
     .profile-toolbar {
-      --background: rgba(15, 15, 26, 0.95);
-      --border-color: rgba(139, 92, 246, 0.2);
-      backdrop-filter: blur(20px);
-    }
-
-    .profile-content {
-      --background: var(--color-bg-primary);
+      --color: #94a3b8;
     }
 
     .profile-container {
       max-width: 1200px;
-      margin: 0 auto;
-      padding: 1.5rem;
     }
 
     /* Profile Header */
@@ -270,15 +262,8 @@ import { Subject, takeUntil } from 'rxjs';
     }
 
     .stat-card {
-      background: rgba(22, 22, 42, 0.8);
-      border-radius: 16px;
-      border: 1px solid rgba(139, 92, 246, 0.1);
-      margin: 0;
       text-align: center;
-    }
-
-    ion-card-content {
-      padding: 1.5rem;
+      margin: 0;
     }
 
     .stat-icon-wrapper {
@@ -328,22 +313,6 @@ import { Subject, takeUntil } from 'rxjs';
     }
 
     /* Progress Card */
-    .progress-card, .recent-games-card, .actions-card {
-      background: rgba(22, 22, 42, 0.8);
-      border-radius: 16px;
-      border: 1px solid rgba(139, 92, 246, 0.1);
-      margin-bottom: 1.5rem;
-    }
-
-    ion-card-header {
-      padding: 1rem 1.5rem 0;
-    }
-
-    ion-card-title {
-      font-size: 1.25rem;
-      color: #f8fafc;
-    }
-
     .progress-item {
       padding: 1rem 0;
     }
@@ -370,30 +339,15 @@ import { Subject, takeUntil } from 'rxjs';
     /* Recent Games */
     ion-list {
       background: transparent;
+      padding: 0;
     }
 
-    ion-item {
-      --background: rgba(30, 30, 54, 0.5);
-      --border-color: rgba(139, 92, 246, 0.1);
-      border-radius: 12px;
-      margin-bottom: 0.5rem;
+    .recent-games-card ion-item {
       cursor: pointer;
     }
 
-    ion-item:last-child {
+    .recent-games-card ion-item:last-child {
       margin-bottom: 0;
-    }
-
-    ion-item h3 {
-      color: #f8fafc;
-      font-weight: 600;
-      margin: 0 0 0.25rem;
-    }
-
-    ion-item p {
-      color: #64748b;
-      font-size: 0.875rem;
-      margin: 0;
     }
 
     /* Responsive */

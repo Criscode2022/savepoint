@@ -270,7 +270,7 @@ ion-card {
   border: 1px solid var(--color-border);
 }
 
-ion-item {
+ion-item:not(.form-item):not(.toggle-item):not(.game-list-item) {
   --background: var(--color-bg-input);
   --color: var(--color-text-primary);
   --border-color: var(--color-border);
