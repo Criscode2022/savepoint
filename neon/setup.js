@@ -4,14 +4,17 @@ const path = require("path");
 // Load .env if present (local dev)
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
-const DATABASE_URL = process.env.DATABASE_URL;
+const connectionString =
+  process.env.DATABASE_CONNECTION_STRING || process.env.DATABASE_URL;
 
-if (!DATABASE_URL) {
-  console.error("DATABASE_URL not found in .env file");
+if (!connectionString) {
+  console.error(
+    "DATABASE_CONNECTION_STRING or DATABASE_URL not found in .env file",
+  );
   process.exit(1);
 }
 
-const sql = neon(DATABASE_URL);
+const sql = neon(connectionString);
 
 async function setupDatabase() {
   console.log("Setting up database...");

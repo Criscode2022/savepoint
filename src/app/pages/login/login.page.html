@@ -1,0 +1,242 @@
+<ion-content class="auth-content" [fullscreen]="true">
+  <div class="auth-shell">
+    <div class="auth-grid"></div>
+    <div class="auth-orb auth-orb--purple"></div>
+    <div class="auth-orb auth-orb--cyan"></div>
+    <div class="auth-orb auth-orb--pink"></div>
+
+    <div class="auth-panel">
+      <div class="auth-brand">
+        <div class="auth-logo">
+          <ion-icon name="game-controller"></ion-icon>
+        </div>
+        <h1 class="auth-title">GameVault</h1>
+        <p class="auth-subtitle">
+          {{
+            isRegisterMode()
+              ? "Create your account and start collecting"
+              : "Sign in to your game library"
+          }}
+        </p>
+      </div>
+
+      <ion-card class="auth-card">
+        <ion-card-header class="auth-card-header">
+          <h2 class="auth-card-title">
+            {{ isRegisterMode() ? "Create Account" : "Welcome Back" }}
+          </h2>
+          <p class="auth-card-desc">
+            {{
+              isRegisterMode()
+                ? "Join thousands of gamers tracking their collections"
+                : "Enter your credentials to continue"
+            }}
+          </p>
+        </ion-card-header>
+
+        <ion-card-content>
+          <form
+            [formGroup]="authForm"
+            (ngSubmit)="onSubmit()"
+            class="auth-form"
+            novalidate
+          >
+            @if (isRegisterMode()) {
+              <div class="auth-field">
+                <ion-item
+                  [class.field-invalid]="isInvalid('username')"
+                  lines="none"
+                >
+                  <ion-icon name="person-outline" slot="start"></ion-icon>
+                  <ion-input
+                    formControlName="username"
+                    placeholder="Username"
+                    type="text"
+                    autocomplete="username"
+                    enterkeyhint="next"
+                  ></ion-input>
+                </ion-item>
+                @if (fieldError("username"); as err) {
+                  <span class="auth-error">{{ err }}</span>
+                } @else if (
+                  isInvalid("username") &&
+                  authForm.get("username")?.hasError("pattern")
+                ) {
+                  <span class="auth-error"
+                    >Username can only contain letters, numbers, spaces, _ and
+                    -</span
+                  >
+                }
+              </div>
+            }
+
+            <div class="auth-field">
+              <ion-item
+                [class.field-invalid]="isInvalid('email')"
+                lines="none"
+              >
+                <ion-icon name="mail-outline" slot="start"></ion-icon>
+                <ion-input
+                  formControlName="email"
+                  placeholder="Email address"
+                  type="email"
+                  autocomplete="email"
+                  enterkeyhint="next"
+                ></ion-input>
+              </ion-item>
+              @if (fieldError("email"); as err) {
+                <span class="auth-error">{{ err }}</span>
+              }
+            </div>
+
+            <div class="auth-field">
+              <ion-item
+                [class.field-invalid]="isInvalid('password')"
+                lines="none"
+              >
+                <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+                <ion-input
+                  formControlName="password"
+                  placeholder="Password"
+                  [type]="showPassword() ? 'text' : 'password'"
+                  [autocomplete]="
+                    isRegisterMode() ? 'new-password' : 'current-password'
+                  "
+                  enterkeyhint="next"
+                ></ion-input>
+                <ion-button
+                  slot="end"
+                  fill="clear"
+                  type="button"
+                  class="auth-toggle-btn"
+                  (click)="togglePasswordVisibility()"
+                  [attr.aria-label]="
+                    showPassword() ? 'Hide password' : 'Show password'
+                  "
+                >
+                  <ion-icon
+                    [name]="showPassword() ? 'eye-off-outline' : 'eye-outline'"
+                  ></ion-icon>
+                </ion-button>
+              </ion-item>
+              @if (fieldError("password"); as err) {
+                <span class="auth-error">{{ err }}</span>
+              }
+            </div>
+
+            @if (isRegisterMode()) {
+              @if (passwordStrength() !== "empty") {
+                <div class="password-strength">
+                  <div class="password-strength__bars">
+                    @for (bar of [1, 2, 3, 4]; track bar) {
+                      <div
+                        class="password-strength__bar"
+                        [class.active]="bar <= strengthBars()"
+                        [class.weak]="
+                          bar <= strengthBars() && passwordStrength() === 'weak'
+                        "
+                        [class.fair]="
+                          bar <= strengthBars() && passwordStrength() === 'fair'
+                        "
+                        [class.good]="
+                          bar <= strengthBars() && passwordStrength() === 'good'
+                        "
+                        [class.strong]="
+                          bar <= strengthBars() &&
+                          passwordStrength() === 'strong'
+                        "
+                      ></div>
+                    }
+                  </div>
+                  <span class="password-strength__label">{{
+                    strengthLabel()
+                  }}</span>
+                </div>
+              }
+
+              <div class="auth-field">
+                <ion-item
+                  [class.field-invalid]="
+                    isInvalid('confirmPassword') || hasPasswordMismatch()
+                  "
+                  lines="none"
+                >
+                  <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+                  <ion-input
+                    formControlName="confirmPassword"
+                    placeholder="Confirm password"
+                    [type]="showConfirmPassword() ? 'text' : 'password'"
+                    autocomplete="new-password"
+                    enterkeyhint="done"
+                  ></ion-input>
+                  <ion-button
+                    slot="end"
+                    fill="clear"
+                    type="button"
+                    class="auth-toggle-btn"
+                    (click)="toggleConfirmPasswordVisibility()"
+                    [attr.aria-label]="
+                      showConfirmPassword()
+                        ? 'Hide confirm password'
+                        : 'Show confirm password'
+                    "
+                  >
+                    <ion-icon
+                      [name]="
+                        showConfirmPassword()
+                          ? 'eye-off-outline'
+                          : 'eye-outline'
+                      "
+                    ></ion-icon>
+                  </ion-button>
+                </ion-item>
+                @if (fieldError("confirmPassword"); as err) {
+                  <span class="auth-error">{{ err }}</span>
+                } @else if (hasPasswordMismatch()) {
+                  <span class="auth-error">Passwords do not match</span>
+                }
+              </div>
+            }
+
+            @if (errorMessage(); as error) {
+              <div class="auth-alert" role="alert">
+                <ion-icon name="alert-circle-outline"></ion-icon>
+                <span>{{ error }}</span>
+              </div>
+            }
+
+            <ion-button
+              expand="block"
+              type="submit"
+              class="auth-submit"
+              [disabled]="authForm.invalid || isLoading()"
+            >
+              @if (isLoading()) {
+                <ion-spinner name="crescent" slot="start"></ion-spinner>
+                {{
+                  isRegisterMode() ? "Creating account..." : "Signing in..."
+                }}
+              } @else {
+                {{ isRegisterMode() ? "Create Account" : "Sign In" }}
+                <ion-icon name="arrow-forward" slot="end"></ion-icon>
+              }
+            </ion-button>
+
+            <div class="auth-switch">
+              {{
+                isRegisterMode()
+                  ? "Already have an account?"
+                  : "Don't have an account?"
+              }}
+              @if (isRegisterMode()) {
+                <a routerLink="/login">Sign in</a>
+              } @else {
+                <a routerLink="/register">Create one</a>
+              }
+            </div>
+          </form>
+        </ion-card-content>
+      </ion-card>
+    </div>
+  </div>
+</ion-content>

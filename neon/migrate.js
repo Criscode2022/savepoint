@@ -5,7 +5,8 @@ const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
 async function migrate() {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString =
+    process.env.DATABASE_CONNECTION_STRING || process.env.DATABASE_URL;
 
   if (!connectionString) {
     console.error("❌ DATABASE_URL environment variable is required");

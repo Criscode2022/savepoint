@@ -135,7 +135,9 @@ export const authClient = {
         const error = await response
           .json()
           .catch(() => ({ message: "Sign in failed" }));
-        throw new Error(error.message || "Sign in failed");
+        throw new Error(
+          error.message || error.error?.message || "Sign in failed",
+        );
       }
 
       const data = await response.json();
@@ -168,7 +170,9 @@ export const authClient = {
         const error = await response
           .json()
           .catch(() => ({ message: "Sign up failed" }));
-        throw new Error(error.message || "Sign up failed");
+        throw new Error(
+          error.message || error.error?.message || "Sign up failed",
+        );
       }
 
       const data = await response.json();
