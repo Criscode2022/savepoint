@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { 
-  IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
+  IonContent, IonHeader, IonToolbar, IonButton,
   IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip, IonLabel,
   IonBadge, IonList, IonItem, IonThumbnail,
   IonSelect, IonSelectOption, IonToast, AlertController
@@ -27,36 +27,48 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterLink, GameCardComponent, GameCoverComponent,
-    IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
+    IonContent, IonHeader, IonToolbar, IonButton,
     IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip, IonLabel,
     IonBadge, IonList, IonItem, IonThumbnail,
     IonSelect, IonSelectOption, IonToast
   ],
   template: `
-    <ion-header class="ion-no-border">
+    <ion-header class="ion-no-border home-header">
       <ion-toolbar class="header-toolbar">
-        <ion-title class="gaming-font ion-margin">
-          <ion-icon
-            name="game-controller-outline"
-            class="title-icon"
-          ></ion-icon>
-          Game<span class="text-gradient">Vault</span>
-        </ion-title>
+        <div class="header-inner">
+          <div class="header-brand">
+            <div class="brand-mark" aria-hidden="true">
+              <ion-icon name="game-controller-outline"></ion-icon>
+            </div>
+            <div class="brand-copy">
+              <span class="brand-name gaming-font">Game<span class="text-gradient">Vault</span></span>
+              <span class="brand-tagline">Your collection</span>
+            </div>
+          </div>
 
-        <ion-buttons slot="end">
-          <ion-button 
-            (click)="toggleViewMode()" 
-            [class.active]="isListView" 
-            class="view-toggle-btn" 
-            [title]="isListView ? 'Grid View' : 'List View'"
-          >
-            <ion-icon [name]="isListView ? 'grid-outline' : 'list-outline'" slot="icon-only"></ion-icon>
-          </ion-button>
-          
-          <ion-button (click)="logout()" class="logout-btn">
-            <ion-icon name="log-out-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
+          <div class="header-actions">
+            <ion-button
+              (click)="toggleViewMode()"
+              [class.active]="isListView"
+              class="header-icon-btn view-toggle-btn"
+              fill="clear"
+              [title]="isListView ? 'Grid view' : 'List view'"
+              [attr.aria-label]="isListView ? 'Switch to grid view' : 'Switch to list view'"
+            >
+              <ion-icon [name]="isListView ? 'grid-outline' : 'list-outline'" slot="icon-only"></ion-icon>
+            </ion-button>
+
+            <ion-button
+              (click)="logout()"
+              class="header-icon-btn logout-btn"
+              fill="clear"
+              title="Log out"
+              aria-label="Log out"
+            >
+              <ion-icon name="log-out-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
       </ion-toolbar>
     </ion-header>
 
@@ -79,12 +91,15 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
 
             <ion-button
               (click)="showFilters = !showFilters"
-              [class.active]="hasActiveFilters()"
+              [class.active]="showFilters || hasActiveFilters()"
               class="filter-toggle-btn"
-              title="Toggle Filters"
+              title="Toggle filters"
+              [attr.aria-expanded]="showFilters"
+              aria-label="Toggle filters"
             >
-              <ion-icon name="filter-outline" slot="icon-only"></ion-icon>
-              <ion-badge *ngIf="activeFilterCount > 0" class="filter-badge">{{activeFilterCount}}</ion-badge>
+              <ion-icon name="filter-outline" slot="start"></ion-icon>
+              <span class="filter-toggle-label">Filters</span>
+              <ion-badge *ngIf="activeFilterCount > 0" class="filter-badge">{{ activeFilterCount }}</ion-badge>
             </ion-button>
           </div>
 
@@ -314,70 +329,196 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
     }
 
     .header-toolbar {
+      --background: rgba(10, 10, 15, 0.92);
+      --border-color: rgba(148, 163, 184, 0.12);
+      --padding-top: 0;
+      --padding-bottom: 0;
+      --min-height: 68px;
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 0.75rem 1.25rem;
+      gap: 1rem;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.22) 0%, rgba(6, 182, 212, 0.12) 100%);
+      border: 1px solid rgba(168, 85, 247, 0.32);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .brand-mark ion-icon {
+      font-size: 1.25rem;
+      color: #d8b4fe;
+    }
+
+    .brand-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 0.125rem;
+      min-width: 0;
+    }
+
+    .brand-name {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: #f8fafc;
+      line-height: 1.1;
+    }
+
+    .brand-tagline {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .header-icon-btn {
+      --background: rgba(255, 255, 255, 0.04);
+      --background-hover: rgba(168, 85, 247, 0.16);
+      --background-activated: rgba(168, 85, 247, 0.22);
+      --border-radius: 12px;
+      --border-width: 0;
       --color: #94a3b8;
+      --padding-start: 0;
+      --padding-end: 0;
+      width: 42px;
+      height: 42px;
+      margin: 0;
+      border: none;
+      transition: transform 0.2s ease;
     }
 
-    .title-icon {
-      font-size: 1.5rem;
-      color: #8b5cf6;
+    .header-icon-btn::part(native) {
+      border-radius: 12px;
     }
 
-    .view-toggle-btn,
-    .logout-btn {
-      --color: #94a3b8;
-      --color-hover: #f8fafc;
+    .header-icon-btn:hover,
+    .header-icon-btn:focus-visible {
+      --color: #e2e8f0;
     }
 
-    .view-toggle-btn.active {
-      --color: #8b5cf6;
+    .header-icon-btn.active {
+      --background: rgba(168, 85, 247, 0.18);
+      --color: #e9d5ff;
+    }
+
+    .logout-btn:hover,
+    .logout-btn:focus-visible {
+      --color: #fecaca;
     }
 
     /* Search Section */
     .search-section {
-      margin-bottom: 2rem;
+      margin-bottom: 1.75rem;
+      padding: 1.125rem;
+      background: rgba(15, 15, 28, 0.72);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 18px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
     }
 
     .search-bar-container {
       display: flex;
       gap: 0.75rem;
-      align-items: center;
+      align-items: stretch;
       margin-bottom: 1rem;
     }
 
     .filter-toggle-btn {
       --background: rgba(15, 15, 28, 0.95);
-      --color: #94a3b8;
-      --background-hover: rgba(168, 85, 247, 0.2);
+      --background-hover: rgba(168, 85, 247, 0.14);
+      --background-activated: rgba(168, 85, 247, 0.2);
+      --color: #cbd5e1;
       --border-radius: 14px;
+      --border-width: 0;
       --padding-start: 0;
       --padding-end: 0;
+      --padding-top: 0;
+      --padding-bottom: 0;
       height: 48px;
-      width: 48px;
       min-width: 48px;
+      width: 48px;
       margin: 0;
       position: relative;
-      border: 1px solid rgba(148, 163, 184, 0.16);
+      border: none;
       flex-shrink: 0;
+      font-weight: 600;
+      transition:
+        transform 0.2s ease,
+        background 0.2s ease;
     }
 
     .filter-toggle-btn::part(native) {
       border-radius: 14px;
+      gap: 0.5rem;
+    }
+
+    .filter-toggle-btn:hover,
+    .filter-toggle-btn:focus-visible {
+      --color: #f1f5f9;
+      transform: translateY(-1px);
     }
 
     .filter-toggle-btn.active {
-      --background: rgba(139, 92, 246, 0.3);
-      --color: #8b5cf6;
+      --background: rgba(168, 85, 247, 0.16);
+      --color: #e9d5ff;
+    }
+
+    .filter-toggle-label {
+      display: none;
+      font-size: 0.875rem;
+      letter-spacing: 0.01em;
+    }
+
+    .filter-toggle-btn ion-icon {
+      font-size: 1.125rem;
+      margin-inline-end: 0.375rem;
     }
 
     .filter-badge {
       position: absolute;
-      top: 4px;
-      right: 4px;
+      top: -6px;
+      right: -6px;
       --background: #ef4444;
-      font-size: 10px;
+      --color: #fff;
+      font-size: 0.625rem;
+      font-weight: 700;
       min-width: 18px;
       height: 18px;
-      border-radius: 9px;
+      border-radius: 999px;
+      border: 2px solid rgba(15, 15, 28, 0.95);
+      padding: 0 4px;
     }
 
     /* Stats Bar */
@@ -683,6 +824,19 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       }
     }
 
+    @media (min-width: 640px) {
+      .filter-toggle-btn {
+        width: auto;
+        min-width: 7.5rem;
+        --padding-start: 14px;
+        --padding-end: 16px;
+      }
+
+      .filter-toggle-label {
+        display: inline;
+      }
+    }
+
     @media (max-width: 480px) {
       .search-bar-container {
         flex-wrap: nowrap;
@@ -697,6 +851,14 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
         height: 48px;
         width: 48px;
         min-width: 48px;
+      }
+
+      .brand-tagline {
+        display: none;
+      }
+
+      .header-inner {
+        padding-inline: 1rem;
       }
 
       .games-grid {

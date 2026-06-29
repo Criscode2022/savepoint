@@ -48,85 +48,104 @@ import { PlatformService } from '../../services/platform.service';
               <div class="form-section">
                 <h3 class="section-title">Basic Information</h3>
 
-                <ion-item class="form-item" lines="none">
-                  <ion-label position="stacked">Title *</ion-label>
-                  <ion-input
-                    [(ngModel)]="game.title"
-                    name="title"
-                    required
-                    placeholder="Enter game title"></ion-input>
-                </ion-item>
+                <div class="field-group">
+                  <label class="field-label" for="game-title">Title *</label>
+                  <ion-item class="form-item" lines="none">
+                    <ion-input
+                      id="game-title"
+                      [(ngModel)]="game.title"
+                      name="title"
+                      required
+                      placeholder="Enter game title"></ion-input>
+                  </ion-item>
+                </div>
 
-                <ion-item class="form-item" lines="none">
-                  <ion-label position="stacked">Description</ion-label>
-                  <ion-textarea
-                    [(ngModel)]="game.description"
-                    name="description"
-                    rows="4"
-                    placeholder="Brief description of the game"></ion-textarea>
-                </ion-item>
+                <div class="field-group">
+                  <label class="field-label" for="game-description">Description</label>
+                  <ion-item class="form-item form-item--textarea" lines="none">
+                    <ion-textarea
+                      id="game-description"
+                      [(ngModel)]="game.description"
+                      name="description"
+                      rows="4"
+                      placeholder="Brief description of the game"></ion-textarea>
+                  </ion-item>
+                </div>
 
-                <ion-item class="form-item" lines="none">
-                  <ion-label position="stacked">Cover Image URL</ion-label>
-                  <ion-input
-                    [(ngModel)]="game.coverImage"
-                    name="coverImage"
-                    type="url"
-                    placeholder="https://..."></ion-input>
-                </ion-item>
+                <div class="field-group">
+                  <label class="field-label" for="game-cover">Cover Image URL</label>
+                  <ion-item class="form-item" lines="none">
+                    <ion-input
+                      id="game-cover"
+                      [(ngModel)]="game.coverImage"
+                      name="coverImage"
+                      type="url"
+                      placeholder="https://..."></ion-input>
+                  </ion-item>
+                </div>
               </div>
 
-              <!-- Platform & Release -->
               <div class="form-section">
                 <h3 class="section-title">Platform & Release</h3>
 
-                <ion-item class="form-item" lines="none">
-                  <ion-label position="stacked">Platform *</ion-label>
-                  <ion-select
-                    [(ngModel)]="selectedPlatformId"
-                    name="platform"
-                    required
-                    interface="popover"
-                    placeholder="Select platform">
-                    <ion-select-option *ngFor="let platform of platforms" [value]="platform.id">
-                      {{platform.name}}
-                    </ion-select-option>
-                  </ion-select>
-                </ion-item>
+                <div class="field-group">
+                  <label class="field-label" for="game-platform">Platform *</label>
+                  <ion-item class="form-item" lines="none">
+                    <ion-select
+                      id="game-platform"
+                      [(ngModel)]="selectedPlatformId"
+                      name="platform"
+                      required
+                      interface="popover"
+                      placeholder="Select platform">
+                      <ion-select-option *ngFor="let platform of platforms" [value]="platform.id">
+                        {{ platform.name }}
+                      </ion-select-option>
+                    </ion-select>
+                  </ion-item>
+                </div>
 
-                <ion-item class="form-item" lines="none">
-                  <ion-label position="stacked">Release Year *</ion-label>
-                  <ion-input
-                    [(ngModel)]="game.releaseYear"
-                    name="releaseYear"
-                    type="number"
-                    required
-                    min="1970"
-                    [max]="currentYear"
-                    placeholder="2024"></ion-input>
-                </ion-item>
+                <div class="field-group">
+                  <label class="field-label" for="game-year">Release Year *</label>
+                  <ion-item class="form-item" lines="none">
+                    <ion-input
+                      id="game-year"
+                      [(ngModel)]="game.releaseYear"
+                      name="releaseYear"
+                      type="number"
+                      required
+                      min="1970"
+                      [max]="currentYear"
+                      placeholder="2024"></ion-input>
+                  </ion-item>
+                </div>
               </div>
 
-              <!-- Developer Info -->
               <div class="form-section">
                 <h3 class="section-title">Developer Information</h3>
 
-                <ion-item class="form-item" lines="none">
-                  <ion-label position="stacked">Developer *</ion-label>
-                  <ion-input
-                    [(ngModel)]="developerName"
-                    name="developerName"
-                    required
-                    placeholder="Developer company name"></ion-input>
-                </ion-item>
+                <div class="field-group">
+                  <label class="field-label" for="game-developer">Developer *</label>
+                  <ion-item class="form-item" lines="none">
+                    <ion-input
+                      id="game-developer"
+                      [(ngModel)]="developerName"
+                      name="developerName"
+                      required
+                      placeholder="Developer company name"></ion-input>
+                  </ion-item>
+                </div>
 
-                <ion-item class="form-item" lines="none">
-                  <ion-label position="stacked">Director</ion-label>
-                  <ion-input
-                    [(ngModel)]="game.director"
-                    name="director"
-                    placeholder="Game director name"></ion-input>
-                </ion-item>
+                <div class="field-group">
+                  <label class="field-label" for="game-director">Director</label>
+                  <ion-item class="form-item" lines="none">
+                    <ion-input
+                      id="game-director"
+                      [(ngModel)]="game.director"
+                      name="director"
+                      placeholder="Game director name"></ion-input>
+                  </ion-item>
+                </div>
               </div>
 
               <!-- Genres -->
@@ -147,47 +166,55 @@ import { PlatformService } from '../../services/platform.service';
               <div class="form-section">
                 <h3 class="section-title">Your Stats</h3>
 
-                <ion-item class="form-item" lines="none">
-                  <ion-label position="stacked">Your Rating (0-10)</ion-label>
-                  <ion-input
-                    [(ngModel)]="game.rating"
-                    name="rating"
-                    type="number"
-                    min="0"
-                    max="10"
-                    step="0.1"
-                    placeholder="8.5"></ion-input>
-                </ion-item>
+                <div class="field-group">
+                  <label class="field-label" for="game-rating">Your Rating (0-10)</label>
+                  <ion-item class="form-item" lines="none">
+                    <ion-input
+                      id="game-rating"
+                      [(ngModel)]="game.rating"
+                      name="rating"
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.1"
+                      placeholder="8.5"></ion-input>
+                  </ion-item>
+                </div>
 
-                <ion-item class="form-item" lines="none">
-                  <ion-label position="stacked">Playtime (hours)</ion-label>
-                  <ion-input
-                    [(ngModel)]="game.playtime"
-                    name="playtime"
-                    type="number"
-                    min="0"
-                    placeholder="25"></ion-input>
-                </ion-item>
+                <div class="field-group">
+                  <label class="field-label" for="game-playtime">Playtime (hours)</label>
+                  <ion-item class="form-item" lines="none">
+                    <ion-input
+                      id="game-playtime"
+                      [(ngModel)]="game.playtime"
+                      name="playtime"
+                      type="number"
+                      min="0"
+                      placeholder="25"></ion-input>
+                  </ion-item>
+                </div>
 
                 <ion-item class="form-item toggle-item" lines="none">
                   <ion-label>Completed</ion-label>
                   <ion-toggle
+                    slot="end"
                     [(ngModel)]="game.completed"
                     name="completed"></ion-toggle>
                 </ion-item>
               </div>
 
-              <!-- Notes -->
               <div class="form-section">
                 <h3 class="section-title">Notes</h3>
 
-                <ion-item class="form-item" lines="none">
-                  <ion-textarea
-                    [(ngModel)]="game.notes"
-                    name="notes"
-                    rows="4"
-                    placeholder="Any notes about the game..."></ion-textarea>
-                </ion-item>
+                <div class="field-group">
+                  <ion-item class="form-item form-item--textarea" lines="none">
+                    <ion-textarea
+                      [(ngModel)]="game.notes"
+                      name="notes"
+                      rows="4"
+                      placeholder="Any notes about the game..."></ion-textarea>
+                  </ion-item>
+                </div>
               </div>
             </form>
           </ion-card-content>
@@ -198,7 +225,7 @@ import { PlatformService } from '../../services/platform.service';
       <div class="fixed-actions">
         <div class="actions-content">
           <ion-button
-            fill="outline"
+            fill="clear"
             routerLink="/home"
             class="cancel-btn">
             Cancel
