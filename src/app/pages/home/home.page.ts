@@ -7,7 +7,7 @@ import {
   IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
   IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip, IonLabel,
   IonBadge, IonList, IonItem, IonThumbnail,
-  IonSelect, IonSelectOption, IonToast
+  IonSelect, IonSelectOption, IonToast, AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -20,12 +20,13 @@ import { Game, GameFilters, PLATFORMS } from '../../models/game.model';
 import { GameService } from '../../services/game.service';
 import { AuthService } from '../../services/auth.service';
 import { GameCardComponent } from '../../components/game-card/game-card.component';
+import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
 
 @Component({
   selector: 'app-home',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, RouterLink, GameCardComponent,
+    CommonModule, FormsModule, RouterLink, GameCardComponent, GameCoverComponent,
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
     IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip, IonLabel,
     IonBadge, IonList, IonItem, IonThumbnail,
@@ -217,7 +218,6 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
           <app-game-card
             *ngFor="let game of filteredGames(); trackBy: trackByGameId"
             [game]="game"
-            [coverImage]="getGameCoverImage(game)"
             (onToggleCompleted)="toggleCompleted($event)"
             (onDelete)="deleteGame($event)"
             class="game-card-wrapper"
@@ -234,10 +234,10 @@ import { GameCardComponent } from '../../components/game-card/game-card.componen
             [routerLink]="['/game', game.id]"
           >
             <ion-thumbnail slot="start" class="game-thumbnail">
-              <img
-                [src]="getGameCoverImage(game)"
-                [alt]="game.title"
-                loading="lazy"
+              <app-game-cover
+                [title]="game.title"
+                [coverImage]="game.coverImage"
+                variant="thumbnail"
               />
             </ion-thumbnail>
 
@@ -746,7 +746,8 @@ export class HomePage implements OnInit, OnDestroy {
   constructor(
     private gameService: GameService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private alertController: AlertController
   ) {
     this.filteredGames = this.gameService.filteredGames;
     addIcons({
@@ -828,16 +829,6 @@ export class HomePage implements OnInit, OnDestroy {
   // View toggle
   toggleViewMode(): void {
     this.isListView = !this.isListView;
-  }
-
-  // Get game cover image with placeholder fallback
-  getGameCoverImage(game: Game): string {
-    if (game.coverImage) {
-      return game.coverImage;
-    }
-    // Use placehold.co for games without images
-    const title = encodeURIComponent(game.title.substring(0, 20));
-    return `https://placehold.co/400x600/1e1e36/8b5cf6?text=${title}`;
   }
 
   // Platform filter
@@ -964,14 +955,41 @@ export class HomePage implements OnInit, OnDestroy {
     });
   }
 
-  deleteGame(gameId: string): void {
+  async deleteGame(gameId: string): Promise<void> {
+    const game = this.games.find(g => g.id === gameId);
+    const title = game?.title ?? 'this game';
+
+    const alert = await this.alertController.create({
+      header: 'Delete game?',
+      message: `"${title}" will be permanently removed from your library.`,
+      cssClass: 'app-alert',
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel',
+          cssClass: 'app-alert-btn-cancel',
+        },
+        {
+          text: 'Delete',
+          role: 'destructive',
+          cssClass: 'app-alert-btn-delete',
+          handler: () => this.performDelete(gameId),
+        },
+      ],
+    });
+
+    await alert.present();
+  }
+
+  private performDelete(gameId: string): void {
     this.gameService.deleteGame(gameId).subscribe({
       next: () => {
         this.showToast('Game deleted', 'success');
+        this.loadFilterOptions();
       },
       error: () => {
         this.showToast('Failed to delete game', 'danger');
-      }
+      },
     });
   }
 

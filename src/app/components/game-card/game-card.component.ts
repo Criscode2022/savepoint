@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { 
   IonCard, IonCardHeader, IonCardTitle, IonCardContent,
-  IonIcon, IonBadge, IonButton, IonChip
+  IonIcon, IonButton, IonChip
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -11,23 +11,23 @@ import {
   ellipseOutline, trashOutline, createOutline
 } from 'ionicons/icons';
 import { Game } from '../../models/game.model';
+import { GameCoverComponent } from '../game-cover/game-cover.component';
 
 @Component({
   selector: 'app-game-card',
   standalone: true,
   imports: [
-    CommonModule, RouterLink,
+    CommonModule, RouterLink, GameCoverComponent,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
-    IonIcon, IonBadge, IonButton, IonChip
+    IonIcon, IonButton, IonChip
   ],
   template: `
-    <ion-card class="game-card" [class.completed]="game.completed">
+    <ion-card class="game-card" [class.completed]="game.completed" [routerLink]="['/game', game.id]">
       <div class="card-image-wrapper">
-        <img 
-          [src]="coverImage || game.coverImage || '/assets/images/game-placeholder.jpg'" 
-          [alt]="game.title"
-          class="card-image"
-          loading="lazy"
+        <app-game-cover
+          [title]="game.title"
+          [coverImage]="coverImage || game.coverImage"
+          variant="card"
         />
         <div class="image-overlay">
           <div class="overlay-actions">
@@ -35,6 +35,7 @@ import { Game } from '../../models/game.model';
               fill="clear" 
               size="small"
               [routerLink]="['/edit', game.id]"
+              (click)="$event.stopPropagation()"
               class="action-btn">
               <ion-icon name="create-outline"></ion-icon>
             </ion-button>
@@ -50,9 +51,9 @@ import { Game } from '../../models/game.model';
         </div>
         
         <!-- Platform Badge -->
-        <ion-badge class="platform-badge" [style.--badge-color]="getPlatformColor()">
-          {{game.platform.name}}
-        </ion-badge>
+        <span class="platform-chip" [style.--platform-color]="getPlatformColor()">
+          {{ game.platform.name }}
+        </span>
         
         <!-- Completed Badge -->
         <div class="completed-badge" *ngIf="game.completed">
@@ -60,7 +61,7 @@ import { Game } from '../../models/game.model';
         </div>
       </div>
 
-      <ion-card-header [routerLink]="['/game', game.id]">
+      <ion-card-header>
         <ion-card-title class="game-title">{{game.title}}</ion-card-title>
         <div class="game-meta">
           <span class="developer">{{game.developer.name}}</span>
@@ -69,60 +70,68 @@ import { Game } from '../../models/game.model';
         </div>
       </ion-card-header>
 
-      <ion-card-content [routerLink]="['/game', game.id]">
-        <p class="game-description">{{game.description || '' | slice:0:100}}{{(game.description?.length || 0) > 100 ? '...' : ''}}</p>
+      <ion-card-content>
+        <p class="game-description" *ngIf="game.description">
+          {{ game.description | slice:0:100 }}{{ game.description.length > 100 ? '...' : '' }}
+        </p>
         
-        <div class="game-stats">
+        <div class="game-stats" *ngIf="game.rating || getPlaytime()">
           <div class="stat" *ngIf="game.rating">
-            <ion-icon name="star-outline" class="stat-icon"></ion-icon>
-            <span>{{game.rating}}</span>
+            <ion-icon name="star-outline" class="stat-icon rating-icon"></ion-icon>
+            <span>{{ game.rating }}</span>
           </div>
           
-          <div class="stat" *ngIf="game.playtime">
-            <ion-icon name="time-outline" class="stat-icon"></ion-icon>
-            <span>{{game.playtime}}h</span>
+          <div class="stat" *ngIf="getPlaytime()">
+            <ion-icon name="time-outline" class="stat-icon time-icon"></ion-icon>
+            <span>{{ getPlaytime() }}h</span>
           </div>
         </div>
 
-        <div class="game-genres" *ngIf="game.genre">
+        <div class="game-genres" *ngIf="game.genre?.length">
           <ion-chip *ngFor="let genre of (game.genre || []).slice(0, 3)" class="genre-chip">
-            {{genre}}
+            {{ genre }}
           </ion-chip>
         </div>
       </ion-card-content>
 
       <div class="card-footer">
         <ion-button 
-          fill="clear" 
+          fill="outline"
           size="small"
-          (click)="toggleCompleted()"
+          (click)="toggleCompleted($event)"
           [class.completed]="game.completed"
           class="complete-btn">
-          <ion-icon [name]="game.completed ? 'checkmark-circle-outline' : 'ellipse-outline'"></ion-icon>
-          {{game.completed ? 'Completed' : 'Mark Complete'}}
+          <ion-icon [name]="game.completed ? 'checkmark-circle-outline' : 'ellipse-outline'" slot="start"></ion-icon>
+          {{ game.completed ? 'Completed' : 'Mark complete' }}
         </ion-button>
       </div>
     </ion-card>
   `,
   styles: [`
     .game-card {
-      background: rgba(22, 22, 42, 0.8);
-      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(24, 24, 42, 0.98) 0%, rgba(15, 15, 28, 0.98) 100%);
+      border-radius: 18px;
       overflow: hidden;
-      border: 1px solid rgba(139, 92, 246, 0.1);
-      transition: all 0.3s ease;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
       cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      margin: 0;
     }
 
     .game-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5),
-                  0 0 30px rgba(139, 92, 246, 0.15);
-      border-color: rgba(139, 92, 246, 0.3);
+      box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(168, 85, 247, 0.25);
+      border-color: rgba(168, 85, 247, 0.35);
     }
 
     .game-card.completed {
-      border-color: rgba(34, 197, 94, 0.3);
+      border-color: rgba(34, 197, 94, 0.35);
     }
 
     .card-image-wrapper {
@@ -131,15 +140,8 @@ import { Game } from '../../models/game.model';
       overflow: hidden;
     }
 
-    .card-image {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.5s ease;
-    }
-
-    .game-card:hover .card-image {
-      transform: scale(1.05);
+    .game-card:hover .cover-image {
+      transform: scale(1.04);
     }
 
     .image-overlay {
@@ -147,16 +149,17 @@ import { Game } from '../../models/game.model';
       inset: 0;
       background: linear-gradient(
         to bottom,
-        rgba(0, 0, 0, 0) 0%,
-        rgba(0, 0, 0, 0) 50%,
-        rgba(0, 0, 0, 0.8) 100%
+        rgba(0, 0, 0, 0.35) 0%,
+        rgba(0, 0, 0, 0.05) 45%,
+        rgba(0, 0, 0, 0.55) 100%
       );
       opacity: 0;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.25s ease;
       display: flex;
       align-items: flex-start;
       justify-content: flex-end;
-      padding: 1rem;
+      padding: 0.875rem;
+      pointer-events: none;
     }
 
     .game-card:hover .image-overlay {
@@ -166,56 +169,65 @@ import { Game } from '../../models/game.model';
     .overlay-actions {
       display: flex;
       gap: 0.5rem;
+      pointer-events: auto;
     }
 
     .action-btn {
-      --background: rgba(0, 0, 0, 0.6);
+      --background: rgba(15, 15, 28, 0.82);
       --color: #f8fafc;
       --border-radius: 50%;
       --padding-start: 0;
       --padding-end: 0;
-      width: 40px;
-      height: 40px;
+      width: 38px;
+      height: 38px;
       margin: 0;
+      backdrop-filter: blur(8px);
     }
 
     .action-btn:hover {
-      --background: rgba(139, 92, 246, 0.8);
+      --background: rgba(168, 85, 247, 0.85);
     }
 
     .action-btn.delete:hover {
-      --background: rgba(239, 68, 68, 0.8);
+      --background: rgba(239, 68, 68, 0.85);
     }
 
-    .platform-badge {
+    .platform-chip {
       position: absolute;
       bottom: 12px;
       left: 12px;
-      --background: var(--badge-color, #8b5cf6);
-      --color: white;
-      --padding-start: 12px;
-      --padding-end: 12px;
-      --padding-top: 6px;
-      --padding-bottom: 6px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      max-width: calc(100% - 24px);
+      padding: 0.45rem 0.75rem;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--platform-color, #a855f7) 88%, black);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #ffffff;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      line-height: 1.2;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .completed-badge {
       position: absolute;
       top: 12px;
-      right: 12px;
-      width: 32px;
-      height: 32px;
+      left: 12px;
+      width: 34px;
+      height: 34px;
       background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 10px rgba(34, 197, 94, 0.4);
+      box-shadow: 0 4px 14px rgba(34, 197, 94, 0.45);
+      border: 2px solid rgba(255, 255, 255, 0.15);
     }
 
     .completed-badge ion-icon {
@@ -224,15 +236,15 @@ import { Game } from '../../models/game.model';
     }
 
     ion-card-header {
-      padding: 1.25rem 1.25rem 0.75rem;
+      padding: 1rem 1.125rem 0.625rem;
     }
 
     .game-title {
-      font-size: 1.125rem;
+      font-size: 1.0625rem;
       font-weight: 700;
       color: #f8fafc;
-      margin: 0 0 0.625rem;
-      line-height: 1.3;
+      margin: 0 0 0.5rem;
+      line-height: 1.35;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
@@ -242,29 +254,36 @@ import { Game } from '../../models/game.model';
     .game-meta {
       display: flex;
       align-items: center;
-      gap: 0.625rem;
-      font-size: 0.875rem;
-      color: #94a3b8;
+      flex-wrap: wrap;
+      gap: 0.375rem 0.5rem;
+      font-size: 0.8125rem;
+      line-height: 1.4;
     }
 
     .developer {
-      color: #8b5cf6;
-      font-weight: 500;
+      color: #c4b5fd;
+      font-weight: 600;
     }
 
     .separator {
-      color: #475569;
+      color: #64748b;
+    }
+
+    .year {
+      color: #cbd5e1;
+      font-weight: 500;
     }
 
     ion-card-content {
-      padding: 0.75rem 1.25rem 1.25rem;
+      padding: 0 1.125rem 0.875rem;
+      flex: 1;
     }
 
     .game-description {
-      color: #64748b;
+      color: #cbd5e1;
       font-size: 0.875rem;
-      line-height: 1.5;
-      margin: 0 0 1.25rem;
+      line-height: 1.55;
+      margin: 0 0 0.875rem;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
@@ -273,22 +292,34 @@ import { Game } from '../../models/game.model';
 
     .game-stats {
       display: flex;
-      gap: 1.25rem;
-      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+      gap: 0.625rem 1rem;
+      margin-bottom: 0.875rem;
     }
 
     .stat {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 0.375rem;
-      color: #94a3b8;
-      font-size: 0.875rem;
-      font-weight: 500;
+      padding: 0.35rem 0.625rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      color: #e2e8f0;
+      font-size: 0.8125rem;
+      font-weight: 600;
     }
 
     .stat-icon {
-      color: #f59e0b;
-      font-size: 16px;
+      font-size: 0.95rem;
+    }
+
+    .rating-icon {
+      color: #fbbf24;
+    }
+
+    .time-icon {
+      color: #67e8f9;
     }
 
     .game-genres {
@@ -298,33 +329,56 @@ import { Game } from '../../models/game.model';
     }
 
     .genre-chip {
-      --background: rgba(139, 92, 246, 0.15);
-      --color: #a78bfa;
+      --background: rgba(168, 85, 247, 0.16);
+      --color: #e9d5ff;
       margin: 0;
+      min-height: 30px;
+      padding-inline: 12px;
       font-size: 0.75rem;
-      height: 24px;
+      font-weight: 600;
+      border: 1px solid rgba(168, 85, 247, 0.28);
+      border-radius: 999px;
     }
 
     .card-footer {
-      padding: 0.5rem 1.25rem 1.25rem;
-      border-top: 1px solid rgba(139, 92, 246, 0.1);
+      padding: 0.75rem 1.125rem 1.125rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.1);
+      margin-top: auto;
     }
 
     .complete-btn {
-      --color: #64748b;
-      --color-hover: #22c55e;
-      font-size: 0.875rem;
-      margin: 0;
+      --background: transparent;
+      --background-hover: rgba(168, 85, 247, 0.12);
+      --background-activated: rgba(168, 85, 247, 0.18);
+      --border-color: rgba(148, 163, 184, 0.28);
+      --border-width: 1px;
+      --border-radius: 12px;
+      --color: #e2e8f0;
+      --padding-top: 11px;
+      --padding-bottom: 11px;
+      --padding-start: 14px;
+      --padding-end: 14px;
       width: 100%;
-      justify-content: flex-start;
+      margin: 0;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: none;
+    }
+
+    .complete-btn::part(native) {
+      border-radius: 12px;
     }
 
     .complete-btn.completed {
-      --color: #22c55e;
+      --background: rgba(34, 197, 94, 0.12);
+      --border-color: rgba(34, 197, 94, 0.35);
+      --color: #86efac;
     }
 
     .complete-btn ion-icon {
-      margin-right: 0.5rem;
+      font-size: 1.05rem;
+      margin-inline-end: 0.375rem;
     }
   `]
 })
@@ -341,8 +395,15 @@ export class GameCardComponent {
     });
   }
 
-  toggleCompleted(): void {
+  toggleCompleted(event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
     this.onToggleCompleted.emit(this.game.id);
+  }
+
+  getPlaytime(): number | null {
+    const hours = this.game.playtimeHours ?? this.game.playtime;
+    return hours != null && hours > 0 ? hours : null;
   }
 
   getPlatformColor(): string {

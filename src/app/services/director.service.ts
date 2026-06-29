@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { Observable, from, throwError } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { Director } from '../models/game.model';
 import { DatabaseService } from './database.service';
 
@@ -75,6 +75,37 @@ export class DirectorService {
       catchError(error => throwError(() => 
         new Error(error?.message || 'Failed to search directors')
       ))
+    );
+  }
+
+  findOrCreateByName(name: string): Observable<string | null> {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      return from([null]);
+    }
+
+    return this.db.select<DbDirector>('directors', { order: 'name.asc' }).pipe(
+      switchMap((directors) => {
+        const existing = directors.find(
+          (director) =>
+            director.name.localeCompare(trimmed, undefined, {
+              sensitivity: 'accent',
+            }) === 0,
+        );
+
+        if (existing?.id) {
+          return from([existing.id]);
+        }
+
+        return this.db
+          .insert<DbDirector>('directors', { name: trimmed })
+          .pipe(map((director) => director.id));
+      }),
+      catchError((error) =>
+        throwError(
+          () => new Error(error?.message || 'Failed to save director'),
+        ),
+      ),
     );
   }
 }

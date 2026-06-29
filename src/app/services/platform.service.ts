@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, from, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Observable, from, of, throwError } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { Platform } from '../models/game.model';
 import { DatabaseService } from './database.service';
 
@@ -61,7 +61,40 @@ export class PlatformService {
       ))
     );
   }
-}
 
-// Need to import map
-import { map } from 'rxjs/operators';
+  resolvePlatformId(platformId?: string): Observable<string | null> {
+    if (!platformId?.trim()) {
+      return of(null);
+    }
+
+    const trimmed = platformId.trim();
+
+    return this.getPlatforms().pipe(
+      switchMap((platforms) => {
+        const byId = platforms.find((platform) => platform.id === trimmed);
+        if (byId) {
+          return of(byId.id);
+        }
+
+        const byName = platforms.find(
+          (platform) =>
+            platform.name.localeCompare(trimmed, undefined, {
+              sensitivity: 'accent',
+            }) === 0,
+        );
+        if (byName) {
+          return of(byName.id);
+        }
+
+        return this.db
+          .insert<DbPlatform>('platforms', { name: trimmed })
+          .pipe(map((platform) => platform.id));
+      }),
+      catchError((error) =>
+        throwError(
+          () => new Error(error?.message || 'Failed to resolve platform'),
+        ),
+      ),
+    );
+  }
+}

@@ -14,11 +14,15 @@ import {
   Game,
   GameFilter,
   GameFilters,
+  GameFormPayload,
   GamesResponse,
   UpdateGameRequest,
 } from "../models/game.model";
 import { AuthService } from "./auth.service";
+import { CompanyService } from "./company.service";
 import { DatabaseService } from "./database.service";
+import { DirectorService } from "./director.service";
+import { PlatformService } from "./platform.service";
 
 // Database row types
 interface DbGame {
@@ -82,6 +86,9 @@ type HydratedDbGame = DbGame & {
 export class GameService {
   private authService = inject(AuthService);
   private db = inject(DatabaseService);
+  private companyService = inject(CompanyService);
+  private directorService = inject(DirectorService);
+  private platformService = inject(PlatformService);
 
   private gamesSubject = new BehaviorSubject<Game[]>([]);
   games$ = this.gamesSubject.asObservable();
@@ -311,6 +318,7 @@ export class GameService {
       genre: g.genre ? [g.genre] : [],
       rating: g.rating,
       playtimeHours: g.playtime_hours,
+      playtime: g.playtime_hours,
       completed: g.completed,
       purchaseDate: g.purchase_date,
       notes: g.notes,
@@ -409,19 +417,16 @@ export class GameService {
       director_id: game.directorId || null,
       release_year: game.releaseYear || null,
       genre: game.genre?.[0] || null,
-      rating: game.rating || null,
-      playtime_hours: game.playtimeHours || 0,
-      completed: game.completed || false,
+      rating: game.rating ?? null,
+      playtime_hours: game.playtimeHours ?? 0,
+      completed: game.completed ?? false,
       purchase_date: game.purchaseDate || null,
       notes: game.notes || null,
       user_id: currentUser.id,
     };
 
     return this.db.insert<DbGame>("games", data).pipe(
-      switchMap((result: DbGame) => {
-        // Fetch with joins to get full data
-        return this.getGameById(result.id);
-      }),
+      switchMap((result: DbGame) => this.getGameById(result.id)),
       tap((createdGame) => {
         if (this.shouldIncludeGame(createdGame, this.lastFilters)) {
           this.gamesSubject.next(
@@ -436,10 +441,51 @@ export class GameService {
     );
   }
 
-  addGame(
-    game: Omit<Game, "id" | "createdAt" | "updatedAt" | "userId">,
-  ): Observable<Game> {
-    return this.createGame(game as CreateGameRequest);
+  saveGameFromForm(payload: GameFormPayload): Observable<Game> {
+    return this.resolveFormPayload(payload).pipe(
+      switchMap((request) => this.createGame(request)),
+    );
+  }
+
+  updateGameFromForm(id: string, payload: GameFormPayload): Observable<Game> {
+    return this.resolveFormPayload(payload).pipe(
+      switchMap((request) => this.updateGame(id, request)),
+    );
+  }
+
+  addGame(payload: GameFormPayload): Observable<Game> {
+    return this.saveGameFromForm(payload);
+  }
+
+  private resolveFormPayload(
+    payload: GameFormPayload,
+  ): Observable<CreateGameRequest> {
+    return this.platformService.resolvePlatformId(payload.platformId).pipe(
+      switchMap((platformId) =>
+        this.companyService.findOrCreateByName(payload.developerName).pipe(
+          switchMap((developerId) =>
+            this.directorService
+              .findOrCreateByName(payload.directorName || "")
+              .pipe(
+                map((directorId) => ({
+                  title: payload.title.trim(),
+                  description: payload.description?.trim() || undefined,
+                  coverImage: payload.coverImage?.trim() || undefined,
+                  platformId: platformId || undefined,
+                  developerId,
+                  directorId: directorId || undefined,
+                  releaseYear: payload.releaseYear,
+                  genre: payload.genre,
+                  rating: payload.rating,
+                  playtimeHours: payload.playtimeHours,
+                  completed: payload.completed,
+                  notes: payload.notes?.trim() || undefined,
+                })),
+              ),
+          ),
+        ),
+      ),
+    );
   }
 
   updateGame(id: string, game: UpdateGameRequest): Observable<Game> {
@@ -474,8 +520,16 @@ export class GameService {
         if (!result) {
           throw new Error("Game not found or access denied");
         }
-        // Fetch with joins to get full data
         return this.getGameById(id);
+      }),
+      tap((updatedGame) => {
+        const games = this.gamesSubject.value.map((game) =>
+          game.id === updatedGame.id ? updatedGame : game,
+        );
+        this.gamesSubject.next(games);
+        this.filteredGames.set(
+          games.filter((game) => this.shouldIncludeGame(game, this.lastFilters)),
+        );
       }),
       catchError((error) => this.handleError(error, "Failed to update game")),
     );
@@ -488,7 +542,9 @@ export class GameService {
     }
 
     return this.db.deleteById("games", id).pipe(
-      map(() => undefined),
+      switchMap(() =>
+        this.getGames(this.lastFilters).pipe(map(() => undefined)),
+      ),
       catchError((error) => this.handleError(error, "Failed to delete game")),
     );
   }

@@ -10,8 +10,9 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline, saveOutline, imageOutline } from 'ionicons/icons';
-import { PLATFORMS, GENRES, Game } from '../../models/game.model';
+import { PLATFORMS, GENRES, Game, Platform } from '../../models/game.model';
 import { GameService } from '../../services/game.service';
+import { PlatformService } from '../../services/platform.service';
 
 @Component({
   selector: 'app-game-form',
@@ -82,12 +83,12 @@ import { GameService } from '../../services/game.service';
                 <ion-item class="form-item" lines="none">
                   <ion-label position="stacked">Platform *</ion-label>
                   <ion-select
-                    [(ngModel)]="game.platform"
+                    [(ngModel)]="selectedPlatformId"
                     name="platform"
                     required
                     interface="popover"
                     placeholder="Select platform">
-                    <ion-select-option *ngFor="let platform of platforms" [value]="platform">
+                    <ion-select-option *ngFor="let platform of platforms" [value]="platform.id">
                       {{platform.name}}
                     </ion-select-option>
                   </ion-select>
@@ -227,20 +228,19 @@ import { GameService } from '../../services/game.service';
   styles: [],
 })
 export class GameFormPage implements OnInit {
-  platforms = PLATFORMS;
+  platforms: Platform[] = [];
   genres = GENRES;
   currentYear = new Date().getFullYear();
   
   isEdit = false;
   gameId: string | null = null;
+  selectedPlatformId = '';
   
   game: Partial<Game> = {
     title: '',
     description: '',
     coverImage: '',
-    platform: PLATFORMS[0],
     releaseYear: this.currentYear,
-    developer: undefined,
     director: '',
     genre: [],
     rating: undefined,
@@ -257,12 +257,14 @@ export class GameFormPage implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private gameService: GameService
+    private gameService: GameService,
+    private platformService: PlatformService
   ) {
     addIcons({ arrowBackOutline, saveOutline, imageOutline });
   }
 
   ngOnInit(): void {
+    this.loadPlatforms();
     this.gameId = this.route.snapshot.paramMap.get('id');
     this.isEdit = !!this.gameId;
     
@@ -271,12 +273,32 @@ export class GameFormPage implements OnInit {
     }
   }
 
+  private loadPlatforms(): void {
+    this.platformService.getPlatforms().subscribe({
+      next: (platforms) => {
+        this.platforms = platforms.length > 0 ? platforms : PLATFORMS;
+        if (!this.selectedPlatformId && this.platforms[0]) {
+          this.selectedPlatformId = this.platforms[0].id;
+        }
+      },
+      error: () => {
+        this.platforms = PLATFORMS;
+        if (this.platforms[0]) {
+          this.selectedPlatformId = this.platforms[0].id;
+        }
+      }
+    });
+  }
+
   loadGame(id: string): void {
     this.gameService.getGameById(id).subscribe({
       next: (game) => {
         if (game) {
           this.game = { ...game };
           this.developerName = game.developer?.name || '';
+          this.selectedPlatformId = game.platformId || game.platform?.id || '';
+          this.game.playtime = game.playtimeHours ?? game.playtime;
+          this.game.director = game.director || '';
         } else {
           this.router.navigate(['/home']);
         }
@@ -304,60 +326,60 @@ export class GameFormPage implements OnInit {
   }
 
   onSubmit(): void {
-    if (!this.game.title || !this.game.platform || !this.game.releaseYear) {
+    if (!this.game.title || !this.selectedPlatformId || !this.game.releaseYear) {
       this.showToast('Please fill in all required fields', 'danger');
       return;
     }
 
-    if (!this.developerName) {
+    if (!this.developerName.trim()) {
       this.showToast('Please enter developer name', 'danger');
       return;
     }
 
     this.isSubmitting = true;
 
-    const gameData: any = {
+    const payload = {
       title: this.game.title,
       description: this.game.description,
       coverImage: this.game.coverImage,
-      platform: this.game.platform,
+      platformId: this.selectedPlatformId,
       releaseYear: Number(this.game.releaseYear),
-      developer: { id: 'dev_' + Date.now(), name: this.developerName },
-      director: this.game.director,
+      developerName: this.developerName.trim(),
+      directorName: this.game.director?.trim() || undefined,
       genre: this.game.genre || [],
-      rating: this.game.rating ? Number(this.game.rating) : undefined,
-      playtime: this.game.playtime ? Number(this.game.playtime) : undefined,
+      rating: this.game.rating != null ? Number(this.game.rating) : undefined,
+      playtimeHours:
+        this.game.playtime != null ? Number(this.game.playtime) : undefined,
       completed: this.game.completed || false,
       notes: this.game.notes
     };
 
-    if (this.isEdit && this.gameId) {
-      this.gameService.updateGame(this.gameId, gameData).subscribe({
-        next: () => {
-          this.showToast('Game updated successfully!', 'success');
-          setTimeout(() => {
-            this.router.navigate(['/game', this.gameId]);
-          }, 1000);
-        },
-        error: (error) => {
-          this.showToast(error.message || 'Failed to update game', 'danger');
-          this.isSubmitting = false;
-        }
-      });
-    } else {
-      this.gameService.addGame(gameData).subscribe({
-        next: () => {
-          this.showToast('Game added successfully!', 'success');
-          setTimeout(() => {
-            this.router.navigate(['/home']);
-          }, 1000);
-        },
-        error: (error) => {
-          this.showToast(error.message || 'Failed to add game', 'danger');
-          this.isSubmitting = false;
-        }
-      });
-    }
+    const request$ =
+      this.isEdit && this.gameId
+        ? this.gameService.updateGameFromForm(this.gameId, payload)
+        : this.gameService.saveGameFromForm(payload);
+
+    request$.subscribe({
+      next: () => {
+        this.showToast(
+          this.isEdit ? 'Game updated successfully!' : 'Game added successfully!',
+          'success'
+        );
+        setTimeout(() => {
+          this.router.navigate(
+            this.isEdit ? ['/game', this.gameId] : ['/home']
+          );
+        }, 1000);
+      },
+      error: (error) => {
+        this.showToast(
+          error.message ||
+            (this.isEdit ? 'Failed to update game' : 'Failed to add game'),
+          'danger'
+        );
+        this.isSubmitting = false;
+      }
+    });
   }
 
   private showToast(message: string, color: 'success' | 'danger'): void {

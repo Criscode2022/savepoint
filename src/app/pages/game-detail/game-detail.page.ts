@@ -4,7 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { 
   IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonTitle, IonIcon, IonButton, IonCard, IonCardContent,
-  IonBadge, IonChip, IonGrid, IonRow, IonCol, IonToast
+  IonChip, IonToast, AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -14,15 +14,16 @@ import {
 } from 'ionicons/icons';
 import { Game } from '../../models/game.model';
 import { GameService } from '../../services/game.service';
+import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
 
 @Component({
   selector: 'app-game-detail',
   standalone: true,
   imports: [
-    CommonModule, RouterLink,
+    CommonModule, RouterLink, GameCoverComponent,
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
     IonTitle, IonIcon, IonButton, IonCard, IonCardContent,
-    IonBadge, IonChip, IonGrid, IonRow, IonCol, IonToast
+    IonChip, IonToast
   ],
   template: `
     <ion-header class="ion-no-border">
@@ -45,74 +46,77 @@ import { GameService } from '../../services/game.service';
     </ion-header>
 
     <ion-content class="detail-content" *ngIf="game">
-      <!-- Hero Section -->
-      <div class="hero-section">
-        <div class="hero-background" [style.background-image]="'url(' + (game.coverImage || '/assets/images/game-placeholder.jpg') + ')'">
-        </div>
+      <section class="hero-section">
+        <div
+          class="hero-background"
+          [class.hero-background--placeholder]="!game.coverImage"
+          [style.background-image]="game.coverImage ? 'url(' + game.coverImage + ')' : null"
+        ></div>
         <div class="hero-overlay"></div>
-        
-        <div class="hero-content">
-          <div class="hero-image">
-            <img 
-              [src]="game.coverImage || '/assets/images/game-placeholder.jpg'" 
-              [alt]="game.title"
-            />
-          </div>
-          
-          <div class="hero-info">
-            <h1 class="game-title gaming-font">{{game.title}}</h1>
-            
-            <div class="hero-meta">
-              <ion-badge [style.--background]="game.platform.color || '#8b5cf6'">
-                {{game.platform.name}}
-              </ion-badge>
-              
-              <span class="year">{{game.releaseYear}}</span>
-              
-              <span class="completed-badge" *ngIf="game.completed">
-                <ion-icon name="checkmark-circle-outline"></ion-icon>
-                Completed
-              </span>
+
+        <div class="hero-inner">
+          <div class="hero-content">
+            <div class="hero-image">
+              <app-game-cover
+                [title]="game.title"
+                [coverImage]="game.coverImage"
+                variant="hero"
+              />
             </div>
 
-            <div class="hero-actions">
-              <ion-button 
-                (click)="toggleCompleted()"
-                [class.completed]="game.completed"
-                class="action-btn primary">
-                <ion-icon [name]="game.completed ? 'checkmark-circle-outline' : 'ellipse-outline'"></ion-icon>
-                {{game.completed ? 'Mark Incomplete' : 'Mark Complete'}}
-              </ion-button>
+            <div class="hero-info">
+              <h1 class="game-title gaming-font">{{ game.title }}</h1>
+
+              <div class="hero-meta">
+                <span class="platform-chip" [style.--platform-color]="game.platform.color || '#a855f7'">
+                  {{ game.platform.name }}
+                </span>
+
+                <span class="year">{{ game.releaseYear }}</span>
+
+                <span class="completed-badge" *ngIf="game.completed">
+                  <ion-icon name="checkmark-circle-outline"></ion-icon>
+                  Completed
+                </span>
+              </div>
+
+              <div class="hero-actions">
+                <ion-button
+                  (click)="toggleCompleted()"
+                  [class.completed]="game.completed"
+                  class="action-btn primary">
+                  <ion-icon [name]="game.completed ? 'checkmark-circle-outline' : 'ellipse-outline'" slot="start"></ion-icon>
+                  {{ game.completed ? 'Mark Incomplete' : 'Mark Complete' }}
+                </ion-button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Content Grid -->
-      <div class="content-grid">
-        <ion-grid>
-          <ion-row>
-            <!-- Main Info -->
-            <ion-col size="12" sizeLg="8">
-              <ion-card class="info-card">
-                <ion-card-content>
-                  <h2 class="section-title">About</h2>
-                  <p class="description">{{game.description}}</p>
+      <div class="detail-page">
+        <section class="content-section">
+          <div class="content-layout">
+            <ion-card class="info-card">
+              <ion-card-content>
+                <h2 class="section-title">About</h2>
+                <p class="description" *ngIf="game.description; else noDescription">{{ game.description }}</p>
+                <ng-template #noDescription>
+                  <p class="description empty">No description added yet.</p>
+                </ng-template>
 
-                  <div class="genres-section">
-                    <h3>Genres</h3>
-                    <div class="genre-chips">
-                      <ion-chip *ngFor="let genre of game.genre" class="genre-chip">
-                        {{genre}}
-                      </ion-chip>
-                    </div>
+                <div class="genres-section" *ngIf="game.genre?.length">
+                  <h3 class="subsection-title">Genres</h3>
+                  <div class="genre-chips">
+                    <ion-chip *ngFor="let genre of game.genre" class="genre-chip">
+                      {{ genre }}
+                    </ion-chip>
                   </div>
-                </ion-card-content>
-              </ion-card>
-            </ion-col>
+                </div>
+              </ion-card-content>
+            </ion-card>
 
-            <!-- Sidebar Info -->
-            <ion-col size="12" sizeLg="4">
+            <aside class="sidebar">
               <ion-card class="stats-card">
                 <ion-card-content>
                   <h2 class="section-title">Details</h2>
@@ -121,7 +125,7 @@ import { GameService } from '../../services/game.service';
                     <ion-icon name="business-outline"></ion-icon>
                     <div class="detail-info">
                       <label>Developer</label>
-                      <span>{{game.developer.name}}</span>
+                      <span>{{ game.developer.name }}</span>
                     </div>
                   </div>
 
@@ -129,7 +133,7 @@ import { GameService } from '../../services/game.service';
                     <ion-icon name="person-outline"></ion-icon>
                     <div class="detail-info">
                       <label>Director</label>
-                      <span>{{game.director}}</span>
+                      <span>{{ game.director }}</span>
                     </div>
                   </div>
 
@@ -137,7 +141,7 @@ import { GameService } from '../../services/game.service';
                     <ion-icon name="calendar-outline"></ion-icon>
                     <div class="detail-info">
                       <label>Release Year</label>
-                      <span>{{game.releaseYear}}</span>
+                      <span>{{ game.releaseYear }}</span>
                     </div>
                   </div>
 
@@ -145,15 +149,15 @@ import { GameService } from '../../services/game.service';
                     <ion-icon name="star-outline"></ion-icon>
                     <div class="detail-info">
                       <label>Your Rating</label>
-                      <span class="rating">{{game.rating}}/10</span>
+                      <span class="rating">{{ game.rating }}/10</span>
                     </div>
                   </div>
 
-                  <div class="detail-item" *ngIf="game.playtime">
+                  <div class="detail-item" *ngIf="getPlaytime()">
                     <ion-icon name="time-outline"></ion-icon>
                     <div class="detail-info">
                       <label>Playtime</label>
-                      <span>{{game.playtime}} hours</span>
+                      <span>{{ getPlaytime() }} hours</span>
                     </div>
                   </div>
 
@@ -161,7 +165,7 @@ import { GameService } from '../../services/game.service';
                     <ion-icon name="calendar-outline"></ion-icon>
                     <div class="detail-info">
                       <label>Purchased</label>
-                      <span>{{game.purchaseDate | date:'mediumDate'}}</span>
+                      <span>{{ game.purchaseDate | date:'mediumDate' }}</span>
                     </div>
                   </div>
                 </ion-card-content>
@@ -170,12 +174,12 @@ import { GameService } from '../../services/game.service';
               <ion-card class="notes-card" *ngIf="game.notes">
                 <ion-card-content>
                   <h2 class="section-title">Notes</h2>
-                  <p class="notes-text">{{game.notes}}</p>
+                  <p class="notes-text">{{ game.notes }}</p>
                 </ion-card-content>
               </ion-card>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
+            </aside>
+          </div>
+        </section>
       </div>
 
       <ion-toast
@@ -199,13 +203,29 @@ import { GameService } from '../../services/game.service';
       --background: var(--color-bg-primary);
     }
 
+    .detail-page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.25rem calc(2.5rem + env(safe-area-inset-bottom));
+    }
+
     /* Hero Section */
     .hero-section {
       position: relative;
-      min-height: 400px;
+      width: 100%;
+      min-height: 320px;
       display: flex;
       align-items: flex-end;
-      padding: 2rem;
+      overflow: hidden;
+      padding: 1.5rem 0 2rem;
+    }
+
+    .hero-inner {
+      position: relative;
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.25rem;
     }
 
     .hero-background {
@@ -213,8 +233,18 @@ import { GameService } from '../../services/game.service';
       inset: 0;
       background-size: cover;
       background-position: center;
-      filter: blur(20px);
-      opacity: 0.3;
+      filter: blur(24px);
+      opacity: 0.28;
+      transform: scale(1.08);
+    }
+
+    .hero-background--placeholder {
+      background:
+        radial-gradient(circle at 25% 20%, rgba(168, 85, 247, 0.25) 0%, transparent 50%),
+        radial-gradient(circle at 75% 80%, rgba(6, 182, 212, 0.15) 0%, transparent 45%),
+        linear-gradient(145deg, #1a1a30 0%, #0f0f1c 100%);
+      filter: none;
+      opacity: 1;
     }
 
     .hero-overlay {
@@ -222,96 +252,104 @@ import { GameService } from '../../services/game.service';
       inset: 0;
       background: linear-gradient(
         to bottom,
-        rgba(15, 15, 26, 0) 0%,
-        rgba(15, 15, 26, 0.5) 50%,
-        rgba(15, 15, 26, 1) 100%
+        rgba(10, 10, 15, 0.15) 0%,
+        rgba(10, 10, 15, 0.55) 55%,
+        rgba(10, 10, 15, 1) 100%
       );
     }
 
     .hero-content {
       position: relative;
       display: flex;
-      gap: 2rem;
+      gap: 1.75rem;
       align-items: flex-end;
       width: 100%;
-      max-width: 1200px;
-      margin: 0 auto;
     }
 
     .hero-image {
       flex-shrink: 0;
-      width: 200px;
-      height: 280px;
+      width: 168px;
+      height: 236px;
       border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    }
-
-    .hero-image img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
     }
 
     .hero-info {
       flex: 1;
-      padding-bottom: 1rem;
+      min-width: 0;
+      padding-bottom: 0.25rem;
     }
 
     .game-title {
-      font-size: 2.5rem;
+      font-size: clamp(1.75rem, 4vw, 2.35rem);
       font-weight: 800;
       color: #f8fafc;
       margin: 0 0 1rem;
-      line-height: 1.2;
+      line-height: 1.15;
     }
 
     .hero-meta {
       display: flex;
       align-items: center;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 0.625rem 0.875rem;
+      margin-bottom: 1.25rem;
     }
 
-    .hero-meta ion-badge {
-      --padding-start: 12px;
-      --padding-end: 12px;
-      --padding-top: 6px;
-      --padding-bottom: 6px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      border-radius: 6px;
+    .platform-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.45rem 0.75rem;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--platform-color, #a855f7) 88%, black);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #ffffff;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
+      line-height: 1.2;
     }
 
     .year {
-      color: #94a3b8;
-      font-size: 1rem;
-    }
-
-    .completed-badge {
-      display: flex;
-      align-items: center;
-      gap: 0.375rem;
-      color: #22c55e;
+      color: #cbd5e1;
+      font-size: 0.9375rem;
       font-weight: 500;
     }
 
+    .completed-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #86efac;
+      font-weight: 600;
+      font-size: 0.9375rem;
+    }
+
     .completed-badge ion-icon {
-      font-size: 20px;
+      font-size: 1.125rem;
+      flex-shrink: 0;
     }
 
     .hero-actions {
       display: flex;
-      gap: 1rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
     }
 
     .action-btn {
       --border-radius: 12px;
-      --padding-start: 20px;
-      --padding-end: 20px;
-      height: 48px;
+      --padding-start: 18px;
+      --padding-end: 18px;
+      height: 46px;
       font-weight: 600;
+      margin: 0;
+    }
+
+    .action-btn ion-icon {
+      margin-inline-end: 0.375rem;
     }
 
     .action-btn.primary {
@@ -322,40 +360,71 @@ import { GameService } from '../../services/game.service';
       --background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
     }
 
-    /* Content Grid */
-    .content-grid {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem;
+    /* Content */
+    .content-section {
+      padding-top: 0.5rem;
     }
 
-    .info-card, .stats-card, .notes-card {
-      background: rgba(22, 22, 42, 0.8);
-      border-radius: 16px;
-      border: 1px solid rgba(139, 92, 246, 0.1);
+    .content-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.65fr) minmax(280px, 1fr);
+      gap: 1.25rem;
+      align-items: start;
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .info-card,
+    .stats-card,
+    .notes-card {
+      background: rgba(22, 22, 42, 0.92);
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
       margin: 0;
     }
 
+    .info-card ion-card-content,
+    .stats-card ion-card-content,
+    .notes-card ion-card-content {
+      padding: 1.5rem;
+    }
+
     .section-title {
-      font-size: 1.25rem;
+      font-size: 1.125rem;
       font-weight: 700;
       color: #f8fafc;
-      margin: 0 0 1rem;
+      margin: 0 0 1.125rem;
+      letter-spacing: 0.02em;
+    }
+
+    .subsection-title {
+      font-size: 0.8125rem;
+      color: #94a3b8;
+      margin: 0 0 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
     }
 
     .description {
-      color: #94a3b8;
-      line-height: 1.8;
-      font-size: 1rem;
+      color: #cbd5e1;
+      line-height: 1.7;
+      font-size: 0.9375rem;
       margin: 0 0 1.5rem;
     }
 
-    .genres-section h3 {
-      font-size: 1rem;
+    .description.empty {
       color: #64748b;
-      margin: 0 0 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      font-style: italic;
+    }
+
+    .genres-section {
+      padding-top: 0.25rem;
     }
 
     .genre-chips {
@@ -365,64 +434,93 @@ import { GameService } from '../../services/game.service';
     }
 
     .genre-chip {
-      --background: rgba(139, 92, 246, 0.15);
-      --color: #a78bfa;
+      --background: rgba(168, 85, 247, 0.16);
+      --color: #e9d5ff;
       margin: 0;
+      min-height: 30px;
+      padding-inline: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid rgba(168, 85, 247, 0.28);
+      border-radius: 999px;
     }
 
     .detail-item {
       display: flex;
       align-items: flex-start;
-      gap: 1rem;
-      padding: 1rem 0;
-      border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+      gap: 0.875rem;
+      padding: 0.875rem 0;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    }
+
+    .detail-item:first-of-type {
+      padding-top: 0.25rem;
     }
 
     .detail-item:last-child {
       border-bottom: none;
+      padding-bottom: 0;
     }
 
     .detail-item ion-icon {
-      color: #8b5cf6;
-      font-size: 24px;
-      margin-top: 2px;
+      color: #a78bfa;
+      font-size: 1.25rem;
+      margin-top: 0.125rem;
+      flex-shrink: 0;
     }
 
     .detail-info {
       display: flex;
       flex-direction: column;
+      gap: 0.2rem;
+      min-width: 0;
     }
 
     .detail-info label {
       color: #64748b;
-      font-size: 0.75rem;
+      font-size: 0.6875rem;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 0.25rem;
+      letter-spacing: 0.06em;
+      font-weight: 600;
     }
 
     .detail-info span {
-      color: #f8fafc;
-      font-size: 1rem;
+      color: #f1f5f9;
+      font-size: 0.9375rem;
       font-weight: 500;
+      line-height: 1.4;
     }
 
     .detail-info .rating {
-      color: #f59e0b;
+      color: #fbbf24;
     }
 
     .notes-text {
-      color: #94a3b8;
-      line-height: 1.6;
+      color: #cbd5e1;
+      line-height: 1.65;
       white-space: pre-wrap;
       margin: 0;
+      font-size: 0.9375rem;
     }
 
-    /* Responsive */
+    @media (max-width: 900px) {
+      .content-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
     @media (max-width: 768px) {
+      .detail-page {
+        padding-inline: 1rem;
+      }
+
       .hero-section {
         min-height: auto;
-        padding: 1rem;
+        padding: 1.25rem 0 1.5rem;
+      }
+
+      .hero-inner {
+        padding-inline: 1rem;
       }
 
       .hero-content {
@@ -432,25 +530,19 @@ import { GameService } from '../../services/game.service';
       }
 
       .hero-image {
-        width: 150px;
-        height: 210px;
+        width: 140px;
+        height: 196px;
       }
 
-      .game-title {
-        font-size: 1.75rem;
-      }
-
-      .hero-meta {
-        justify-content: center;
-        flex-wrap: wrap;
-      }
-
+      .hero-meta,
       .hero-actions {
         justify-content: center;
       }
 
-      .content-grid {
-        padding: 1rem;
+      .info-card ion-card-content,
+      .stats-card ion-card-content,
+      .notes-card ion-card-content {
+        padding: 1.25rem;
       }
     }
   `]
@@ -463,7 +555,8 @@ export class GameDetailPage implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private gameService: GameService
+    private gameService: GameService,
+    private alertController: AlertController
   ) {
     addIcons({
       arrowBackOutline, starOutline, timeOutline, calendarOutline,
@@ -510,19 +603,49 @@ export class GameDetailPage implements OnInit {
     });
   }
 
-  deleteGame(): void {
+  getPlaytime(): number | null {
+    if (!this.game) return null;
+    const hours = this.game.playtimeHours ?? this.game.playtime;
+    return hours != null && hours > 0 ? hours : null;
+  }
+
+  async deleteGame(): Promise<void> {
     if (!this.game) return;
 
-    if (confirm('Are you sure you want to delete this game?')) {
-      this.gameService.deleteGame(this.game.id).subscribe({
-        next: () => {
-          this.router.navigate(['/home']);
+    const alert = await this.alertController.create({
+      header: 'Delete game?',
+      message: `"${this.game.title}" will be permanently removed from your library.`,
+      cssClass: 'app-alert',
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel',
+          cssClass: 'app-alert-btn-cancel',
         },
-        error: () => {
-          this.showToast('Failed to delete game', 'danger');
-        }
-      });
-    }
+        {
+          text: 'Delete',
+          role: 'destructive',
+          cssClass: 'app-alert-btn-delete',
+          handler: () => this.performDelete(),
+        },
+      ],
+    });
+
+    await alert.present();
+  }
+
+  private performDelete(): void {
+    if (!this.game) return;
+
+    this.gameService.deleteGame(this.game.id).subscribe({
+      next: () => {
+        this.showToast('Game deleted', 'success');
+        this.router.navigate(['/home']);
+      },
+      error: () => {
+        this.showToast('Failed to delete game', 'danger');
+      },
+    });
   }
 
   private showToast(message: string, color: 'success' | 'danger'): void {

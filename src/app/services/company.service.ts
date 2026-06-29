@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, from, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { Company } from '../models/game.model';
 import { DatabaseService } from './database.service';
 
@@ -77,6 +77,37 @@ export class CompanyService {
       catchError(error => throwError(() => 
         new Error(error?.message || 'Failed to search companies')
       ))
+    );
+  }
+
+  findOrCreateByName(name: string): Observable<string> {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      return throwError(() => new Error('Developer name is required'));
+    }
+
+    return this.db.select<DbCompany>('companies', { order: 'name.asc' }).pipe(
+      switchMap((companies) => {
+        const existing = companies.find(
+          (company) =>
+            company.name.localeCompare(trimmed, undefined, {
+              sensitivity: 'accent',
+            }) === 0,
+        );
+
+        if (existing?.id) {
+          return from([existing.id]);
+        }
+
+        return this.db
+          .insert<DbCompany>('companies', { name: trimmed })
+          .pipe(map((company) => company.id));
+      }),
+      catchError((error) =>
+        throwError(
+          () => new Error(error?.message || 'Failed to save developer'),
+        ),
+      ),
     );
   }
 }

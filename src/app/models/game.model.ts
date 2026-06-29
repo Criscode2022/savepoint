@@ -99,6 +99,21 @@ export interface CreateGameRequest {
 
 export interface UpdateGameRequest extends Partial<CreateGameRequest> {}
 
+export interface GameFormPayload {
+  title: string;
+  description?: string;
+  coverImage?: string;
+  platformId?: string;
+  releaseYear?: number;
+  developerName: string;
+  directorName?: string;
+  genre?: string[];
+  rating?: number;
+  playtimeHours?: number;
+  completed?: boolean;
+  notes?: string;
+}
+
 export interface GamesResponse {
   games: Game[];
   total: number;
