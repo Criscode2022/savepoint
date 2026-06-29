@@ -24,6 +24,7 @@ export class AuthService {
   private initialized = new BehaviorSubject<boolean>(false);
   private currentUser: AuthUser | null = null;
   private accessToken: string | null = null;
+  private handlingUnauthorized = false;
 
   private readonly jwtRegex =
     /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
@@ -152,16 +153,14 @@ export class AuthService {
    * Fetch JWT token from SDK using multiple fallback methods
    */
   private async fetchJwtFromSdk(): Promise<string | null> {
-    try {
-      const authWithJwt = authClient as unknown as {
-        getJWTToken?: () => Promise<string | null>;
-      };
-      const maybeJwt = await authWithJwt.getJWTToken?.();
-      if (this.isJwt(maybeJwt)) {
-        return maybeJwt;
-      }
-    } catch {
-      // Ignore and fall back
+    const tokenResult = await authClient.getJWTToken();
+    if (tokenResult.ok) {
+      return this.isJwt(tokenResult.token) ? tokenResult.token : null;
+    }
+
+    if (tokenResult.unauthorized) {
+      this.redirectToLogin();
+      return null;
     }
 
     try {
@@ -173,6 +172,24 @@ export class AuthService {
   }
 
   /**
+   * Clear session and redirect when auth is no longer valid
+   */
+  private redirectToLogin(): void {
+    if (this.handlingUnauthorized) {
+      return;
+    }
+
+    this.handlingUnauthorized = true;
+    this.clearSession();
+
+    void this.router
+      .navigateByUrl("/login", { replaceUrl: true })
+      .finally(() => {
+        this.handlingUnauthorized = false;
+      });
+  }
+
+  /**
    * Initialize auth state on app start
    */
   private async initializeAuth(): Promise<void> {
@@ -180,8 +197,18 @@ export class AuthService {
     try {
       const { data } = await authClient.getSession();
       if (this.hasValidSession(data)) {
-        this.accessToken =
-          this.extractToken(data) || (await this.fetchJwtFromSdk());
+        this.accessToken = this.extractToken(data);
+
+        if (!this.isJwt(this.accessToken)) {
+          const tokenResult = await authClient.getJWTToken();
+          if (tokenResult.ok && this.isJwt(tokenResult.token)) {
+            this.accessToken = tokenResult.token;
+          } else if (!tokenResult.ok && tokenResult.unauthorized) {
+            this.redirectToLogin();
+            this.initialized.next(true);
+            return;
+          }
+        }
 
         this.currentUser = {
           id: data!.user!.id,
@@ -202,7 +229,24 @@ export class AuthService {
     }
 
     // Fallback to localStorage (for iOS Safari where cookies may fail)
-    this.restoreFromLocalStorage();
+    if (this.restoreFromLocalStorage()) {
+      const tokenResult = await authClient.getJWTToken();
+      if (tokenResult.ok && this.isJwt(tokenResult.token)) {
+        this.accessToken = tokenResult.token;
+        if (this.currentUser) {
+          this.currentUser.accessToken = tokenResult.token;
+        }
+        this.initialized.next(true);
+        return;
+      }
+
+      if (!tokenResult.ok && tokenResult.unauthorized) {
+        this.redirectToLogin();
+        this.initialized.next(true);
+        return;
+      }
+    }
+
     this.initialized.next(true);
   }
 
@@ -427,7 +471,9 @@ export class AuthService {
       // Ignore errors during sign out
     }
     this.clearSession();
-    this.router.navigateByUrl("/login", { replaceUrl: true });
+    if (!this.handlingUnauthorized) {
+      await this.router.navigateByUrl("/login", { replaceUrl: true });
+    }
   }
 
   /**
@@ -456,6 +502,10 @@ export class AuthService {
     }
 
     const jwt = await this.fetchJwtFromSdk();
+    if (jwt === null && !this.isAuthenticated.value) {
+      return null;
+    }
+
     this.accessToken = jwt;
     return jwt;
   }

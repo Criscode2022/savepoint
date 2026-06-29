@@ -12,6 +12,10 @@ export interface AuthUser {
   role?: string;
 }
 
+export type JwtTokenResult =
+  | { ok: true; token: string }
+  | { ok: false; unauthorized: boolean };
+
 export interface AuthSessionData {
   // Session object (from getSession endpoint)
   session?: {
@@ -41,7 +45,7 @@ export const authClient = {
    * This calls the Neon Auth `token` endpoint which uses the session cookie.
    * Works even when the cookie is HttpOnly (not readable from JS).
    */
-  async getJWTToken(): Promise<string | null> {
+  async getJWTToken(): Promise<JwtTokenResult> {
     try {
       const response = await fetch(`${NEON_AUTH_URL}/token`, {
         method: "GET",
@@ -52,7 +56,7 @@ export const authClient = {
       });
 
       if (!response.ok) {
-        return null;
+        return { ok: false, unauthorized: response.status === 401 };
       }
 
       // Prefer JSON but gracefully fall back to text.
@@ -62,7 +66,7 @@ export const authClient = {
           | AuthSessionData
           | Record<string, unknown>;
         const anyData = data as any;
-        return (
+        const token =
           anyData?.token ||
           anyData?.access_token ||
           anyData?.accessToken ||
@@ -72,14 +76,23 @@ export const authClient = {
           anyData?.session?.token ||
           anyData?.session?.access_token ||
           anyData?.session?.accessToken ||
-          null
-        );
+          null;
+
+        if (token) {
+          return { ok: true, token };
+        }
+
+        return { ok: false, unauthorized: false };
       }
 
       const text = await response.text();
-      return text || null;
+      if (text) {
+        return { ok: true, token: text };
+      }
+
+      return { ok: false, unauthorized: false };
     } catch {
-      return null;
+      return { ok: false, unauthorized: false };
     }
   },
 
