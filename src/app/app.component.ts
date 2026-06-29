@@ -1,6 +1,5 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet } from '@angular/router';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { ThemeService } from './services/theme.service';
 
@@ -12,7 +11,7 @@ import { ThemeService } from './services/theme.service';
     </ion-app>
   `,
   standalone: true,
-  imports: [CommonModule, RouterOutlet, IonApp, IonRouterOutlet]
+  imports: [CommonModule, IonApp, IonRouterOutlet]
 })
 export class AppComponent {
   private themeService = inject(ThemeService);

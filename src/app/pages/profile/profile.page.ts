@@ -5,7 +5,7 @@ import {
   IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
   IonIcon, IonCard, IonCardHeader, IonCardTitle, IonCardContent,
   IonAvatar, IonItem, IonLabel, IonGrid, IonRow, IonCol, IonBadge,
-  IonProgressBar, IonList, IonToast, IonChip
+  IonProgressBar, IonList, IonToast
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -27,7 +27,7 @@ import { Subject, takeUntil } from 'rxjs';
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
     IonIcon, IonCard, IonCardHeader, IonCardTitle, IonCardContent,
     IonAvatar, IonItem, IonLabel, IonGrid, IonRow, IonCol, IonBadge,
-    IonProgressBar, IonList, IonToast, IonChip
+    IonProgressBar, IonList, IonToast
   ],
   template: `
     <ion-header class="ion-no-border">
@@ -153,7 +153,7 @@ import { Subject, takeUntil } from 'rxjs';
                 </ion-avatar>
                 <ion-label>
                   <h3>{{ game.title }}</h3>
-                  <p>{{ game.platform?.name || 'Unknown' }} • {{ game.releaseYear }}</p>
+                  <p>{{ game.platform.name || 'Unknown' }} • {{ game.releaseYear }}</p>
                 </ion-label>
                 <ion-badge slot="end" [color]="game.completed ? 'success' : 'medium'">
                   {{ game.completed ? 'Completed' : 'Playing' }}

@@ -5,7 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { 
   IonContent, IonHeader, IonToolbar, IonButton,
-  IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip, IonLabel,
+  IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
   IonBadge, IonList, IonItem, IonThumbnail,
   IonSelect, IonSelectOption, IonToast, AlertController
 } from '@ionic/angular/standalone';
@@ -14,7 +14,7 @@ import {
   gameControllerOutline, addOutline, searchOutline, filterOutline,
   logOutOutline, gridOutline, listOutline,
   starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
-  arrowUpOutline, arrowDownOutline, closeOutline, imageOutline
+  closeOutline, imageOutline
 } from 'ionicons/icons';
 import { Game, GameFilters, PLATFORMS } from '../../models/game.model';
 import { GameService } from '../../services/game.service';
@@ -28,7 +28,7 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
   imports: [
     CommonModule, FormsModule, RouterLink, GameCardComponent, GameCoverComponent,
     IonContent, IonHeader, IonToolbar, IonButton,
-    IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip, IonLabel,
+    IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
     IonBadge, IonList, IonItem, IonThumbnail,
     IonSelect, IonSelectOption, IonToast
   ],
@@ -188,28 +188,17 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
               <ion-col size="12" sizeMd="6" sizeLg="3">
                 <div class="filter-group">
                   <label>Sort By</label>
-                  <div class="sort-controls">
-                    <ion-select
-                      [(ngModel)]="sortBy"
-                      (ionChange)="applyFilters()"
-                      interface="popover"
-                      class="gaming-select"
-                    >
-                      <ion-select-option value="title">Title</ion-select-option>
-                      <ion-select-option value="releaseYear">Release Year</ion-select-option>
-                      <ion-select-option value="rating">Rating</ion-select-option>
-                      <ion-select-option value="createdAt">Date Added</ion-select-option>
-                    </ion-select>
-
-                    <ion-button
-                      fill="clear"
-                      (click)="toggleSortOrder()"
-                      class="sort-order-btn"
-                    >
-                      <ion-icon [name]="sortOrder === 'desc' ? 'arrow-down-outline' : 'arrow-up-outline'"
-                      ></ion-icon>
-                    </ion-button>
-                  </div>
+                  <ion-select
+                    [(ngModel)]="sortBy"
+                    (ionChange)="applyFilters()"
+                    interface="popover"
+                    class="gaming-select"
+                  >
+                    <ion-select-option value="title">Title</ion-select-option>
+                    <ion-select-option value="releaseYear">Release Year</ion-select-option>
+                    <ion-select-option value="rating">Rating</ion-select-option>
+                    <ion-select-option value="createdAt">Date Added</ion-select-option>
+                  </ion-select>
                 </div>
               </ion-col>
             </ion-row>
@@ -259,15 +248,15 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
             <div class="game-info">
               <h3 class="game-title">{{game.title}}</h3>
               <p class="game-meta">
-                <span *ngIf="game.platform?.name" class="platform-tag">{{game.platform.name}}</span>
+                <span *ngIf="game.platform.name" class="platform-tag">{{game.platform.name}}</span>
                 <span *ngIf="game.releaseYear">{{game.releaseYear}}</span>
                 <span *ngIf="game.rating" class="rating-tag">
                   <ion-icon name="star-outline" class="star-icon"></ion-icon>
                   {{game.rating}}
                 </span>
               </p>
-              <p class="game-details" *ngIf="game.developer?.name || game.playtimeHours">
-                <span *ngIf="game.developer?.name">{{game.developer.name}}</span>
+              <p class="game-details" *ngIf="game.developer.name || game.playtimeHours">
+                <span *ngIf="game.developer.name">{{game.developer.name}}</span>
                 <span *ngIf="game.playtimeHours">{{game.playtimeHours}}h played</span>
               </p>
             </div>
@@ -554,17 +543,6 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
 
     .filter-chips ion-chip.selected {
       border-color: var(--platform-color, #a855f7);
-    }
-
-    .sort-controls {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-    }
-
-    .sort-order-btn {
-      --color: #8b5cf6;
-      margin: 0;
     }
 
     .active-filters {
@@ -916,7 +894,7 @@ export class HomePage implements OnInit, OnDestroy {
       gameControllerOutline, addOutline, searchOutline, filterOutline,
       logOutOutline, gridOutline, listOutline,
       starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
-      arrowUpOutline, arrowDownOutline, closeOutline, imageOutline
+      closeOutline, imageOutline
     });
   }
 
@@ -1025,11 +1003,6 @@ export class HomePage implements OnInit, OnDestroy {
     } else {
       this.selectedYears.push(year);
     }
-    this.applyFilters();
-  }
-
-  toggleSortOrder(): void {
-    this.sortOrder = this.sortOrder === 'desc' ? 'asc' : 'desc';
     this.applyFilters();
   }
 

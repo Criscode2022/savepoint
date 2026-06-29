@@ -62,6 +62,24 @@
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
 }
 
+.filters-grid {
+  --ion-grid-padding: 0;
+  padding: 0;
+}
+
+.filters-grid ion-row {
+  row-gap: 1rem;
+  margin-inline: -0.625rem;
+}
+
+.filters-grid ion-col {
+  padding: 0.5rem 0.625rem;
+}
+
+.filters-grid .filter-group {
+  margin-bottom: 0;
+}
+
 /* ─── Sections ──────────────────────────────────────────────────── */
 
 .form-section {
