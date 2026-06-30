@@ -14,7 +14,7 @@ import {
   gameControllerOutline, addOutline, searchOutline, filterOutline,
   logOutOutline, gridOutline, listOutline,
   starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
-  closeOutline, imageOutline
+  closeOutline, imageOutline, chevronForwardOutline
 } from 'ionicons/icons';
 import { Game, GameFilters, PLATFORMS, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
 import { GameService } from '../../services/game.service';
@@ -90,7 +90,8 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
             </div>
 
             <div class="filter-toggle-wrap">
-              <ion-button
+              <button
+                type="button"
                 (click)="showFilters = !showFilters"
                 [class.active]="showFilters || hasActiveFilters()"
                 class="filter-toggle-btn"
@@ -98,9 +99,9 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
                 [attr.aria-expanded]="showFilters"
                 aria-label="Toggle filters"
               >
-                <ion-icon name="filter-outline" slot="start"></ion-icon>
+                <ion-icon name="filter-outline" aria-hidden="true" class="filter-toggle-icon"></ion-icon>
                 <span class="filter-toggle-label">Filters</span>
-              </ion-button>
+              </button>
               <span
                 *ngIf="activeFilterCount > 0"
                 class="filter-badge"
@@ -108,6 +109,13 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
               >{{ activeFilterCount }}</span>
             </div>
           </div>
+
+          <a routerLink="/play-history" class="play-history-btn">
+            <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
+            <span class="play-history-btn__label">Play History</span>
+            <span class="play-history-btn__count">{{ completedCount }}</span>
+            <ion-icon name="chevron-forward-outline" class="play-history-btn__chevron" aria-hidden="true"></ion-icon>
+          </a>
 
           <!-- Stats -->
           <div class="stats-bar">
@@ -245,26 +253,6 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
           </div>
           <ion-list class="games-list" *ngIf="isListView">
             <ng-container *ngTemplateOutlet="listItems; context: { $implicit: currentlyPlayingGames }"></ng-container>
-          </ion-list>
-        </section>
-
-        <!-- Play History -->
-        <section class="library-section" *ngIf="showStatusSections && playHistoryGames.length">
-          <div class="section-header">
-            <h2 class="section-title">Play History</h2>
-            <span class="section-count">{{ playHistoryGames.length }}</span>
-          </div>
-          <div class="games-grid" *ngIf="!isListView">
-            <app-game-card
-              *ngFor="let game of playHistoryGames; trackBy: trackByGameId"
-              [game]="game"
-              (onToggleCompleted)="cycleStatus($event)"
-              (onDelete)="deleteGame($event)"
-              class="game-card-wrapper"
-            ></app-game-card>
-          </div>
-          <ion-list class="games-list" *ngIf="isListView">
-            <ng-container *ngTemplateOutlet="listItems; context: { $implicit: playHistoryGames }"></ng-container>
           </ion-list>
         </section>
 
@@ -516,17 +504,16 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
     }
 
     .filter-toggle-btn {
-      --background: rgba(15, 15, 28, 0.95);
-      --background-hover: rgba(168, 85, 247, 0.14);
-      --background-activated: rgba(168, 85, 247, 0.2);
-      --color: #cbd5e1;
-      --border-radius: 14px;
-      --border-width: 0;
-      --padding-start: 0;
-      --padding-end: 0;
-      --padding-top: 0;
-      --padding-bottom: 0;
-      --min-height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      box-sizing: border-box;
+      background: rgba(15, 15, 28, 0.95);
+      color: #cbd5e1;
+      border-radius: 14px;
+      border: none;
+      padding: 0;
       height: 48px;
       min-height: 48px;
       max-height: 48px;
@@ -534,51 +521,41 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       width: 48px;
       margin: 0;
       position: relative;
-      border: none;
       flex-shrink: 0;
+      font: inherit;
       font-weight: 600;
+      cursor: pointer;
       transition:
         transform 0.2s ease,
-        background 0.2s ease;
+        background 0.2s ease,
+        color 0.2s ease;
     }
 
-    .filter-toggle-btn::part(native) {
-      border-radius: 14px;
-      gap: 0.5rem;
-      justify-content: center;
-      height: 48px;
-      min-height: 48px;
-    }
-
-    .filter-toggle-icon-labeled,
-    .filter-toggle-label {
-      display: none;
-    }
-
-    .filter-toggle-icon-only {
+    .filter-toggle-icon {
       font-size: 1.25rem;
       margin: 0;
+      flex-shrink: 0;
+      pointer-events: none;
+    }
+
+    .filter-toggle-label {
+      display: none;
+      font-size: 0.875rem;
+      letter-spacing: 0.01em;
+      pointer-events: none;
     }
 
     .filter-toggle-btn:hover,
     .filter-toggle-btn:focus-visible {
-      --color: #f1f5f9;
+      color: #f1f5f9;
+      background: rgba(168, 85, 247, 0.14);
       transform: translateY(-1px);
+      outline: none;
     }
 
     .filter-toggle-btn.active {
-      --background: rgba(168, 85, 247, 0.16);
-      --color: #e9d5ff;
-    }
-
-    .filter-toggle-label {
-      font-size: 0.875rem;
-      letter-spacing: 0.01em;
-    }
-
-    .filter-toggle-icon-labeled {
-      font-size: 1.125rem;
-      margin-inline-end: 0.375rem;
+      background: rgba(168, 85, 247, 0.16);
+      color: #e9d5ff;
     }
 
     .filter-badge {
@@ -594,6 +571,71 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       border-radius: 999px;
       border: 2px solid rgba(15, 15, 28, 0.95);
       padding: 0 4px;
+    }
+
+    .play-history-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.625rem;
+      width: 100%;
+      min-height: 48px;
+      margin-bottom: 1rem;
+      padding: 0 1rem;
+      border-radius: 14px;
+      border: 1px solid rgba(34, 197, 94, 0.28);
+      background: rgba(34, 197, 94, 0.1);
+      color: #bbf7d0;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9375rem;
+      box-sizing: border-box;
+      transition:
+        transform 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease;
+    }
+
+    .play-history-btn ion-icon {
+      font-size: 1.125rem;
+      flex-shrink: 0;
+    }
+
+    .play-history-btn__label {
+      flex: 1;
+      text-align: left;
+    }
+
+    .play-history-btn__count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.75rem;
+      height: 1.75rem;
+      padding: 0 0.5rem;
+      border-radius: 999px;
+      background: rgba(34, 197, 94, 0.18);
+      border: 1px solid rgba(34, 197, 94, 0.32);
+      color: #4ade80;
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .play-history-btn__chevron {
+      font-size: 1rem;
+      color: #4ade80;
+      flex-shrink: 0;
+    }
+
+    .play-history-btn:hover,
+    .play-history-btn:focus-visible {
+      background: rgba(34, 197, 94, 0.16);
+      border-color: rgba(34, 197, 94, 0.45);
+      color: #dcfce7;
+      transform: translateY(-1px);
+      outline: none;
     }
 
     /* Stats Bar */
@@ -979,24 +1021,12 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       .filter-toggle-btn {
         width: auto;
         min-width: 7.5rem;
-        height: 48px;
-        min-height: 48px;
-        max-height: 48px;
-        --min-height: 48px;
-        --padding-start: 14px;
-        --padding-end: 16px;
+        padding: 0 16px 0 14px;
+        gap: 0.625rem;
       }
 
-      .filter-toggle-btn::part(native) {
-        justify-content: flex-start;
-      }
-
-      .filter-toggle-icon-only {
-        display: none;
-      }
-
-      .filter-toggle-icon-labeled {
-        display: block;
+      .filter-toggle-icon {
+        font-size: 1.125rem;
       }
 
       .filter-toggle-label {
@@ -1085,7 +1115,7 @@ export class HomePage implements OnInit, OnDestroy {
       gameControllerOutline, addOutline, searchOutline, filterOutline,
       logOutOutline, gridOutline, listOutline,
       starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
-      closeOutline, imageOutline
+      closeOutline, imageOutline, chevronForwardOutline
     });
   }
 
@@ -1313,14 +1343,6 @@ export class HomePage implements OnInit, OnDestroy {
 
   get currentlyPlayingGames(): Game[] {
     return this.filteredGames().filter((game) => game.status === 'playing');
-  }
-
-  get playHistoryGames(): Game[] {
-    return [...this.filteredGames()]
-      .filter((game) => game.status === 'completed')
-      .sort((a, b) =>
-        (b.completedAt || b.updatedAt).localeCompare(a.completedAt || a.updatedAt),
-      );
   }
 
   get displayGames(): Game[] {

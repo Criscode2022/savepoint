@@ -46,6 +46,11 @@ export const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
+    path: 'play-history',
+    loadComponent: () => import('./pages/play-history/play-history.page').then(m => m.PlayHistoryPage),
+    canActivate: [AuthGuard]
+  },
+  {
     path: '**',
     redirectTo: 'home'
   }
