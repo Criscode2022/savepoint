@@ -89,18 +89,24 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
               ></ion-input>
             </div>
 
-            <ion-button
-              (click)="showFilters = !showFilters"
-              [class.active]="showFilters || hasActiveFilters()"
-              class="filter-toggle-btn"
-              title="Toggle filters"
-              [attr.aria-expanded]="showFilters"
-              aria-label="Toggle filters"
-            >
-              <ion-icon name="filter-outline" slot="start"></ion-icon>
-              <span class="filter-toggle-label">Filters</span>
-              <ion-badge *ngIf="activeFilterCount > 0" class="filter-badge">{{ activeFilterCount }}</ion-badge>
-            </ion-button>
+            <div class="filter-toggle-wrap">
+              <ion-button
+                (click)="showFilters = !showFilters"
+                [class.active]="showFilters || hasActiveFilters()"
+                class="filter-toggle-btn"
+                title="Toggle filters"
+                [attr.aria-expanded]="showFilters"
+                aria-label="Toggle filters"
+              >
+                <ion-icon name="filter-outline" slot="start"></ion-icon>
+                <span class="filter-toggle-label">Filters</span>
+              </ion-button>
+              <span
+                *ngIf="activeFilterCount > 0"
+                class="filter-badge"
+                aria-hidden="true"
+              >{{ activeFilterCount }}</span>
+            </div>
           </div>
 
           <!-- Stats -->
@@ -206,14 +212,15 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
 
           <!-- Active Filters -->
           <div class="active-filters" *ngIf="hasActiveFilters()">
-            <ion-chip
+            <button
+              type="button"
               *ngFor="let filter of getActiveFilterChips()"
               class="active-filter-chip"
               (click)="removeFilter(filter.type, filter.value)"
             >
-              {{filter.label}}
-              <ion-icon name="close-outline"></ion-icon>
-            </ion-chip>
+              <span class="active-filter-chip__label">{{ filter.label }}</span>
+              <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+            </button>
           </div>
         </div>
 
@@ -429,8 +436,8 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
 
     /* Search Section */
     .search-section {
-      margin-bottom: 1.75rem;
-      padding: 1.125rem;
+      margin-bottom: 1rem;
+      padding: 1rem;
       background: rgba(15, 15, 28, 0.72);
       border: 1px solid rgba(148, 163, 184, 0.12);
       border-radius: 18px;
@@ -440,8 +447,13 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
     .search-bar-container {
       display: flex;
       gap: 0.75rem;
-      align-items: stretch;
+      align-items: center;
       margin-bottom: 1rem;
+    }
+
+    .filter-toggle-wrap {
+      position: relative;
+      flex-shrink: 0;
     }
 
     .filter-toggle-btn {
@@ -455,7 +467,10 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       --padding-end: 0;
       --padding-top: 0;
       --padding-bottom: 0;
+      --min-height: 48px;
       height: 48px;
+      min-height: 48px;
+      max-height: 48px;
       min-width: 48px;
       width: 48px;
       margin: 0;
@@ -471,6 +486,19 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
     .filter-toggle-btn::part(native) {
       border-radius: 14px;
       gap: 0.5rem;
+      justify-content: center;
+      height: 48px;
+      min-height: 48px;
+    }
+
+    .filter-toggle-icon-labeled,
+    .filter-toggle-label {
+      display: none;
+    }
+
+    .filter-toggle-icon-only {
+      font-size: 1.25rem;
+      margin: 0;
     }
 
     .filter-toggle-btn:hover,
@@ -485,12 +513,11 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
     }
 
     .filter-toggle-label {
-      display: none;
       font-size: 0.875rem;
       letter-spacing: 0.01em;
     }
 
-    .filter-toggle-btn ion-icon {
+    .filter-toggle-icon-labeled {
       font-size: 1.125rem;
       margin-inline-end: 0.375rem;
     }
@@ -538,7 +565,7 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1rem;
+      margin-bottom: 0.625rem;
     }
 
     .filter-chips ion-chip.selected {
@@ -548,16 +575,59 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
     .active-filters {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.625rem;
-      margin-top: 1.25rem;
-      padding-top: 1.25rem;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
       border-top: 1px solid rgba(139, 92, 246, 0.1);
     }
 
     .active-filter-chip {
-      --background: rgba(139, 92, 246, 0.2);
-      --color: #f8fafc;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4375rem;
+      margin: 0;
+      padding: 0.4375rem 0.6875rem 0.4375rem 0.8125rem;
+      min-height: 2rem;
+      border-radius: 999px;
+      border: 1px solid rgba(168, 85, 247, 0.45);
+      background: rgba(168, 85, 247, 0.2);
+      color: #f1f5f9;
+      font-family: inherit;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      line-height: 1;
       cursor: pointer;
+      white-space: nowrap;
+      transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.15s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .active-filter-chip__label {
+      line-height: 1.2;
+    }
+
+    .active-filter-chip ion-icon {
+      color: #fff;
+      font-size: 1rem;
+      flex-shrink: 0;
+      pointer-events: none;
+    }
+
+    @media (hover: hover) {
+      .active-filter-chip:hover {
+        background: rgba(168, 85, 247, 0.3);
+        border-color: rgba(192, 132, 252, 0.65);
+        box-shadow: 0 4px 14px rgba(168, 85, 247, 0.22);
+        transform: translateY(-1px);
+      }
+    }
+
+    .active-filter-chip:active {
+      transform: scale(0.97);
     }
 
     /* Games Grid */
@@ -806,8 +876,24 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       .filter-toggle-btn {
         width: auto;
         min-width: 7.5rem;
+        height: 48px;
+        min-height: 48px;
+        max-height: 48px;
+        --min-height: 48px;
         --padding-start: 14px;
         --padding-end: 16px;
+      }
+
+      .filter-toggle-btn::part(native) {
+        justify-content: flex-start;
+      }
+
+      .filter-toggle-icon-only {
+        display: none;
+      }
+
+      .filter-toggle-icon-labeled {
+        display: block;
       }
 
       .filter-toggle-label {
@@ -829,6 +915,8 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
         height: 48px;
         width: 48px;
         min-width: 48px;
+        min-height: 48px;
+        max-height: 48px;
       }
 
       .brand-tagline {

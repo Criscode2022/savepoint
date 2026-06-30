@@ -1,6 +1,13 @@
 import { Component, Input, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+type CoverVariant = 'card' | 'hero' | 'thumbnail';
+
+interface PlaceholderMetrics {
+  fontSize: string;
+  lineClamp: number;
+}
+
 @Component({
   selector: 'app-game-cover',
   standalone: true,
@@ -16,7 +23,11 @@ import { CommonModule } from '@angular/common';
         (error)="onImageError()"
       />
       <div *ngIf="!showImage" class="cover-placeholder" aria-hidden="true">
-        <span class="placeholder-title">{{ title }}</span>
+        <span
+          class="placeholder-title"
+          [style.--placeholder-size]="placeholderMetrics.fontSize"
+          [style.-webkit-line-clamp]="placeholderMetrics.lineClamp"
+        >{{ title }}</span>
       </div>
     </div>
   `,
@@ -32,6 +43,7 @@ import { CommonModule } from '@angular/common';
       width: 100%;
       height: 100%;
       overflow: hidden;
+      container-type: size;
       background: linear-gradient(145deg, #1a1a30 0%, #12121f 55%, #0f0f1c 100%);
     }
 
@@ -49,7 +61,7 @@ import { CommonModule } from '@angular/common';
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 1rem;
+      padding: 0.875rem;
       text-align: center;
       background:
         radial-gradient(circle at 30% 20%, rgba(168, 85, 247, 0.22) 0%, transparent 45%),
@@ -59,39 +71,65 @@ import { CommonModule } from '@angular/common';
     }
 
     .placeholder-title {
-      color: #c4b5fd;
-      font-size: clamp(0.75rem, 2.8vw, 1rem);
-      font-weight: 700;
-      line-height: 1.35;
-      letter-spacing: 0.01em;
+      color: #ddd6fe;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
       display: -webkit-box;
-      -webkit-line-clamp: 4;
       -webkit-box-orient: vertical;
       overflow: hidden;
       word-break: break-word;
+      overflow-wrap: anywhere;
+      max-width: 100%;
+      max-height: 100%;
+      text-wrap: balance;
+      font-size: var(--placeholder-size, 1.125rem);
+    }
+
+    .game-cover--card .cover-placeholder {
+      padding: 1rem 1.125rem;
+    }
+
+    .game-cover--card .placeholder-title {
+      font-size: min(var(--placeholder-size, 1.25rem), 14cqmin);
+    }
+
+    .game-cover--hero .cover-placeholder {
+      padding: 0.75rem 0.625rem;
     }
 
     .game-cover--hero .placeholder-title {
-      font-size: clamp(0.875rem, 2.2vw, 1.125rem);
-      -webkit-line-clamp: 5;
+      font-size: min(var(--placeholder-size, 1.125rem), 10cqmin);
+      line-height: 1.2;
+      font-weight: 700;
+    }
+
+    .game-cover--thumbnail .cover-placeholder {
+      padding: 0.375rem;
     }
 
     .game-cover--thumbnail .placeholder-title {
-      font-size: 0.625rem;
-      -webkit-line-clamp: 3;
-      padding: 0.25rem;
+      font-size: min(var(--placeholder-size, 0.625rem), 18cqmin);
+      font-weight: 700;
+      letter-spacing: 0;
+      line-height: 1.2;
     }
   `],
 })
 export class GameCoverComponent implements OnChanges {
   @Input() title = '';
   @Input() coverImage?: string | null;
-  @Input() variant: 'card' | 'hero' | 'thumbnail' = 'card';
+  @Input() variant: CoverVariant = 'card';
 
   showImage = false;
+  placeholderMetrics: PlaceholderMetrics = { fontSize: '1.25rem', lineClamp: 4 };
 
   ngOnChanges(): void {
     this.showImage = this.hasCoverImage(this.coverImage);
+    this.placeholderMetrics = this.getPlaceholderMetrics(
+      this.variant,
+      (this.title ?? '').trim().length,
+    );
   }
 
   onImageError(): void {
@@ -100,5 +138,60 @@ export class GameCoverComponent implements OnChanges {
 
   private hasCoverImage(url?: string | null): boolean {
     return !!url?.trim();
+  }
+
+  private getPlaceholderMetrics(variant: CoverVariant, length: number): PlaceholderMetrics {
+    if (variant === 'thumbnail') {
+      if (length <= 8) {
+        return { fontSize: '0.75rem', lineClamp: 3 };
+      }
+      if (length <= 16) {
+        return { fontSize: '0.625rem', lineClamp: 4 };
+      }
+      if (length <= 28) {
+        return { fontSize: '0.5625rem', lineClamp: 5 };
+      }
+      return { fontSize: '0.5rem', lineClamp: 6 };
+    }
+
+    if (variant === 'hero') {
+      if (length <= 10) {
+        return { fontSize: '1.25rem', lineClamp: 3 };
+      }
+      if (length <= 18) {
+        return { fontSize: '1.125rem', lineClamp: 3 };
+      }
+      if (length <= 30) {
+        return { fontSize: '1rem', lineClamp: 4 };
+      }
+      if (length <= 45) {
+        return { fontSize: '0.875rem', lineClamp: 4 };
+      }
+      if (length <= 60) {
+        return { fontSize: '0.8125rem', lineClamp: 5 };
+      }
+      return { fontSize: '0.75rem', lineClamp: 6 };
+    }
+
+    // card — main grid view
+    if (length <= 8) {
+      return { fontSize: '2rem', lineClamp: 2 };
+    }
+    if (length <= 14) {
+      return { fontSize: '1.75rem', lineClamp: 2 };
+    }
+    if (length <= 22) {
+      return { fontSize: '1.4375rem', lineClamp: 3 };
+    }
+    if (length <= 32) {
+      return { fontSize: '1.1875rem', lineClamp: 3 };
+    }
+    if (length <= 45) {
+      return { fontSize: '1rem', lineClamp: 4 };
+    }
+    if (length <= 60) {
+      return { fontSize: '0.875rem', lineClamp: 5 };
+    }
+    return { fontSize: '0.75rem', lineClamp: 6 };
   }
 }
