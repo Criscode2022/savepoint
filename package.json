@@ -16,7 +16,8 @@
     "ionic:serve": "ionic serve",
     "ionic:build": "ionic build",
     "db:migrate": "node neon/migrate.js",
-    "db:seed": "node neon/seed.js"
+    "db:seed": "node neon/seed.js",
+    "db:refresh-api-schema": "node scripts/refresh-data-api-schema.js"
   },
   "private": true,
   "dependencies": {

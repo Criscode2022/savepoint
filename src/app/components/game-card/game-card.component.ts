@@ -10,7 +10,7 @@ import {
   starOutline, timeOutline, checkmarkCircleOutline, 
   ellipseOutline, trashOutline, createOutline
 } from 'ionicons/icons';
-import { Game } from '../../models/game.model';
+import { Game, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
 import { GameCoverComponent } from '../game-cover/game-cover.component';
 
 @Component({
@@ -22,7 +22,7 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
     IonIcon, IonButton, IonChip
   ],
   template: `
-    <ion-card class="game-card" [class.completed]="game.completed" [routerLink]="['/game', game.id]">
+    <ion-card class="game-card" [class]="'game-card game-card--' + game.status" [routerLink]="['/game', game.id]">
       <div class="card-image-wrapper">
         <app-game-cover
           [title]="game.title"
@@ -55,9 +55,9 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
           {{ game.platform.name }}
         </span>
         
-        <!-- Completed Badge -->
-        <div class="completed-badge" *ngIf="game.completed">
-          <ion-icon name="checkmark-circle-outline"></ion-icon>
+        <!-- Status Badge -->
+        <div class="status-badge" *ngIf="game.status !== 'not_started'" [class]="'status-badge--' + game.status">
+          <ion-icon [name]="getStatusIcon()"></ion-icon>
         </div>
       </div>
 
@@ -98,11 +98,10 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
         <ion-button 
           fill="outline"
           size="small"
-          (click)="toggleCompleted($event)"
-          [class.completed]="game.completed"
-          class="complete-btn">
-          <ion-icon [name]="game.completed ? 'checkmark-circle-outline' : 'ellipse-outline'" slot="start"></ion-icon>
-          {{ game.completed ? 'Completed' : 'Mark complete' }}
+          (click)="cycleStatus($event)"
+          [class]="'status-btn status-btn--' + game.status">
+          <ion-icon [name]="getStatusIcon()" slot="start"></ion-icon>
+          {{ getStatusLabel() }}
         </ion-button>
       </div>
     </ion-card>
@@ -346,7 +345,8 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
       margin-top: auto;
     }
 
-    .complete-btn {
+    .complete-btn,
+    .status-btn {
       --background: transparent;
       --background-hover: rgba(168, 85, 247, 0.12);
       --background-activated: rgba(168, 85, 247, 0.18);
@@ -366,19 +366,53 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
       text-transform: none;
     }
 
-    .complete-btn::part(native) {
+    .status-btn::part(native) {
       border-radius: 12px;
     }
 
-    .complete-btn.completed {
+    .status-btn--playing {
+      --background: rgba(59, 130, 246, 0.12);
+      --border-color: rgba(59, 130, 246, 0.35);
+      --color: #93c5fd;
+    }
+
+    .status-btn--completed {
       --background: rgba(34, 197, 94, 0.12);
       --border-color: rgba(34, 197, 94, 0.35);
       --color: #86efac;
     }
 
-    .complete-btn ion-icon {
+    .status-btn ion-icon {
       font-size: 1.05rem;
       margin-inline-end: 0.375rem;
+    }
+
+    .status-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+    }
+
+    .status-badge--playing {
+      background: rgba(59, 130, 246, 0.85);
+      color: #fff;
+    }
+
+    .status-badge--completed {
+      background: rgba(34, 197, 94, 0.88);
+      color: #fff;
+    }
+
+    .status-badge ion-icon {
+      font-size: 1.1rem;
     }
   `]
 })
@@ -396,9 +430,26 @@ export class GameCardComponent {
   }
 
   toggleCompleted(event: Event): void {
+    this.cycleStatus(event);
+  }
+
+  cycleStatus(event: Event): void {
     event.stopPropagation();
     event.preventDefault();
     this.onToggleCompleted.emit(this.game.id);
+  }
+
+  getStatusLabel(): string {
+    return GAME_STATUS_LABELS[this.game.status];
+  }
+
+  getStatusIcon(): string {
+    const icons: Record<GamePlayStatus, string> = {
+      not_started: 'ellipse-outline',
+      playing: 'time-outline',
+      completed: 'checkmark-circle-outline',
+    };
+    return icons[this.game.status];
   }
 
   getPlaytime(): number | null {

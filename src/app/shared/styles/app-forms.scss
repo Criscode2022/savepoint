@@ -455,6 +455,23 @@ ion-toggle {
   padding: 0.25rem 0;
 }
 
+.status-segment {
+  --background: rgba(15, 15, 28, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  padding: 0.25rem;
+}
+
+.status-segment ion-segment-button {
+  --indicator-color: rgba(168, 85, 247, 0.35);
+  --color: #94a3b8;
+  --color-checked: #f8fafc;
+  min-height: 2.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: none;
+}
+
 /* ─── Toolbars ──────────────────────────────────────────────────── */
 
 .form-toolbar,

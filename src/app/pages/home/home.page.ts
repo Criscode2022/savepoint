@@ -16,7 +16,7 @@ import {
   starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
   closeOutline, imageOutline
 } from 'ionicons/icons';
-import { Game, GameFilters, PLATFORMS } from '../../models/game.model';
+import { Game, GameFilters, PLATFORMS, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
 import { GameService } from '../../services/game.service';
 import { AuthService } from '../../services/auth.service';
 import { GameCardComponent } from '../../components/game-card/game-card.component';
@@ -116,8 +116,12 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
               <span>{{filteredGames().length}} games</span>
             </div>
             <div class="stat-item">
+              <ion-icon name="time-outline"></ion-icon>
+              <span>{{ playingCount }} playing</span>
+            </div>
+            <div class="stat-item">
               <ion-icon name="checkmark-circle-outline"></ion-icon>
-              <span>{{completedCount}} completed</span>
+              <span>{{ completedCount }} completed</span>
             </div>
             <div class="stat-item">
               <ion-icon name="time-outline"></ion-icon>
@@ -224,21 +228,77 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
           </div>
         </div>
 
+        <!-- Currently Playing -->
+        <section class="library-section" *ngIf="showStatusSections && currentlyPlayingGames.length">
+          <div class="section-header">
+            <h2 class="section-title">Currently Playing</h2>
+            <span class="section-count">{{ currentlyPlayingGames.length }}</span>
+          </div>
+          <div class="games-grid" *ngIf="!isListView">
+            <app-game-card
+              *ngFor="let game of currentlyPlayingGames; trackBy: trackByGameId"
+              [game]="game"
+              (onToggleCompleted)="cycleStatus($event)"
+              (onDelete)="deleteGame($event)"
+              class="game-card-wrapper"
+            ></app-game-card>
+          </div>
+          <ion-list class="games-list" *ngIf="isListView">
+            <ng-container *ngTemplateOutlet="listItems; context: { $implicit: currentlyPlayingGames }"></ng-container>
+          </ion-list>
+        </section>
+
+        <!-- Play History -->
+        <section class="library-section" *ngIf="showStatusSections && playHistoryGames.length">
+          <div class="section-header">
+            <h2 class="section-title">Play History</h2>
+            <span class="section-count">{{ playHistoryGames.length }}</span>
+          </div>
+          <div class="games-grid" *ngIf="!isListView">
+            <app-game-card
+              *ngFor="let game of playHistoryGames; trackBy: trackByGameId"
+              [game]="game"
+              (onToggleCompleted)="cycleStatus($event)"
+              (onDelete)="deleteGame($event)"
+              class="game-card-wrapper"
+            ></app-game-card>
+          </div>
+          <ion-list class="games-list" *ngIf="isListView">
+            <ng-container *ngTemplateOutlet="listItems; context: { $implicit: playHistoryGames }"></ng-container>
+          </ion-list>
+        </section>
+
+        <!-- Library -->
+        <section class="library-section" *ngIf="showStatusSections || displayGames.length > 0">
+          <div class="section-header" *ngIf="showStatusSections">
+            <h2 class="section-title">Your Library</h2>
+            <span class="section-count">{{ filteredGames().length }}</span>
+          </div>
+
+          <p class="section-empty" *ngIf="showStatusSections && filteredGames().length === 0">
+            No games in your library yet.
+          </p>
+
         <!-- Games Grid View -->
-        <div class="games-grid" *ngIf="!isListView && filteredGames().length > 0">
+        <div class="games-grid" *ngIf="!isListView && displayGames.length > 0">
           <app-game-card
-            *ngFor="let game of filteredGames(); trackBy: trackByGameId"
+            *ngFor="let game of displayGames; trackBy: trackByGameId"
             [game]="game"
-            (onToggleCompleted)="toggleCompleted($event)"
+            (onToggleCompleted)="cycleStatus($event)"
             (onDelete)="deleteGame($event)"
             class="game-card-wrapper"
           ></app-game-card>
         </div>
 
         <!-- Games List View -->
-        <ion-list class="games-list" *ngIf="isListView && filteredGames().length > 0">
+        <ion-list class="games-list" *ngIf="isListView && displayGames.length > 0">
+          <ng-container *ngTemplateOutlet="listItems; context: { $implicit: displayGames }"></ng-container>
+        </ion-list>
+        </section>
+
+        <ng-template #listItems let-games>
           <ion-item
-            *ngFor="let game of filteredGames(); trackBy: trackByGameId"
+            *ngFor="let game of games; trackBy: trackByGameId"
             class="game-list-item"
             button
             detail="false"
@@ -253,34 +313,33 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
             </ion-thumbnail>
 
             <div class="game-info">
-              <h3 class="game-title">{{game.title}}</h3>
+              <h3 class="game-title">{{ game.title }}</h3>
               <p class="game-meta">
-                <span *ngIf="game.platform.name" class="platform-tag">{{game.platform.name}}</span>
-                <span *ngIf="game.releaseYear">{{game.releaseYear}}</span>
+                <span *ngIf="game.platform.name" class="platform-tag">{{ game.platform.name }}</span>
+                <span *ngIf="game.releaseYear">{{ game.releaseYear }}</span>
                 <span *ngIf="game.rating" class="rating-tag">
                   <ion-icon name="star-outline" class="star-icon"></ion-icon>
-                  {{game.rating}}
+                  {{ game.rating }}
                 </span>
               </p>
               <p class="game-details" *ngIf="game.developer.name || game.playtimeHours">
-                <span *ngIf="game.developer.name">{{game.developer.name}}</span>
-                <span *ngIf="game.playtimeHours">{{game.playtimeHours}}h played</span>
+                <span *ngIf="game.developer.name">{{ game.developer.name }}</span>
+                <span *ngIf="game.playtimeHours">{{ game.playtimeHours }}h played</span>
               </p>
             </div>
 
             <div class="game-status" slot="end">
               <ion-badge
-                [color]="game.completed ? 'success' : 'medium'"
+                [color]="getStatusColor(game.status)"
                 class="status-badge"
-                (click)="$event.stopPropagation(); toggleCompleted(game.id)"
+                (click)="$event.stopPropagation(); cycleStatus(game.id)"
               >
-                <ion-icon [name]="game.completed ? 'checkmark-circle-outline' : 'time-outline'"
-                ></ion-icon>
-                {{game.completed ? 'Completed' : 'Playing'}}
+                <ion-icon [name]="getStatusIcon(game.status)"></ion-icon>
+                {{ getStatusLabel(game.status) }}
               </ion-badge>
             </div>
           </ion-item>
-        </ion-list>
+        </ng-template>
 
         <!-- Empty State -->
         <div class="empty-state" *ngIf="filteredGames().length === 0">
@@ -628,6 +687,50 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
 
     .active-filter-chip:active {
       transform: scale(0.97);
+    }
+
+    .library-section {
+      margin-bottom: 2rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .section-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.75rem;
+      height: 1.75rem;
+      padding: 0 0.5rem;
+      border-radius: 999px;
+      background: rgba(168, 85, 247, 0.16);
+      border: 1px solid rgba(168, 85, 247, 0.28);
+      color: #d8b4fe;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .section-empty {
+      margin: 0 0 0.5rem;
+      padding: 1rem 1.125rem;
+      border-radius: 12px;
+      border: 1px dashed rgba(148, 163, 184, 0.22);
+      background: rgba(15, 23, 42, 0.35);
+      color: #94a3b8;
+      font-size: 0.875rem;
     }
 
     /* Games Grid */
@@ -1168,7 +1271,11 @@ export class HomePage implements OnInit, OnDestroy {
 
   // Actions
   toggleCompleted(gameId: string): void {
-    this.gameService.toggleCompleted(gameId).subscribe({
+    this.cycleStatus(gameId);
+  }
+
+  cycleStatus(gameId: string): void {
+    this.gameService.cycleStatus(gameId).subscribe({
       next: () => {
         this.showToast('Game status updated', 'success');
       },
@@ -1176,6 +1283,48 @@ export class HomePage implements OnInit, OnDestroy {
         this.showToast('Failed to update game', 'danger');
       }
     });
+  }
+
+  getStatusLabel(status: GamePlayStatus): string {
+    return GAME_STATUS_LABELS[status];
+  }
+
+  getStatusIcon(status: GamePlayStatus): string {
+    const icons: Record<GamePlayStatus, string> = {
+      not_started: 'ellipse-outline',
+      playing: 'time-outline',
+      completed: 'checkmark-circle-outline',
+    };
+    return icons[status];
+  }
+
+  getStatusColor(status: GamePlayStatus): string {
+    const colors: Record<GamePlayStatus, string> = {
+      not_started: 'medium',
+      playing: 'primary',
+      completed: 'success',
+    };
+    return colors[status];
+  }
+
+  get showStatusSections(): boolean {
+    return !this.hasActiveFilters();
+  }
+
+  get currentlyPlayingGames(): Game[] {
+    return this.filteredGames().filter((game) => game.status === 'playing');
+  }
+
+  get playHistoryGames(): Game[] {
+    return [...this.filteredGames()]
+      .filter((game) => game.status === 'completed')
+      .sort((a, b) =>
+        (b.completedAt || b.updatedAt).localeCompare(a.completedAt || a.updatedAt),
+      );
+  }
+
+  get displayGames(): Game[] {
+    return this.filteredGames();
   }
 
   async deleteGame(gameId: string): Promise<void> {
@@ -1232,7 +1381,11 @@ export class HomePage implements OnInit, OnDestroy {
 
   // Stats
   get completedCount(): number {
-    return this.filteredGames().filter(g => g.completed).length;
+    return this.filteredGames().filter((g) => g.status === 'completed').length;
+  }
+
+  get playingCount(): number {
+    return this.filteredGames().filter((g) => g.status === 'playing').length;
   }
 
   get totalPlaytime(): number {

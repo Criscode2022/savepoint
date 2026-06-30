@@ -16,7 +16,7 @@ import {
 import { AuthService } from '../../services/auth.service';
 import { GameService } from '../../services/game.service';
 import { AuthUser } from '../../models/auth.model';
-import { Game } from '../../models/game.model';
+import { Game, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
 import { Subject, takeUntil } from 'rxjs';
 
 @Component({
@@ -155,8 +155,8 @@ import { Subject, takeUntil } from 'rxjs';
                   <h3>{{ game.title }}</h3>
                   <p>{{ game.platform.name || 'Unknown' }} • {{ game.releaseYear }}</p>
                 </ion-label>
-                <ion-badge slot="end" [color]="game.completed ? 'success' : 'medium'">
-                  {{ game.completed ? 'Completed' : 'Playing' }}
+                <ion-badge slot="end" [color]="getStatusColor(game.status)">
+                  {{ getStatusLabel(game.status) }}
                 </ion-badge>
               </ion-item>
             </ion-list>
@@ -431,7 +431,24 @@ export class ProfilePage implements OnInit {
   }
 
   get completedGames(): number {
-    return this.games.filter(g => g.completed).length;
+    return this.games.filter((g) => g.status === 'completed').length;
+  }
+
+  get playingGames(): number {
+    return this.games.filter((g) => g.status === 'playing').length;
+  }
+
+  getStatusLabel(status: GamePlayStatus): string {
+    return GAME_STATUS_LABELS[status];
+  }
+
+  getStatusColor(status: GamePlayStatus): string {
+    const colors: Record<GamePlayStatus, string> = {
+      not_started: 'medium',
+      playing: 'primary',
+      completed: 'success',
+    };
+    return colors[status];
   }
 
   get totalHours(): number {

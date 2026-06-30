@@ -6,11 +6,11 @@ import {
   IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonTitle, IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
   IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-  IonTextarea, IonToggle, IonToast, IonChip
+  IonTextarea, IonToggle, IonToast, IonChip, IonSegment, IonSegmentButton
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline, saveOutline, imageOutline } from 'ionicons/icons';
-import { PLATFORMS, GENRES, Game, Platform } from '../../models/game.model';
+import { PLATFORMS, GENRES, Game, Platform, GamePlayStatus, GAME_STATUS_LABELS } from '../../models/game.model';
 import { GameService } from '../../services/game.service';
 import { PlatformService } from '../../services/platform.service';
 
@@ -22,7 +22,7 @@ import { PlatformService } from '../../services/platform.service';
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
     IonTitle, IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
     IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-    IonTextarea, IonToggle, IonToast, IonChip
+    IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton
   ],
   template: `
     <ion-header class="ion-no-border">
@@ -194,13 +194,24 @@ import { PlatformService } from '../../services/platform.service';
                   </ion-item>
                 </div>
 
-                <ion-item class="form-item toggle-item" lines="none">
-                  <ion-label>Completed</ion-label>
-                  <ion-toggle
-                    slot="end"
-                    [(ngModel)]="game.completed"
-                    name="completed"></ion-toggle>
-                </ion-item>
+                <div class="field-group">
+                  <label class="field-label">Play Status</label>
+                  <ion-segment
+                    [(ngModel)]="game.status"
+                    name="status"
+                    class="status-segment"
+                  >
+                    <ion-segment-button value="not_started">
+                      <ion-label>{{ statusLabels.not_started }}</ion-label>
+                    </ion-segment-button>
+                    <ion-segment-button value="playing">
+                      <ion-label>{{ statusLabels.playing }}</ion-label>
+                    </ion-segment-button>
+                    <ion-segment-button value="completed">
+                      <ion-label>{{ statusLabels.completed }}</ion-label>
+                    </ion-segment-button>
+                  </ion-segment>
+                </div>
               </div>
 
               <div class="form-section">
@@ -257,6 +268,7 @@ import { PlatformService } from '../../services/platform.service';
 export class GameFormPage implements OnInit {
   platforms: Platform[] = [];
   genres = GENRES;
+  statusLabels = GAME_STATUS_LABELS;
   currentYear = new Date().getFullYear();
   
   isEdit = false;
@@ -272,7 +284,7 @@ export class GameFormPage implements OnInit {
     genre: [],
     rating: undefined,
     playtime: undefined,
-    completed: false,
+    status: 'not_started' as GamePlayStatus,
     notes: ''
   };
   
@@ -377,7 +389,7 @@ export class GameFormPage implements OnInit {
       rating: this.game.rating != null ? Number(this.game.rating) : undefined,
       playtimeHours:
         this.game.playtime != null ? Number(this.game.playtime) : undefined,
-      completed: this.game.completed || false,
+      status: this.game.status || 'not_started',
       notes: this.game.notes
     };
 

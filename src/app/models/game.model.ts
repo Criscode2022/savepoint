@@ -27,6 +27,45 @@ export interface Director {
   createdAt: string;
 }
 
+export type GamePlayStatus = 'not_started' | 'playing' | 'completed';
+
+export const GAME_STATUS_LABELS: Record<GamePlayStatus, string> = {
+  not_started: 'Not Started',
+  playing: 'Playing',
+  completed: 'Completed',
+};
+
+export const GAME_STATUS_CYCLE: Record<GamePlayStatus, GamePlayStatus> = {
+  not_started: 'playing',
+  playing: 'completed',
+  completed: 'not_started',
+};
+
+export function deriveGameStatus(game: {
+  status?: GamePlayStatus | string | null;
+  completed?: boolean;
+}): GamePlayStatus {
+  if (
+    game.status === 'not_started' ||
+    game.status === 'playing' ||
+    game.status === 'completed'
+  ) {
+    return game.status;
+  }
+  return game.completed ? 'completed' : 'not_started';
+}
+
+export interface PlaySession {
+  id: string;
+  gameId: string;
+  userId: string;
+  startedAt: string;
+  endedAt?: string;
+  durationMinutes?: number;
+  notes?: string;
+  createdAt: string;
+}
+
 export interface Game {
   id: string;
   title: string;
@@ -43,6 +82,10 @@ export interface Game {
   rating?: number;
   playtimeHours?: number;
   playtime?: number;
+  status: GamePlayStatus;
+  startedAt?: string;
+  completedAt?: string;
+  lastPlayedAt?: string;
   completed: boolean;
   purchaseDate?: string;
   notes?: string;
@@ -66,6 +109,7 @@ export interface GameFilter {
   developerId?: string;
   directorId?: string;
   genre?: string;
+  status?: GamePlayStatus;
   completed?: boolean;
   sortBy?: 'title' | 'releaseYear' | 'rating' | 'createdAt';
   sortOrder?: 'asc' | 'desc';
@@ -92,12 +136,17 @@ export interface CreateGameRequest {
   genre?: string[];
   rating?: number;
   playtimeHours?: number;
+  status?: GamePlayStatus;
   completed?: boolean;
   purchaseDate?: string;
   notes?: string;
 }
 
-export interface UpdateGameRequest extends Partial<CreateGameRequest> {}
+export interface UpdateGameRequest extends Partial<CreateGameRequest> {
+  startedAt?: string | null;
+  completedAt?: string | null;
+  lastPlayedAt?: string | null;
+}
 
 export interface GameFormPayload {
   title: string;
@@ -110,6 +159,7 @@ export interface GameFormPayload {
   genre?: string[];
   rating?: number;
   playtimeHours?: number;
+  status?: GamePlayStatus;
   completed?: boolean;
   notes?: string;
 }

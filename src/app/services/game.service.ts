@@ -10,12 +10,16 @@ import {
 import { catchError, map, tap } from "rxjs/operators";
 import {
   CreateGameRequest,
+  deriveGameStatus,
   FilterOptions,
   Game,
   GameFilter,
   GameFilters,
   GameFormPayload,
+  GamePlayStatus,
+  GAME_STATUS_CYCLE,
   GamesResponse,
+  PlaySession,
   UpdateGameRequest,
 } from "../models/game.model";
 import { AuthService } from "./auth.service";
@@ -38,6 +42,10 @@ interface DbGame {
   rating?: number;
   playtime_hours?: number;
   completed: boolean;
+  status?: GamePlayStatus;
+  started_at?: string;
+  completed_at?: string;
+  last_played_at?: string;
   purchase_date?: string;
   notes?: string;
   user_id: string;
@@ -79,6 +87,17 @@ type HydratedDbGame = DbGame & {
   developer?: DbCompany;
   director?: DbDirector;
 };
+
+interface DbPlaySession {
+  id: string;
+  game_id: string;
+  user_id: string;
+  started_at: string;
+  ended_at?: string;
+  duration_minutes?: number;
+  notes?: string;
+  created_at: string;
+}
 
 @Injectable({
   providedIn: "root",
@@ -155,6 +174,7 @@ export class GameService {
     if (filter?.genre) filters["genre"] = filter.genre;
     if (filter?.completed !== undefined)
       filters["completed"] = filter.completed;
+    if (filter?.status) filters["status"] = filter.status;
 
     // Server-side search using PostgREST ILIKE
     if (filter?.search?.trim()) {
@@ -283,10 +303,11 @@ export class GameService {
     });
   }
 
-  private mapGameFromDb(g: any): Game {
+  private mapGameFromDb(g: HydratedDbGame | any): Game {
     const platform = g.platform as DbPlatform | undefined;
     const developer = g.developer as DbCompany | undefined;
     const director = g.director as DbDirector | undefined;
+    const status = deriveGameStatus(g);
 
     return {
       id: g.id,
@@ -319,12 +340,29 @@ export class GameService {
       rating: g.rating,
       playtimeHours: g.playtime_hours,
       playtime: g.playtime_hours,
-      completed: g.completed,
+      status,
+      startedAt: g.started_at,
+      completedAt: g.completed_at,
+      lastPlayedAt: g.last_played_at,
+      completed: status === "completed",
       purchaseDate: g.purchase_date,
       notes: g.notes,
       userId: g.user_id,
       createdAt: g.created_at,
       updatedAt: g.updated_at,
+    };
+  }
+
+  private mapPlaySessionFromDb(session: DbPlaySession): PlaySession {
+    return {
+      id: session.id,
+      gameId: session.game_id,
+      userId: session.user_id,
+      startedAt: session.started_at,
+      endedAt: session.ended_at,
+      durationMinutes: session.duration_minutes,
+      notes: session.notes,
+      createdAt: session.created_at,
     };
   }
 
@@ -408,7 +446,14 @@ export class GameService {
       return throwError(() => new Error("User not authenticated"));
     }
 
-    const data = {
+    const status = this.resolveStatusForWrite(
+      game.status,
+      game.completed,
+      undefined,
+    );
+    const now = new Date().toISOString();
+
+    const data: Record<string, unknown> = {
       title: game.title,
       description: game.description || null,
       cover_image: game.coverImage || null,
@@ -419,11 +464,21 @@ export class GameService {
       genre: game.genre?.[0] || null,
       rating: game.rating ?? null,
       playtime_hours: game.playtimeHours ?? 0,
-      completed: game.completed ?? false,
+      status,
+      completed: status === "completed",
       purchase_date: game.purchaseDate || null,
       notes: game.notes || null,
       user_id: currentUser.id,
     };
+
+    if (status === "playing") {
+      data["started_at"] = now;
+      data["last_played_at"] = now;
+    } else if (status === "completed") {
+      data["started_at"] = now;
+      data["completed_at"] = now;
+      data["last_played_at"] = now;
+    }
 
     return this.db.insert<DbGame>("games", data).pipe(
       switchMap((result: DbGame) => this.getGameById(result.id)),
@@ -467,20 +522,28 @@ export class GameService {
             this.directorService
               .findOrCreateByName(payload.directorName || "")
               .pipe(
-                map((directorId) => ({
-                  title: payload.title.trim(),
-                  description: payload.description?.trim() || undefined,
-                  coverImage: payload.coverImage?.trim() || undefined,
-                  platformId: platformId || undefined,
-                  developerId,
-                  directorId: directorId || undefined,
-                  releaseYear: payload.releaseYear,
-                  genre: payload.genre,
-                  rating: payload.rating,
-                  playtimeHours: payload.playtimeHours,
-                  completed: payload.completed,
-                  notes: payload.notes?.trim() || undefined,
-                })),
+                map((directorId) => {
+                  const status = this.resolveStatusForWrite(
+                    payload.status,
+                    payload.completed,
+                    undefined,
+                  );
+                  return {
+                    title: payload.title.trim(),
+                    description: payload.description?.trim() || undefined,
+                    coverImage: payload.coverImage?.trim() || undefined,
+                    platformId: platformId || undefined,
+                    developerId,
+                    directorId: directorId || undefined,
+                    releaseYear: payload.releaseYear,
+                    genre: payload.genre,
+                    rating: payload.rating,
+                    playtimeHours: payload.playtimeHours,
+                    status,
+                    completed: status === "completed",
+                    notes: payload.notes?.trim() || undefined,
+                  };
+                }),
               ),
           ),
         ),
@@ -506,7 +569,18 @@ export class GameService {
     if (game.rating !== undefined) data["rating"] = game.rating;
     if (game.playtimeHours !== undefined)
       data["playtime_hours"] = game.playtimeHours;
-    if (game.completed !== undefined) data["completed"] = game.completed;
+    if (game.status !== undefined) {
+      data["status"] = game.status;
+      data["completed"] = game.status === "completed";
+      this.applyStatusTimestamps(id, game.status, game, data);
+    } else if (game.completed !== undefined) {
+      data["completed"] = game.completed;
+      data["status"] = game.completed ? "completed" : "not_started";
+    }
+    if (game.startedAt !== undefined) data["started_at"] = game.startedAt;
+    if (game.completedAt !== undefined) data["completed_at"] = game.completedAt;
+    if (game.lastPlayedAt !== undefined)
+      data["last_played_at"] = game.lastPlayedAt;
     if (game.purchaseDate !== undefined)
       data["purchase_date"] = game.purchaseDate;
     if (game.notes !== undefined) data["notes"] = game.notes;
@@ -550,15 +624,181 @@ export class GameService {
   }
 
   toggleCompleted(gameId: string): Observable<Game> {
+    return this.cycleStatus(gameId);
+  }
+
+  cycleStatus(gameId: string): Observable<Game> {
     const game = this.gamesSubject.value.find((g) => g.id === gameId);
     if (!game) {
       return throwError(() => new Error("Game not found"));
     }
-    return this.updateGame(gameId, { completed: !game.completed });
+    return this.setStatus(gameId, GAME_STATUS_CYCLE[game.status]);
+  }
+
+  setStatus(id: string, status: GamePlayStatus): Observable<Game> {
+    const game =
+      this.gamesSubject.value.find((g) => g.id === id) ??
+      this.filteredGames().find((g) => g.id === id);
+    if (!game) {
+      return throwError(() => new Error("Game not found"));
+    }
+
+    const now = new Date().toISOString();
+    const update: UpdateGameRequest = {
+      status,
+      completed: status === "completed",
+    };
+
+    if (status === "playing") {
+      update.startedAt = game.startedAt || now;
+      update.lastPlayedAt = now;
+      update.completedAt = null;
+    } else if (status === "completed") {
+      update.completedAt = now;
+      update.lastPlayedAt = now;
+      if (!game.startedAt) {
+        update.startedAt = now;
+      }
+    } else {
+      update.completedAt = null;
+    }
+
+    return this.updateGame(id, update).pipe(
+      switchMap((updatedGame) =>
+        this.syncPlaySession(updatedGame, status).pipe(map(() => updatedGame)),
+      ),
+    );
   }
 
   setCompleted(id: string, completed: boolean): Observable<Game> {
-    return this.updateGame(id, { completed });
+    return this.setStatus(id, completed ? "completed" : "not_started");
+  }
+
+  getPlaySessions(gameId: string): Observable<PlaySession[]> {
+    return this.db
+      .select<DbPlaySession>("play_sessions", {
+        filters: { game_id: gameId },
+        order: "started_at.desc",
+      })
+      .pipe(
+        map((sessions) => sessions.map((s) => this.mapPlaySessionFromDb(s))),
+        catchError(() => of([])),
+      );
+  }
+
+  private resolveStatusForWrite(
+    status: GamePlayStatus | undefined,
+    completed: boolean | undefined,
+    currentStatus: GamePlayStatus | undefined,
+  ): GamePlayStatus {
+    if (status) {
+      return status;
+    }
+    if (completed !== undefined) {
+      return completed ? "completed" : "not_started";
+    }
+    return currentStatus ?? "not_started";
+  }
+
+  private applyStatusTimestamps(
+    id: string,
+    status: GamePlayStatus,
+    request: UpdateGameRequest,
+    data: Record<string, any>,
+  ): void {
+    const existing =
+      this.gamesSubject.value.find((g) => g.id === id) ??
+      this.filteredGames().find((g) => g.id === id);
+    const now = new Date().toISOString();
+
+    if (status === "playing") {
+      if (request.startedAt === undefined && !existing?.startedAt) {
+        data["started_at"] = now;
+      }
+      if (request.lastPlayedAt === undefined) {
+        data["last_played_at"] = now;
+      }
+      if (request.completedAt === undefined) {
+        data["completed_at"] = null;
+      }
+    } else if (status === "completed") {
+      if (request.completedAt === undefined) {
+        data["completed_at"] = now;
+      }
+      if (request.lastPlayedAt === undefined) {
+        data["last_played_at"] = now;
+      }
+      if (request.startedAt === undefined && !existing?.startedAt) {
+        data["started_at"] = now;
+      }
+    } else if (request.completedAt === undefined) {
+      data["completed_at"] = null;
+    }
+  }
+
+  private syncPlaySession(
+    game: Game,
+    status: GamePlayStatus,
+  ): Observable<void> {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) {
+      return of(undefined);
+    }
+
+    if (status === "playing") {
+      return this.db
+        .insert<DbPlaySession>("play_sessions", {
+          game_id: game.id,
+          user_id: currentUser.id,
+          started_at: new Date().toISOString(),
+        })
+        .pipe(
+          map(() => undefined),
+          catchError(() => of(undefined)),
+        );
+    }
+
+    if (status === "completed") {
+      return this.closeOpenPlaySession(game.id);
+    }
+
+    return of(undefined);
+  }
+
+  private closeOpenPlaySession(gameId: string): Observable<void> {
+    return this.db
+      .select<DbPlaySession>("play_sessions", {
+        filters: { game_id: gameId, ended_at: "is.null" },
+        order: "started_at.desc",
+        limit: 1,
+      })
+      .pipe(
+        switchMap((sessions) => {
+          if (!sessions.length) {
+            return of(undefined);
+          }
+
+          const session = sessions[0];
+          const endedAt = new Date().toISOString();
+          const durationMinutes = Math.max(
+            1,
+            Math.round(
+              (Date.now() - new Date(session.started_at).getTime()) / 60000,
+            ),
+          );
+
+          return this.db
+            .updateById<DbPlaySession>("play_sessions", session.id, {
+              ended_at: endedAt,
+              duration_minutes: durationMinutes,
+            })
+            .pipe(
+              map(() => undefined),
+              catchError(() => of(undefined)),
+            );
+        }),
+        catchError(() => of(undefined)),
+      );
   }
 
   getFilterOptions(): Observable<FilterOptions> {
