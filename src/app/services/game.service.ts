@@ -38,6 +38,7 @@ interface DbGame {
   developer_id?: string;
   director_id?: string;
   release_year?: number;
+  release_date?: string;
   genre?: string;
   rating?: number;
   playtime_hours?: number;
@@ -336,6 +337,7 @@ export class GameService {
       directorId: g.director_id,
       director: director?.name,
       releaseYear: g.release_year,
+      releaseDate: g.release_date,
       genre: g.genre ? [g.genre] : [],
       rating: g.rating,
       playtimeHours: g.playtime_hours,
@@ -461,6 +463,7 @@ export class GameService {
       developer_id: game.developerId || null,
       director_id: game.directorId || null,
       release_year: game.releaseYear || null,
+      release_date: game.releaseDate || null,
       genre: game.genre?.[0] || null,
       rating: game.rating ?? null,
       playtime_hours: game.playtimeHours ?? 0,
@@ -536,6 +539,7 @@ export class GameService {
                     developerId,
                     directorId: directorId || undefined,
                     releaseYear: payload.releaseYear,
+                    releaseDate: payload.releaseDate,
                     genre: payload.genre,
                     rating: payload.rating,
                     playtimeHours: payload.playtimeHours,
@@ -565,6 +569,7 @@ export class GameService {
     if (game.developerId !== undefined) data["developer_id"] = game.developerId;
     if (game.directorId !== undefined) data["director_id"] = game.directorId;
     if (game.releaseYear !== undefined) data["release_year"] = game.releaseYear;
+    if (game.releaseDate !== undefined) data["release_date"] = game.releaseDate;
     if (game.genre !== undefined) data["genre"] = game.genre?.[0] || null;
     if (game.rating !== undefined) data["rating"] = game.rating;
     if (game.playtimeHours !== undefined)
@@ -635,14 +640,27 @@ export class GameService {
     return this.setStatus(gameId, GAME_STATUS_CYCLE[game.status]);
   }
 
-  setStatus(id: string, status: GamePlayStatus): Observable<Game> {
+  setStatus(id: string, status: GamePlayStatus, sourceGame?: Game): Observable<Game> {
     const game =
+      sourceGame ??
       this.gamesSubject.value.find((g) => g.id === id) ??
       this.filteredGames().find((g) => g.id === id);
-    if (!game) {
-      return throwError(() => new Error("Game not found"));
+
+    if (game) {
+      return this.applyStatusChange(game, status);
     }
 
+    return this.getGameById(id).pipe(
+      switchMap((fetched) => {
+        if (!fetched) {
+          return throwError(() => new Error("Game not found"));
+        }
+        return this.applyStatusChange(fetched, status);
+      }),
+    );
+  }
+
+  private applyStatusChange(game: Game, status: GamePlayStatus): Observable<Game> {
     const now = new Date().toISOString();
     const update: UpdateGameRequest = {
       status,
@@ -659,11 +677,13 @@ export class GameService {
       if (!game.startedAt) {
         update.startedAt = now;
       }
+    } else if (status === "wishlist") {
+      update.completedAt = null;
     } else {
       update.completedAt = null;
     }
 
-    return this.updateGame(id, update).pipe(
+    return this.updateGame(game.id, update).pipe(
       switchMap((updatedGame) =>
         this.syncPlaySession(updatedGame, status).pipe(map(() => updatedGame)),
       ),

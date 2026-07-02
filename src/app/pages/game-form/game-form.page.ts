@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm, NgModel } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
@@ -31,7 +31,7 @@ import { PlatformService } from '../../services/platform.service';
           <ion-back-button defaultHref="/home" icon="arrow-back-outline"></ion-back-button>
         </ion-buttons>
         
-        <ion-title class="gaming-font">{{ isEdit ? 'Edit Game' : 'Add Game' }}</ion-title>
+        <ion-title class="gaming-font">{{ pageTitle }}</ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -39,25 +39,27 @@ import { PlatformService } from '../../services/platform.service';
       <div class="form-container">
         <ion-card class="form-card">
           <ion-card-header>
-            <ion-card-title class="gaming-font">{{ isEdit ? 'Edit Game Information' : 'Game Information' }}</ion-card-title>
+            <ion-card-title class="gaming-font">{{ formCardTitle }}</ion-card-title>
           </ion-card-header>
 
           <ion-card-content>
-            <form (ngSubmit)="onSubmit()" #gameForm="ngForm">
+            <form (ngSubmit)="onSubmit(gameForm)" #gameForm="ngForm">
               <!-- Basic Info -->
               <div class="form-section">
                 <h3 class="section-title">Basic Information</h3>
 
                 <div class="field-group">
                   <label class="field-label" for="game-title">Title *</label>
-                  <ion-item class="form-item" lines="none">
+                  <ion-item class="form-item" lines="none" [class.field-invalid]="isInvalid(titleModel)">
                     <ion-input
                       id="game-title"
                       [(ngModel)]="game.title"
+                      #titleModel="ngModel"
                       name="title"
                       required
                       placeholder="Enter game title"></ion-input>
                   </ion-item>
+                  <span class="field-error" *ngIf="fieldError(titleModel) as err">{{ err }}</span>
                 </div>
 
                 <div class="field-group">
@@ -90,10 +92,11 @@ import { PlatformService } from '../../services/platform.service';
 
                 <div class="field-group">
                   <label class="field-label" for="game-platform">Platform *</label>
-                  <ion-item class="form-item" lines="none">
+                  <ion-item class="form-item" lines="none" [class.field-invalid]="isInvalid(platformModel)">
                     <ion-select
                       id="game-platform"
                       [(ngModel)]="selectedPlatformId"
+                      #platformModel="ngModel"
                       name="platform"
                       required
                       interface="popover"
@@ -103,21 +106,40 @@ import { PlatformService } from '../../services/platform.service';
                       </ion-select-option>
                     </ion-select>
                   </ion-item>
+                  <span class="field-error" *ngIf="fieldError(platformModel) as err">{{ err }}</span>
                 </div>
 
                 <div class="field-group">
                   <label class="field-label" for="game-year">Release Year *</label>
-                  <ion-item class="form-item" lines="none">
+                  <ion-item class="form-item" lines="none" [class.field-invalid]="isInvalid(releaseYearModel)">
                     <ion-input
                       id="game-year"
                       [(ngModel)]="game.releaseYear"
+                      #releaseYearModel="ngModel"
                       name="releaseYear"
                       type="number"
                       required
                       min="1970"
-                      [max]="currentYear"
+                      [max]="maxReleaseYear"
                       placeholder="2024"></ion-input>
                   </ion-item>
+                  <span class="field-error" *ngIf="fieldError(releaseYearModel) as err">{{ err }}</span>
+                </div>
+
+                <div class="field-group" *ngIf="requiresReleaseDate()">
+                  <label class="field-label" for="game-release-date">Release Date *</label>
+                  <ion-item class="form-item" lines="none" [class.field-invalid]="isInvalid(releaseDateModel)">
+                    <ion-input
+                      id="game-release-date"
+                      [(ngModel)]="game.releaseDate"
+                      #releaseDateModel="ngModel"
+                      name="releaseDate"
+                      type="date"
+                      [required]="requiresReleaseDate()"
+                      placeholder="YYYY-MM-DD"></ion-input>
+                  </ion-item>
+                  <span class="field-error" *ngIf="fieldError(releaseDateModel) as err">{{ err }}</span>
+                  <p class="field-hint" *ngIf="!fieldError(releaseDateModel)">Used for the wishlist countdown.</p>
                 </div>
               </div>
 
@@ -126,14 +148,16 @@ import { PlatformService } from '../../services/platform.service';
 
                 <div class="field-group">
                   <label class="field-label" for="game-developer">Developer *</label>
-                  <ion-item class="form-item" lines="none">
+                  <ion-item class="form-item" lines="none" [class.field-invalid]="isInvalid(developerModel)">
                     <ion-input
                       id="game-developer"
                       [(ngModel)]="developerName"
+                      #developerModel="ngModel"
                       name="developerName"
                       required
                       placeholder="Developer company name"></ion-input>
                   </ion-item>
+                  <span class="field-error" *ngIf="fieldError(developerModel) as err">{{ err }}</span>
                 </div>
 
                 <div class="field-group">
@@ -163,15 +187,16 @@ import { PlatformService } from '../../services/platform.service';
               </div>
 
               <!-- Personal Stats -->
-              <div class="form-section">
+              <div class="form-section" *ngIf="!isWishlistMode">
                 <h3 class="section-title">Your Stats</h3>
 
                 <div class="field-group">
                   <label class="field-label" for="game-rating">Your Rating (0-10)</label>
-                  <ion-item class="form-item" lines="none">
+                  <ion-item class="form-item" lines="none" [class.field-invalid]="isInvalid(ratingModel)">
                     <ion-input
                       id="game-rating"
                       [(ngModel)]="game.rating"
+                      #ratingModel="ngModel"
                       name="rating"
                       type="number"
                       min="0"
@@ -179,6 +204,7 @@ import { PlatformService } from '../../services/platform.service';
                       step="0.1"
                       placeholder="8.5"></ion-input>
                   </ion-item>
+                  <span class="field-error" *ngIf="fieldError(ratingModel) as err">{{ err }}</span>
                 </div>
 
                 <div class="field-group">
@@ -209,6 +235,9 @@ import { PlatformService } from '../../services/platform.service';
                     </ion-segment-button>
                     <ion-segment-button value="completed">
                       <ion-label>{{ statusLabels.completed }}</ion-label>
+                    </ion-segment-button>
+                    <ion-segment-button value="wishlist">
+                      <ion-label>{{ statusLabels.wishlist }}</ion-label>
                     </ion-segment-button>
                   </ion-segment>
                 </div>
@@ -243,11 +272,11 @@ import { PlatformService } from '../../services/platform.service';
           </ion-button>
 
           <ion-button
-            (click)="onSubmit()"
-            [disabled]="isSubmitting"
+            (click)="onSubmit(gameForm)"
+            [disabled]="isSubmitting || !canSubmit(gameForm)"
             class="submit-btn">
             <ion-icon name="save-outline" slot="start"></ion-icon>
-            <span *ngIf="!isSubmitting">{{ isEdit ? 'Save Changes' : 'Save Game' }}</span>
+            <span *ngIf="!isSubmitting">{{ submitLabel }}</span>
             <span *ngIf="isSubmitting">Saving...</span>
           </ion-button>
         </div>
@@ -256,8 +285,8 @@ import { PlatformService } from '../../services/platform.service';
       <ion-toast
         [isOpen]="!!toastMessage"
         [message]="toastMessage"
-        [color]="toastColor"
-        duration="3000"
+        color="danger"
+        duration="4000"
         position="top"
         (didDismiss)="toastMessage = ''">
       </ion-toast>
@@ -272,6 +301,7 @@ export class GameFormPage implements OnInit {
   currentYear = new Date().getFullYear();
   
   isEdit = false;
+  isWishlistMode = false;
   gameId: string | null = null;
   selectedPlatformId = '';
   
@@ -280,6 +310,7 @@ export class GameFormPage implements OnInit {
     description: '',
     coverImage: '',
     releaseYear: this.currentYear,
+    releaseDate: '',
     director: '',
     genre: [],
     rating: undefined,
@@ -290,8 +321,8 @@ export class GameFormPage implements OnInit {
   
   developerName = '';
   isSubmitting = false;
+  submitted = false;
   toastMessage = '';
-  toastColor: 'success' | 'danger' = 'success';
 
   constructor(
     private route: ActivatedRoute,
@@ -306,10 +337,120 @@ export class GameFormPage implements OnInit {
     this.loadPlatforms();
     this.gameId = this.route.snapshot.paramMap.get('id');
     this.isEdit = !!this.gameId;
+    this.isWishlistMode =
+      !this.isEdit && this.route.snapshot.data['wishlist'] === true;
+
+    if (this.isWishlistMode) {
+      this.game.status = 'wishlist';
+      this.game.releaseYear = this.currentYear + 1;
+    }
     
     if (this.isEdit && this.gameId) {
       this.loadGame(this.gameId);
     }
+  }
+
+  get pageTitle(): string {
+    if (this.isEdit) return 'Edit Game';
+    return this.isWishlistMode ? 'Add to Wishlist' : 'Add Game';
+  }
+
+  get formCardTitle(): string {
+    if (this.isEdit) return 'Edit Game Information';
+    return this.isWishlistMode ? 'Wishlist Game Information' : 'Game Information';
+  }
+
+  get submitLabel(): string {
+    if (this.isEdit) return 'Save Changes';
+    return this.isWishlistMode ? 'Add to Wishlist' : 'Save Game';
+  }
+
+  get maxReleaseYear(): number {
+    return this.requiresReleaseDate() ? this.currentYear + 10 : this.currentYear;
+  }
+
+  requiresReleaseDate(): boolean {
+    return this.isWishlistMode || this.game.status === 'wishlist';
+  }
+
+  releaseDateYearMismatch(): boolean {
+    if (!this.requiresReleaseDate()) {
+      return false;
+    }
+
+    if (!this.game.releaseDate || this.game.releaseYear == null) {
+      return false;
+    }
+
+    const dateYear = new Date(`${this.game.releaseDate}T00:00:00`).getFullYear();
+    return dateYear !== Number(this.game.releaseYear);
+  }
+
+  canSubmit(form: NgForm): boolean {
+    if (!form.valid) {
+      return false;
+    }
+
+    if (this.requiresReleaseDate() && !this.game.releaseDate) {
+      return false;
+    }
+
+    return !this.releaseDateYearMismatch();
+  }
+
+  isInvalid(control: NgModel | null | undefined): boolean {
+    if (!control) {
+      return false;
+    }
+
+    const touched = control.touched || this.submitted;
+
+    if (
+      (control.name === 'releaseDate' || control.name === 'releaseYear') &&
+      this.releaseDateYearMismatch() &&
+      touched
+    ) {
+      return true;
+    }
+
+    return !!(control.invalid && touched);
+  }
+
+  fieldError(control: NgModel | null | undefined): string | null {
+    if (!this.isInvalid(control) || !control) {
+      return null;
+    }
+
+    if (
+      (control.name === 'releaseDate' || control.name === 'releaseYear') &&
+      this.releaseDateYearMismatch()
+    ) {
+      return 'Release date must use the same year as release year';
+    }
+
+    if (control.errors?.['required']) {
+      return 'This field is required';
+    }
+
+    if (control.errors?.['min']) {
+      if (control.name === 'releaseYear') {
+        return 'Release year must be 1970 or later';
+      }
+      if (control.name === 'rating') {
+        return 'Rating must be at least 0';
+      }
+    }
+
+    if (control.errors?.['max']) {
+      if (control.name === 'releaseYear') {
+        return `Release year cannot be later than ${this.maxReleaseYear}`;
+      }
+      if (control.name === 'rating') {
+        return 'Rating cannot be greater than 10';
+      }
+    }
+
+    return 'Invalid value';
   }
 
   private loadPlatforms(): void {
@@ -364,32 +505,30 @@ export class GameFormPage implements OnInit {
     }
   }
 
-  onSubmit(): void {
-    if (!this.game.title || !this.selectedPlatformId || !this.game.releaseYear) {
-      this.showToast('Please fill in all required fields', 'danger');
-      return;
-    }
+  onSubmit(form: NgForm): void {
+    this.submitted = true;
+    form.control.markAllAsTouched();
 
-    if (!this.developerName.trim()) {
-      this.showToast('Please enter developer name', 'danger');
+    if (!this.canSubmit(form)) {
       return;
     }
 
     this.isSubmitting = true;
 
     const payload = {
-      title: this.game.title,
+      title: this.game.title!,
       description: this.game.description,
       coverImage: this.game.coverImage,
       platformId: this.selectedPlatformId,
       releaseYear: Number(this.game.releaseYear),
+      releaseDate: this.game.releaseDate || undefined,
       developerName: this.developerName.trim(),
       directorName: this.game.director?.trim() || undefined,
       genre: this.game.genre || [],
       rating: this.game.rating != null ? Number(this.game.rating) : undefined,
       playtimeHours:
         this.game.playtime != null ? Number(this.game.playtime) : undefined,
-      status: this.game.status || 'not_started',
+      status: this.isWishlistMode ? 'wishlist' : (this.game.status || 'not_started'),
       notes: this.game.notes
     };
 
@@ -400,29 +539,21 @@ export class GameFormPage implements OnInit {
 
     request$.subscribe({
       next: () => {
-        this.showToast(
-          this.isEdit ? 'Game updated successfully!' : 'Game added successfully!',
-          'success'
+        this.router.navigate(
+          this.isEdit ? ['/game', this.gameId] : ['/home']
         );
-        setTimeout(() => {
-          this.router.navigate(
-            this.isEdit ? ['/game', this.gameId] : ['/home']
-          );
-        }, 1000);
       },
       error: (error) => {
         this.showToast(
           error.message ||
             (this.isEdit ? 'Failed to update game' : 'Failed to add game'),
-          'danger'
         );
         this.isSubmitting = false;
       }
     });
   }
 
-  private showToast(message: string, color: 'success' | 'danger'): void {
+  private showToast(message: string): void {
     this.toastMessage = message;
-    this.toastColor = color;
   }
 }

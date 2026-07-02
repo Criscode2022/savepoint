@@ -14,9 +14,10 @@ import {
   gameControllerOutline, addOutline, searchOutline, filterOutline,
   logOutOutline, gridOutline, listOutline,
   starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
-  closeOutline, imageOutline, chevronForwardOutline
+  closeOutline, imageOutline, chevronForwardOutline, heartOutline
 } from 'ionicons/icons';
 import { Game, GameFilters, PLATFORMS, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
+import { formatReleaseCountdown } from '../../shared/utils/release-countdown';
 import { GameService } from '../../services/game.service';
 import { AuthService } from '../../services/auth.service';
 import { GameCardComponent } from '../../components/game-card/game-card.component';
@@ -116,6 +117,13 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
             <span class="play-history-btn__count">{{ completedCount }}</span>
             <ion-icon name="chevron-forward-outline" class="play-history-btn__chevron" aria-hidden="true"></ion-icon>
           </a>
+
+          <button type="button" class="wishlist-nav-btn" (click)="scrollToWishlist()">
+            <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
+            <span class="wishlist-nav-btn__label">Wishlist</span>
+            <span class="wishlist-nav-btn__count">{{ wishlistGames.length }}</span>
+            <ion-icon name="chevron-forward-outline" class="wishlist-nav-btn__chevron" aria-hidden="true"></ion-icon>
+          </button>
 
           <!-- Stats -->
           <div class="stats-bar">
@@ -260,10 +268,10 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
         <section class="library-section" *ngIf="showStatusSections || displayGames.length > 0">
           <div class="section-header" *ngIf="showStatusSections">
             <h2 class="section-title">Your Library</h2>
-            <span class="section-count">{{ filteredGames().length }}</span>
+            <span class="section-count">{{ libraryGamesCount }}</span>
           </div>
 
-          <p class="section-empty" *ngIf="showStatusSections && filteredGames().length === 0">
+          <p class="section-empty" *ngIf="showStatusSections && libraryGamesCount === 0">
             No games in your library yet.
           </p>
 
@@ -284,7 +292,43 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
         </ion-list>
         </section>
 
-        <ng-template #listItems let-games>
+        <!-- Wishlist -->
+        <section
+          id="wishlist-section"
+          class="library-section wishlist-section"
+          *ngIf="showStatusSections"
+        >
+          <div class="section-header">
+            <h2 class="section-title">Wishlist</h2>
+            <div class="section-header__actions">
+              <span class="section-count">{{ wishlistGames.length }}</span>
+              <a routerLink="/wishlist/add" class="section-add-btn">
+                <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+                <span>Add</span>
+              </a>
+            </div>
+          </div>
+
+          <p class="section-empty" *ngIf="wishlistGames.length === 0">
+            No wishlist games yet. Add upcoming titles you want to play.
+          </p>
+
+          <div class="games-grid" *ngIf="!isListView && wishlistGames.length">
+            <app-game-card
+              *ngFor="let game of wishlistGames; trackBy: trackByGameId"
+              [game]="game"
+              [countdownTick]="countdownTick"
+              (onToggleCompleted)="cycleStatus($event)"
+              (onDelete)="deleteGame($event)"
+              class="game-card-wrapper"
+            ></app-game-card>
+          </div>
+          <ion-list class="games-list" *ngIf="isListView && wishlistGames.length">
+            <ng-container *ngTemplateOutlet="listItems; context: { $implicit: wishlistGames, showCountdown: true }"></ng-container>
+          </ion-list>
+        </section>
+
+        <ng-template #listItems let-games let-showCountdown="showCountdown">
           <ion-item
             *ngFor="let game of games; trackBy: trackByGameId"
             class="game-list-item"
@@ -310,9 +354,12 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
                   {{ game.rating }}
                 </span>
               </p>
-              <p class="game-details" *ngIf="game.developer.name || game.playtimeHours">
+              <p class="game-details" *ngIf="game.developer.name || game.playtimeHours || (showCountdown && game.status === 'wishlist')">
                 <span *ngIf="game.developer.name">{{ game.developer.name }}</span>
                 <span *ngIf="game.playtimeHours">{{ game.playtimeHours }}h played</span>
+                <span *ngIf="showCountdown && game.status === 'wishlist'" class="wishlist-countdown">
+                  {{ getCountdownLabel(game) }}
+                </span>
               </p>
             </div>
 
@@ -638,6 +685,76 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       outline: none;
     }
 
+    .wishlist-nav-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.625rem;
+      width: 100%;
+      min-height: 48px;
+      margin-bottom: 1rem;
+      padding: 0 1rem;
+      border-radius: 14px;
+      border: 1px solid rgba(244, 114, 182, 0.32);
+      background: rgba(244, 114, 182, 0.1);
+      color: #fbcfe8;
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.9375rem;
+      box-sizing: border-box;
+      cursor: pointer;
+      transition:
+        transform 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease;
+    }
+
+    .wishlist-nav-btn ion-icon {
+      font-size: 1.125rem;
+      flex-shrink: 0;
+    }
+
+    .wishlist-nav-btn__label {
+      flex: 1;
+      text-align: left;
+    }
+
+    .wishlist-nav-btn__count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.75rem;
+      height: 1.75rem;
+      padding: 0 0.5rem;
+      border-radius: 999px;
+      background: rgba(244, 114, 182, 0.18);
+      border: 1px solid rgba(244, 114, 182, 0.35);
+      color: #f9a8d4;
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .wishlist-nav-btn__chevron {
+      font-size: 1rem;
+      color: #f9a8d4;
+      flex-shrink: 0;
+    }
+
+    .wishlist-nav-btn:hover,
+    .wishlist-nav-btn:focus-visible {
+      background: rgba(244, 114, 182, 0.16);
+      border-color: rgba(244, 114, 182, 0.48);
+      color: #fce7f3;
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .wishlist-section {
+      scroll-margin-top: 6rem;
+    }
+
     /* Stats Bar */
     .stats-bar {
       display: flex;
@@ -741,6 +858,47 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       justify-content: space-between;
       gap: 0.75rem;
       margin-bottom: 1rem;
+    }
+
+    .section-header__actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.625rem;
+    }
+
+    .section-add-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.375rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid rgba(244, 114, 182, 0.35);
+      background: rgba(244, 114, 182, 0.12);
+      color: #f9a8d4;
+      text-decoration: none;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      transition:
+        transform 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease;
+    }
+
+    .section-add-btn:hover,
+    .section-add-btn:focus-visible {
+      background: rgba(244, 114, 182, 0.18);
+      border-color: rgba(244, 114, 182, 0.5);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .section-add-btn ion-icon {
+      font-size: 1rem;
+    }
+
+    .wishlist-countdown {
+      color: #f9a8d4;
+      font-weight: 600;
     }
 
     .section-title {
@@ -1101,8 +1259,10 @@ export class HomePage implements OnInit, OnDestroy {
   // Toast
   toastMessage = '';
   toastColor = 'success';
+  countdownTick = 0;
 
   private destroy$ = new Subject<void>();
+  private countdownInterval?: ReturnType<typeof setInterval>;
 
   constructor(
     private gameService: GameService,
@@ -1115,7 +1275,7 @@ export class HomePage implements OnInit, OnDestroy {
       gameControllerOutline, addOutline, searchOutline, filterOutline,
       logOutOutline, gridOutline, listOutline,
       starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
-      closeOutline, imageOutline, chevronForwardOutline
+      closeOutline, imageOutline, chevronForwardOutline, heartOutline
     });
   }
 
@@ -1124,9 +1284,15 @@ export class HomePage implements OnInit, OnDestroy {
     this.loadFilterOptions();
     this.setupSearch();
     this.applyFilters();
+    this.countdownInterval = setInterval(() => {
+      this.countdownTick++;
+    }, 60000);
   }
 
   ngOnDestroy(): void {
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+    }
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -1316,6 +1482,9 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   getStatusLabel(status: GamePlayStatus): string {
+    if (status === 'wishlist') {
+      return 'Add to Library';
+    }
     return GAME_STATUS_LABELS[status];
   }
 
@@ -1324,6 +1493,7 @@ export class HomePage implements OnInit, OnDestroy {
       not_started: 'ellipse-outline',
       playing: 'time-outline',
       completed: 'checkmark-circle-outline',
+      wishlist: 'heart-outline',
     };
     return icons[status];
   }
@@ -1333,8 +1503,14 @@ export class HomePage implements OnInit, OnDestroy {
       not_started: 'medium',
       playing: 'primary',
       completed: 'success',
+      wishlist: 'tertiary',
     };
     return colors[status];
+  }
+
+  getCountdownLabel(game: Game): string {
+    void this.countdownTick;
+    return formatReleaseCountdown(game).label;
   }
 
   get showStatusSections(): boolean {
@@ -1345,8 +1521,27 @@ export class HomePage implements OnInit, OnDestroy {
     return this.filteredGames().filter((game) => game.status === 'playing');
   }
 
+  get wishlistGames(): Game[] {
+    return this.filteredGames().filter((game) => game.status === 'wishlist');
+  }
+
+  get libraryGamesCount(): number {
+    return this.filteredGames().filter((game) => game.status !== 'wishlist').length;
+  }
+
   get displayGames(): Game[] {
-    return this.filteredGames();
+    return this.filteredGames().filter((game) => game.status !== 'wishlist');
+  }
+
+  scrollToWishlist(): void {
+    if (!this.showStatusSections) {
+      return;
+    }
+
+    document.getElementById('wishlist-section')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
   }
 
   async deleteGame(gameId: string): Promise<void> {

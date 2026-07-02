@@ -4,13 +4,14 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { 
   IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
   IonTitle, IonIcon, IonButton, IonCard, IonCardContent,
-  IonChip, IonToast, AlertController
+  IonChip, IonToast, IonSelect, IonSelectOption, AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
   arrowBackOutline, starOutline, timeOutline, calendarOutline,
   businessOutline, personOutline, gameControllerOutline,
-  checkmarkCircleOutline, createOutline, trashOutline, ellipseOutline
+  checkmarkCircleOutline, createOutline, trashOutline, ellipseOutline, heartOutline,
+  chevronDownOutline
 } from 'ionicons/icons';
 import { Game, GAME_STATUS_LABELS, GamePlayStatus, PlaySession } from '../../models/game.model';
 import { GameService } from '../../services/game.service';
@@ -23,7 +24,7 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
     CommonModule, RouterLink, GameCoverComponent,
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
     IonTitle, IonIcon, IonButton, IonCard, IonCardContent,
-    IonChip, IonToast
+    IonChip, IonToast, IonSelect, IonSelectOption
   ],
   template: `
     <ion-header class="ion-no-border">
@@ -74,20 +75,40 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
 
                 <span class="year">{{ game.releaseYear }}</span>
 
-                <span class="status-badge" [class]="'status-badge--' + game.status">
-                  <ion-icon [name]="getStatusIcon(game.status)"></ion-icon>
-                  {{ getStatusLabel(game.status) }}
-                </span>
-              </div>
-
-              <div class="hero-actions">
-                <ion-button
-                  *ngFor="let option of statusOptions"
-                  (click)="setStatus(option)"
-                  [class]="'action-btn status-option status-option--' + option + (game.status === option ? ' active' : '')">
-                  <ion-icon [name]="getStatusIcon(option)" slot="start"></ion-icon>
-                  {{ getStatusLabel(option) }}
-                </ion-button>
+                <div class="status-picker">
+                  <button
+                    type="button"
+                    [class]="'status-badge status-badge--' + game.status"
+                    (click)="statusSelect.open($event)"
+                    aria-haspopup="listbox"
+                    [attr.aria-label]="
+                      'Status: ' + getStatusLabel(game.status) + '. Click to change.'
+                    "
+                  >
+                    <ion-icon [name]="getStatusIcon(game.status)"></ion-icon>
+                    {{ getStatusLabel(game.status) }}
+                    <ion-icon
+                      name="chevron-down-outline"
+                      class="status-badge__chevron"
+                      aria-hidden="true"
+                    ></ion-icon>
+                  </button>
+                  <ion-select
+                    #statusSelect
+                    class="status-select-hidden"
+                    [value]="game.status"
+                    (ionChange)="onStatusSelect($event)"
+                    interface="action-sheet"
+                    [interfaceOptions]="statusSheetOptions"
+                  >
+                    <ion-select-option
+                      *ngFor="let option of getAvailableStatusOptions()"
+                      [value]="option"
+                    >
+                      {{ getStatusLabel(option) }}
+                    </ion-select-option>
+                  </ion-select>
+                </div>
               </div>
             </div>
           </div>
@@ -343,6 +364,11 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       gap: 0.5rem;
       font-weight: 600;
       font-size: 0.9375rem;
+      font-family: inherit;
+    }
+
+    .status-picker {
+      position: relative;
     }
 
     .status-badge {
@@ -351,6 +377,36 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       border: 1px solid rgba(148, 163, 184, 0.2);
       background: rgba(15, 15, 28, 0.55);
       color: #e2e8f0;
+      cursor: pointer;
+      transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        transform 0.15s ease;
+    }
+
+    .status-badge:hover,
+    .status-badge:focus-visible {
+      border-color: rgba(168, 85, 247, 0.45);
+      background: rgba(168, 85, 247, 0.12);
+      outline: none;
+    }
+
+    .status-badge:active {
+      transform: scale(0.98);
+    }
+
+    .status-badge__chevron {
+      font-size: 0.875rem;
+      opacity: 0.75;
+    }
+
+    .status-select-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+      overflow: hidden;
     }
 
     .status-badge--playing {
@@ -369,49 +425,43 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       color: #cbd5e1;
     }
 
+    .status-badge--wishlist {
+      color: #f9a8d4;
+      border-color: rgba(244, 114, 182, 0.35);
+      background: rgba(244, 114, 182, 0.12);
+    }
+
     .completed-badge ion-icon,
     .status-badge ion-icon {
       font-size: 1.125rem;
       flex-shrink: 0;
     }
 
-    .hero-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-    }
-
-    .action-btn {
-      --border-radius: 12px;
-      --padding-start: 18px;
-      --padding-end: 18px;
-      height: 46px;
-      font-weight: 600;
-      margin: 0;
-    }
-
-    .status-option.active {
-      --background: rgba(168, 85, 247, 0.18);
-      --border-color: rgba(168, 85, 247, 0.45);
-      --color: #f8fafc;
-    }
-
-    .status-option--playing.active {
-      --background: rgba(59, 130, 246, 0.18);
-      --border-color: rgba(59, 130, 246, 0.45);
-      --color: #bfdbfe;
-    }
-
-    .status-option--completed.active {
-      --background: rgba(34, 197, 94, 0.16);
-      --border-color: rgba(34, 197, 94, 0.42);
-      --color: #bbf7d0;
-    }
-
     .history-list {
+      --history-item-height: 2.875rem;
+      --history-gap: 0.75rem;
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: var(--history-gap);
+      max-height: calc(4 * var(--history-item-height) + 3 * var(--history-gap));
+      overflow-y: auto;
+      padding-right: 0.25rem;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(168, 85, 247, 0.45) rgba(15, 15, 28, 0.55);
+    }
+
+    .history-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .history-list::-webkit-scrollbar-track {
+      background: rgba(15, 15, 28, 0.55);
+      border-radius: 999px;
+    }
+
+    .history-list::-webkit-scrollbar-thumb {
+      background: rgba(168, 85, 247, 0.45);
+      border-radius: 999px;
     }
 
     .history-item {
@@ -419,10 +469,12 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       align-items: center;
       justify-content: space-between;
       gap: 0.75rem;
+      min-height: var(--history-item-height);
       padding: 0.75rem 0.875rem;
       border-radius: 12px;
       background: rgba(15, 15, 28, 0.72);
       border: 1px solid rgba(148, 163, 184, 0.12);
+      flex-shrink: 0;
     }
 
     .history-item__dates {
@@ -434,18 +486,6 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       color: #a855f7;
       font-size: 0.8125rem;
       font-weight: 600;
-    }
-
-    .action-btn ion-icon {
-      margin-inline-end: 0.375rem;
-    }
-
-    .action-btn.primary {
-      --background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
-    }
-
-    .action-btn.completed {
-      --background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
     }
 
     /* Content */
@@ -622,8 +662,7 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
         height: 196px;
       }
 
-      .hero-meta,
-      .hero-actions {
+      .hero-meta {
         justify-content: center;
       }
 
@@ -638,8 +677,10 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
 export class GameDetailPage implements OnInit {
   game: Game | null = null;
   playSessions: PlaySession[] = [];
-  statusOptions: GamePlayStatus[] = ['not_started', 'playing', 'completed'];
-  statusLabels = GAME_STATUS_LABELS;
+  statusSheetOptions = {
+    header: 'Change status',
+    cssClass: 'app-status-sheet',
+  };
   toastMessage = '';
   toastColor: 'success' | 'danger' = 'success';
 
@@ -652,7 +693,8 @@ export class GameDetailPage implements OnInit {
     addIcons({
       arrowBackOutline, starOutline, timeOutline, calendarOutline,
       businessOutline, personOutline, gameControllerOutline,
-      checkmarkCircleOutline, createOutline, trashOutline, ellipseOutline
+      checkmarkCircleOutline, createOutline, trashOutline, ellipseOutline, heartOutline,
+      chevronDownOutline
     });
   }
 
@@ -687,10 +729,46 @@ export class GameDetailPage implements OnInit {
     });
   }
 
+  onStatusSelect(event: CustomEvent): void {
+    const status = event.detail.value as GamePlayStatus;
+    if (
+      !status ||
+      !this.game ||
+      status === this.game.status ||
+      !this.getAvailableStatusOptions().includes(status)
+    ) {
+      return;
+    }
+
+    this.setStatus(status);
+  }
+
+  getAvailableStatusOptions(): GamePlayStatus[] {
+    const options: GamePlayStatus[] = ['not_started', 'playing', 'completed', 'wishlist'];
+    if (this.hasBeenPlayed()) {
+      return options.filter((status) => status !== 'wishlist');
+    }
+    return options;
+  }
+
+  hasBeenPlayed(): boolean {
+    if (!this.game) return false;
+
+    return (
+      this.game.status === 'playing' ||
+      this.game.status === 'completed' ||
+      !!this.game.startedAt ||
+      !!this.game.lastPlayedAt ||
+      !!this.game.completedAt ||
+      (this.getPlaytime() ?? 0) > 0 ||
+      this.playSessions.length > 0
+    );
+  }
+
   setStatus(status: GamePlayStatus): void {
     if (!this.game || this.game.status === status) return;
 
-    this.gameService.setStatus(this.game.id, status).subscribe({
+    this.gameService.setStatus(this.game.id, status, this.game).subscribe({
       next: (updatedGame) => {
         this.game = updatedGame;
         this.loadPlaySessions(updatedGame.id);
@@ -702,13 +780,6 @@ export class GameDetailPage implements OnInit {
     });
   }
 
-  toggleCompleted(): void {
-    if (!this.game) return;
-    const nextStatus: GamePlayStatus =
-      this.game.status === 'completed' ? 'not_started' : 'completed';
-    this.setStatus(nextStatus);
-  }
-
   getStatusLabel(status: GamePlayStatus): string {
     return GAME_STATUS_LABELS[status];
   }
@@ -718,6 +789,7 @@ export class GameDetailPage implements OnInit {
       not_started: 'ellipse-outline',
       playing: 'time-outline',
       completed: 'checkmark-circle-outline',
+      wishlist: 'heart-outline',
     };
     return icons[status];
   }

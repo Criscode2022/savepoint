@@ -27,18 +27,20 @@ export interface Director {
   createdAt: string;
 }
 
-export type GamePlayStatus = 'not_started' | 'playing' | 'completed';
+export type GamePlayStatus = 'not_started' | 'playing' | 'completed' | 'wishlist';
 
 export const GAME_STATUS_LABELS: Record<GamePlayStatus, string> = {
   not_started: 'Not Started',
   playing: 'Playing',
   completed: 'Completed',
+  wishlist: 'Wishlist',
 };
 
 export const GAME_STATUS_CYCLE: Record<GamePlayStatus, GamePlayStatus> = {
   not_started: 'playing',
   playing: 'completed',
   completed: 'not_started',
+  wishlist: 'not_started',
 };
 
 export function deriveGameStatus(game: {
@@ -48,7 +50,8 @@ export function deriveGameStatus(game: {
   if (
     game.status === 'not_started' ||
     game.status === 'playing' ||
-    game.status === 'completed'
+    game.status === 'completed' ||
+    game.status === 'wishlist'
   ) {
     return game.status;
   }
@@ -78,6 +81,7 @@ export interface Game {
   directorId?: string;
   director?: string;
   releaseYear?: number;
+  releaseDate?: string;
   genre?: string[];
   rating?: number;
   playtimeHours?: number;
@@ -133,6 +137,7 @@ export interface CreateGameRequest {
   developerId?: string;
   directorId?: string;
   releaseYear?: number;
+  releaseDate?: string;
   genre?: string[];
   rating?: number;
   playtimeHours?: number;
@@ -154,6 +159,7 @@ export interface GameFormPayload {
   coverImage?: string;
   platformId?: string;
   releaseYear?: number;
+  releaseDate?: string;
   developerName: string;
   directorName?: string;
   genre?: string[];

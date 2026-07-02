@@ -36,6 +36,12 @@ export const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
+    path: 'wishlist/add',
+    loadComponent: () => import('./pages/game-form/game-form.page').then(m => m.GameFormPage),
+    canActivate: [AuthGuard],
+    data: { wishlist: true }
+  },
+  {
     path: 'edit/:id',
     loadComponent: () => import('./pages/game-form/game-form.page').then(m => m.GameFormPage),
     canActivate: [AuthGuard]

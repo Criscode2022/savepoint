@@ -8,9 +8,10 @@ import {
 import { addIcons } from 'ionicons';
 import { 
   starOutline, timeOutline, checkmarkCircleOutline, 
-  ellipseOutline, trashOutline, createOutline
+  ellipseOutline, trashOutline, createOutline, heartOutline
 } from 'ionicons/icons';
 import { Game, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
+import { formatReleaseCountdown } from '../../shared/utils/release-countdown';
 import { GameCoverComponent } from '../game-cover/game-cover.component';
 
 @Component({
@@ -58,6 +59,16 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
         <!-- Status Badge -->
         <div class="status-badge" *ngIf="game.status !== 'not_started'" [class]="'status-badge--' + game.status">
           <ion-icon [name]="getStatusIcon()"></ion-icon>
+        </div>
+
+        <div
+          class="countdown-badge"
+          *ngIf="game.status === 'wishlist'"
+          [class.countdown-badge--released]="countdown.isReleased"
+          [class.countdown-badge--unknown]="countdown.isUnknown"
+        >
+          <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+          <span>{{ countdown.label }}</span>
         </div>
       </div>
 
@@ -212,6 +223,16 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .game-card--wishlist .platform-chip {
+      left: auto;
+      right: 12px;
+      max-width: calc(50% - 18px);
+    }
+
+    .game-card--wishlist .countdown-badge {
+      max-width: calc(50% - 12px);
     }
 
     .completed-badge {
@@ -382,6 +403,12 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
       --color: #86efac;
     }
 
+    .status-btn--wishlist {
+      --background: rgba(244, 114, 182, 0.12);
+      --border-color: rgba(244, 114, 182, 0.35);
+      --color: #f9a8d4;
+    }
+
     .status-btn ion-icon {
       font-size: 1.05rem;
       margin-inline-end: 0.375rem;
@@ -411,6 +438,42 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
       color: #fff;
     }
 
+    .status-badge--wishlist {
+      background: rgba(244, 114, 182, 0.88);
+      color: #fff;
+    }
+
+    .countdown-badge {
+      position: absolute;
+      left: 0.75rem;
+      bottom: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.375rem 0.625rem;
+      border-radius: 999px;
+      background: rgba(15, 15, 28, 0.88);
+      border: 1px solid rgba(244, 114, 182, 0.45);
+      color: #fbcfe8;
+      font-size: 0.75rem;
+      font-weight: 700;
+      backdrop-filter: blur(8px);
+    }
+
+    .countdown-badge--released {
+      border-color: rgba(34, 197, 94, 0.45);
+      color: #bbf7d0;
+    }
+
+    .countdown-badge--unknown {
+      border-color: rgba(148, 163, 184, 0.35);
+      color: #cbd5e1;
+    }
+
+    .countdown-badge ion-icon {
+      font-size: 0.875rem;
+    }
+
     .status-badge ion-icon {
       font-size: 1.1rem;
     }
@@ -419,14 +482,20 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
 export class GameCardComponent {
   @Input() game!: Game;
   @Input() coverImage?: string;
+  @Input() countdownTick = 0;
   @Output() onToggleCompleted = new EventEmitter<string>();
   @Output() onDelete = new EventEmitter<string>();
 
   constructor() {
     addIcons({
       starOutline, timeOutline, checkmarkCircleOutline,
-      ellipseOutline, trashOutline, createOutline
+      ellipseOutline, trashOutline, createOutline, heartOutline
     });
+  }
+
+  get countdown() {
+    void this.countdownTick;
+    return formatReleaseCountdown(this.game);
   }
 
   toggleCompleted(event: Event): void {
@@ -440,6 +509,9 @@ export class GameCardComponent {
   }
 
   getStatusLabel(): string {
+    if (this.game.status === 'wishlist') {
+      return 'Add to Library';
+    }
     return GAME_STATUS_LABELS[this.game.status];
   }
 
@@ -448,6 +520,7 @@ export class GameCardComponent {
       not_started: 'ellipse-outline',
       playing: 'time-outline',
       completed: 'checkmark-circle-outline',
+      wishlist: 'heart-outline',
     };
     return icons[this.game.status];
   }

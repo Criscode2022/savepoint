@@ -1,6 +1,7 @@
 @use './theme/variables.scss';
 @use './app/shared/styles/app-forms.scss';
 @use './app/shared/styles/app-alerts.scss';
+@use './app/shared/styles/app-action-sheets.scss';
 
 /* Core CSS required for Ionic components to work properly */
 @import '@ionic/angular/css/core.css';

@@ -447,6 +447,7 @@ export class ProfilePage implements OnInit {
       not_started: 'medium',
       playing: 'primary',
       completed: 'success',
+      wishlist: 'tertiary',
     };
     return colors[status];
   }
