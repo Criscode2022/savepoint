@@ -907,10 +907,15 @@ export class GameService {
   }
 
   getGenres(): Observable<string[]> {
+    const userId = this.authService.getCurrentUser()?.id;
+    if (!userId) {
+      return of([]);
+    }
+
     return this.db
       .select<DbGame>("games", {
         select: "genre",
-        filters: { genre: "not.is.null" },
+        filters: { user_id: userId, genre: "not.is.null" },
       })
       .pipe(
         map(
@@ -924,61 +929,91 @@ export class GameService {
   }
 
   getPlatforms(): Observable<string[]> {
+    const userId = this.authService.getCurrentUser()?.id;
+    if (!userId) {
+      return of([]);
+    }
+
     return this.db
-      .select<DbPlatform>("platforms", {
-        select: "name",
-        order: "name.asc",
+      .select<DbGame>("games", {
+        select: "platform_id",
+        filters: { user_id: userId, platform_id: "not.is.null" },
       })
       .pipe(
-        map((platforms) => platforms.map((p) => p.name)),
-        catchError(() => {
-          const platforms = [
-            "PlayStation 5",
-            "PlayStation 4",
-            "Xbox Series X/S",
-            "Xbox One",
-            "Nintendo Switch",
-            "PC",
-            "Steam Deck",
-          ];
-          return of(platforms);
+        switchMap((games) => {
+          const platformIds = [
+            ...new Set(games.map((g) => g.platform_id).filter(Boolean)),
+          ] as string[];
+
+          if (platformIds.length === 0) {
+            return of([]);
+          }
+
+          return this.db
+            .select<DbPlatform>("platforms", {
+              select: "name",
+              filters: { id: `in.(${platformIds.join(",")})` },
+              order: "name.asc",
+            })
+            .pipe(map((platforms) => platforms.map((p) => p.name)));
         }),
+        catchError(() => of([])),
       );
   }
 
   getYears(): Observable<number[]> {
+    const userId = this.authService.getCurrentUser()?.id;
+    if (!userId) {
+      return of([]);
+    }
+
     return this.db
       .select<DbGame>("games", {
         select: "release_year",
-        filters: { release_year: "not.is.null" },
+        filters: { user_id: userId, release_year: "not.is.null" },
         order: "release_year.desc",
       })
       .pipe(
-        map(
-          (games) =>
-            [
-              ...new Set(games.map((g) => g.release_year).filter(Boolean)),
-            ] as number[],
+        map((games) =>
+          [...new Set(
+            games
+              .map((g) => g.release_year)
+              .filter((year): year is number => year != null),
+          )].sort((a, b) => b - a),
         ),
-        catchError(() => {
-          const currentYear = new Date().getFullYear();
-          const years = Array.from(
-            { length: currentYear - 1980 + 1 },
-            (_, i) => currentYear - i,
-          );
-          return of(years);
-        }),
+        catchError(() => of([])),
       );
   }
 
   getDevelopers(): Observable<string[]> {
+    const userId = this.authService.getCurrentUser()?.id;
+    if (!userId) {
+      return of([]);
+    }
+
     return this.db
-      .select<DbCompany>("companies", {
-        select: "name",
-        order: "name.asc",
+      .select<DbGame>("games", {
+        select: "developer_id",
+        filters: { user_id: userId, developer_id: "not.is.null" },
       })
       .pipe(
-        map((companies) => companies.map((c) => c.name)),
+        switchMap((games) => {
+          const developerIds = [
+            ...new Set(games.map((g) => g.developer_id).filter(Boolean)),
+          ] as string[];
+
+          if (developerIds.length === 0) {
+            return of([]);
+          }
+
+          return this.db
+            .select<DbCompany>("companies", {
+              select: "name",
+              filters: { id: `in.(${developerIds.join(",")})` },
+              order: "name.asc",
+            })
+            .pipe(map((companies) => companies.map((c) => c.name)));
+        }),
         catchError(() => of([])),
       );
   }

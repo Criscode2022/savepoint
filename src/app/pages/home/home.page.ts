@@ -2,12 +2,12 @@ import { Component, OnInit, OnDestroy, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, takeUntil, debounceTime, distinctUntilChanged, forkJoin, take } from 'rxjs';
 import { 
   IonContent, IonHeader, IonToolbar, IonButton,
   IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
   IonBadge, IonList, IonItem, IonThumbnail,
-  IonSelect, IonSelectOption, IonToast, AlertController
+  IonSelect, IonSelectOption, IonToast, AlertController, ViewWillEnter
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -335,7 +335,7 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
         <section
           id="wishlist-section"
           class="library-section wishlist-section"
-          *ngIf="showStatusSections"
+          *ngIf="showStatusSections || wishlistGames.length > 0"
         >
           <div class="section-header">
             <h2 class="section-title">Wishlist</h2>
@@ -348,7 +348,7 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
             </div>
           </div>
 
-          <p class="section-empty" *ngIf="wishlistGames.length === 0">
+          <p class="section-empty" *ngIf="showStatusSections && wishlistGames.length === 0">
             No wishlist games yet. Add upcoming titles you want to play.
           </p>
 
@@ -1318,7 +1318,7 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
     }
   `],
 })
-export class HomePage implements OnInit, OnDestroy {
+export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   games: Game[] = [];
   readonly filteredGames: Signal<Game[]>;
 
@@ -1372,12 +1372,15 @@ export class HomePage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadGames();
-    this.loadFilterOptions();
     this.setupSearch();
     this.applyFilters();
     this.countdownInterval = setInterval(() => {
       this.countdownTick++;
     }, 60000);
+  }
+
+  ionViewWillEnter(): void {
+    this.refreshFilterOptions();
   }
 
   ngOnDestroy(): void {
@@ -1396,18 +1399,41 @@ export class HomePage implements OnInit, OnDestroy {
       });
   }
 
-  private loadFilterOptions(): void {
-    this.gameService.getPlatforms().pipe(takeUntil(this.destroy$))
-      .subscribe(platforms => this.platforms = platforms);
+  private refreshFilterOptions(): void {
+    forkJoin({
+      platforms: this.gameService.getPlatforms().pipe(take(1)),
+      years: this.gameService.getYears().pipe(take(1)),
+      developers: this.gameService.getDevelopers().pipe(take(1)),
+      genres: this.gameService.getGenres().pipe(take(1)),
+    }).pipe(takeUntil(this.destroy$)).subscribe(({ platforms, years, developers, genres }) => {
+      this.platforms = platforms;
+      this.years = years;
+      this.developers = developers;
+      this.genres = genres;
+      this.pruneInvalidFilterSelections();
+    });
+  }
 
-    this.gameService.getYears().pipe(takeUntil(this.destroy$))
-      .subscribe(years => this.years = years.slice(0, 10));
+  private pruneInvalidFilterSelections(): void {
+    const nextPlatforms = this.selectedPlatforms.filter((p) => this.platforms.includes(p));
+    const nextYears = this.selectedYears.filter((y) => this.years.includes(y));
+    const nextDevelopers = this.selectedDevelopers.filter((d) => this.developers.includes(d));
+    const nextGenres = this.selectedGenres.filter((g) => this.genres.includes(g));
 
-    this.gameService.getDevelopers().pipe(takeUntil(this.destroy$))
-      .subscribe(devs => this.developers = devs);
+    const changed =
+      nextPlatforms.length !== this.selectedPlatforms.length ||
+      nextYears.length !== this.selectedYears.length ||
+      nextDevelopers.length !== this.selectedDevelopers.length ||
+      nextGenres.length !== this.selectedGenres.length;
 
-    this.gameService.getGenres().pipe(takeUntil(this.destroy$))
-      .subscribe(genres => this.genres = genres);
+    this.selectedPlatforms = nextPlatforms;
+    this.selectedYears = nextYears;
+    this.selectedDevelopers = nextDevelopers;
+    this.selectedGenres = nextGenres;
+
+    if (changed) {
+      this.applyFilters();
+    }
   }
 
   private setupSearch(): void {
@@ -1710,7 +1736,7 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   scrollToWishlist(): void {
-    if (!this.showStatusSections) {
+    if (!this.showStatusSections && this.wishlistGames.length === 0) {
       return;
     }
 
@@ -1750,8 +1776,8 @@ export class HomePage implements OnInit, OnDestroy {
     this.gameService.deleteGame(gameId).subscribe({
       next: () => {
         this.syncLibraryFilter();
+        this.refreshFilterOptions();
         this.showToast('Game deleted', 'success');
-        this.loadFilterOptions();
       },
       error: () => {
         this.showToast('Failed to delete game', 'danger');
