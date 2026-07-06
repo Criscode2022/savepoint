@@ -27,6 +27,7 @@ import { CompanyService } from "./company.service";
 import { DatabaseService } from "./database.service";
 import { DirectorService } from "./director.service";
 import { PlatformService } from "./platform.service";
+import { canAddWishlistToLibrary } from "../shared/utils/release-countdown";
 
 // Database row types
 interface DbGame {
@@ -637,7 +638,17 @@ export class GameService {
     if (!game) {
       return throwError(() => new Error("Game not found"));
     }
-    return this.setStatus(gameId, GAME_STATUS_CYCLE[game.status]);
+
+    const nextStatus = GAME_STATUS_CYCLE[game.status];
+    if (
+      game.status === "wishlist" &&
+      nextStatus === "not_started" &&
+      !canAddWishlistToLibrary(game)
+    ) {
+      return throwError(() => new Error("Game is not released yet"));
+    }
+
+    return this.setStatus(gameId, nextStatus);
   }
 
   setStatus(id: string, status: GamePlayStatus, sourceGame?: Game): Observable<Game> {
@@ -645,6 +656,15 @@ export class GameService {
       sourceGame ??
       this.gamesSubject.value.find((g) => g.id === id) ??
       this.filteredGames().find((g) => g.id === id);
+
+    if (
+      game &&
+      game.status === "wishlist" &&
+      status !== "wishlist" &&
+      !canAddWishlistToLibrary(game)
+    ) {
+      return throwError(() => new Error("Game is not released yet"));
+    }
 
     if (game) {
       return this.applyStatusChange(game, status);

@@ -23,6 +23,13 @@ export function getReleaseTarget(game: Pick<Game, 'releaseDate' | 'releaseYear'>
   return null;
 }
 
+export function canAddWishlistToLibrary(
+  game: Pick<Game, 'releaseDate' | 'releaseYear'>,
+  now = new Date(),
+): boolean {
+  return formatReleaseCountdown(game, now).isReleased;
+}
+
 export function formatReleaseCountdown(
   game: Pick<Game, 'releaseDate' | 'releaseYear'>,
   now = new Date(),

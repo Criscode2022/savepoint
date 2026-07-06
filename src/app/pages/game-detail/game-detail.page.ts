@@ -16,6 +16,7 @@ import {
 import { Game, GAME_STATUS_LABELS, GamePlayStatus, PlaySession } from '../../models/game.model';
 import { GameService } from '../../services/game.service';
 import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
+import { canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
 
 @Component({
   selector: 'app-game-detail',
@@ -79,10 +80,12 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
                   <button
                     type="button"
                     [class]="'status-badge status-badge--' + game.status"
-                    (click)="statusSelect.open($event)"
+                    [class.status-badge--disabled]="isWishlistLocked()"
+                    [disabled]="isWishlistLocked()"
+                    (click)="openStatusSelect($event, statusSelect)"
                     aria-haspopup="listbox"
                     [attr.aria-label]="
-                      'Status: ' + getStatusLabel(game.status) + '. Click to change.'
+                      'Status: ' + getStatusLabel(game.status) + (isWishlistLocked() ? '.' : '. Click to change.')
                     "
                   >
                     <ion-icon [name]="getStatusIcon(game.status)"></ion-icon>
@@ -155,6 +158,14 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
                     <div class="detail-info">
                       <label>Director</label>
                       <span>{{ game.director }}</span>
+                    </div>
+                  </div>
+
+                  <div class="detail-item" *ngIf="game.status === 'wishlist' && game.releaseDate">
+                    <ion-icon name="calendar-outline"></ion-icon>
+                    <div class="detail-info">
+                      <label>Release Date</label>
+                      <span>{{ getFormattedReleaseDate() }}</span>
                     </div>
                   </div>
 
@@ -429,6 +440,15 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       color: #f9a8d4;
       border-color: rgba(244, 114, 182, 0.35);
       background: rgba(244, 114, 182, 0.12);
+    }
+
+    .status-badge--disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .status-badge--disabled:active {
+      transform: none;
     }
 
     .completed-badge ion-icon,
@@ -729,6 +749,18 @@ export class GameDetailPage implements OnInit {
     });
   }
 
+  openStatusSelect(event: Event, statusSelect: IonSelect): void {
+    if (this.isWishlistLocked()) {
+      return;
+    }
+
+    statusSelect.open(event as UIEvent);
+  }
+
+  isWishlistLocked(): boolean {
+    return !!this.game && this.game.status === 'wishlist' && !canAddWishlistToLibrary(this.game);
+  }
+
   onStatusSelect(event: CustomEvent): void {
     const status = event.detail.value as GamePlayStatus;
     if (
@@ -744,6 +776,14 @@ export class GameDetailPage implements OnInit {
   }
 
   getAvailableStatusOptions(): GamePlayStatus[] {
+    if (this.game?.status === 'wishlist') {
+      if (this.isWishlistLocked()) {
+        return ['wishlist'];
+      }
+
+      return ['not_started', 'playing', 'completed'];
+    }
+
     const options: GamePlayStatus[] = ['not_started', 'playing', 'completed', 'wishlist'];
     if (this.hasBeenPlayed()) {
       return options.filter((status) => status !== 'wishlist');
@@ -792,6 +832,23 @@ export class GameDetailPage implements OnInit {
       wishlist: 'heart-outline',
     };
     return icons[status];
+  }
+
+  getFormattedReleaseDate(): string {
+    if (!this.game?.releaseDate) {
+      return '';
+    }
+
+    const parsed = new Date(`${this.game.releaseDate}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+      return this.game.releaseDate;
+    }
+
+    return parsed.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
   }
 
   getPlaytime(): number | null {

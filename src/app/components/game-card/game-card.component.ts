@@ -11,7 +11,7 @@ import {
   ellipseOutline, trashOutline, createOutline, heartOutline
 } from 'ionicons/icons';
 import { Game, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
-import { formatReleaseCountdown } from '../../shared/utils/release-countdown';
+import { formatReleaseCountdown, canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
 import { GameCoverComponent } from '../game-cover/game-cover.component';
 
 @Component({
@@ -105,12 +105,16 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
         </div>
       </ion-card-content>
 
-      <div class="card-footer">
+      <div
+        class="card-footer"
+        [class.card-footer--locked]="isWishlistLocked"
+        (click)="handleFooterClick($event)"
+      >
         <ion-button 
           fill="outline"
           size="small"
-          (click)="cycleStatus($event)"
-          [class]="'status-btn status-btn--' + game.status">
+          [class]="'status-btn status-btn--' + game.status"
+          [class.status-btn--disabled]="isWishlistLocked">
           <ion-icon [name]="getStatusIcon()" slot="start"></ion-icon>
           {{ getStatusLabel() }}
         </ion-button>
@@ -366,6 +370,10 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
       margin-top: auto;
     }
 
+    .card-footer--locked {
+      cursor: not-allowed;
+    }
+
     .complete-btn,
     .status-btn {
       --background: transparent;
@@ -407,6 +415,19 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
       --background: rgba(244, 114, 182, 0.12);
       --border-color: rgba(244, 114, 182, 0.35);
       --color: #f9a8d4;
+    }
+
+    .status-btn--disabled {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    .status-btn--disabled::part(native) {
+      cursor: not-allowed;
+    }
+
+    .card-footer--locked .status-btn {
+      cursor: not-allowed;
     }
 
     .status-btn ion-icon {
@@ -498,14 +519,28 @@ export class GameCardComponent {
     return formatReleaseCountdown(this.game);
   }
 
+  get isWishlistLocked(): boolean {
+    void this.countdownTick;
+    return this.game.status === 'wishlist' && !canAddWishlistToLibrary(this.game);
+  }
+
+  handleFooterClick(event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+
+    if (this.isWishlistLocked) {
+      return;
+    }
+
+    this.onToggleCompleted.emit(this.game.id);
+  }
+
   toggleCompleted(event: Event): void {
-    this.cycleStatus(event);
+    this.handleFooterClick(event);
   }
 
   cycleStatus(event: Event): void {
-    event.stopPropagation();
-    event.preventDefault();
-    this.onToggleCompleted.emit(this.game.id);
+    this.handleFooterClick(event);
   }
 
   getStatusLabel(): string {

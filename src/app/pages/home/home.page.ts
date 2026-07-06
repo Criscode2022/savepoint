@@ -17,7 +17,7 @@ import {
   closeOutline, imageOutline, chevronForwardOutline, heartOutline, ellipseOutline
 } from 'ionicons/icons';
 import { Game, GameFilters, PLATFORMS, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
-import { formatReleaseCountdown } from '../../shared/utils/release-countdown';
+import { formatReleaseCountdown, canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
 import { GameService } from '../../services/game.service';
 import { AuthService } from '../../services/auth.service';
 import { GameCardComponent } from '../../components/game-card/game-card.component';
@@ -406,7 +406,8 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
               <ion-badge
                 [color]="getStatusColor(game.status)"
                 class="status-badge"
-                (click)="$event.stopPropagation(); cycleStatus(game.id)"
+                [class.status-badge--disabled]="isWishlistLocked(game)"
+                (click)="handleStatusClick($event, game)"
               >
                 <ion-icon [name]="getStatusIcon(game.status)"></ion-icon>
                 {{ getStatusLabel(game.status) }}
@@ -1143,6 +1144,15 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
       transform: scale(0.95);
     }
 
+    .status-badge--disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .status-badge--disabled:active {
+      transform: none;
+    }
+
     /* Empty State */
     .empty-state {
       text-align: center;
@@ -1588,7 +1598,21 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.cycleStatus(gameId);
   }
 
+  handleStatusClick(event: Event, game: Game): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.cycleStatus(game.id);
+  }
+
   cycleStatus(gameId: string): void {
+    const game =
+      this.games.find((g) => g.id === gameId) ??
+      this.filteredGames().find((g) => g.id === gameId);
+
+    if (game && this.isWishlistLocked(game)) {
+      return;
+    }
+
     this.gameService.cycleStatus(gameId).subscribe({
       next: () => {
         this.syncLibraryFilter();
@@ -1598,6 +1622,11 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
         this.showToast('Failed to update game', 'danger');
       }
     });
+  }
+
+  isWishlistLocked(game: Game): boolean {
+    void this.countdownTick;
+    return game.status === 'wishlist' && !canAddWishlistToLibrary(game);
   }
 
   getStatusLabel(status: GamePlayStatus): string {
