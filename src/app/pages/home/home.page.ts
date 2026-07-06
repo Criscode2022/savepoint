@@ -14,7 +14,7 @@ import {
   gameControllerOutline, addOutline, searchOutline, filterOutline,
   logOutOutline, gridOutline, listOutline,
   starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
-  closeOutline, imageOutline, chevronForwardOutline, heartOutline
+  closeOutline, imageOutline, chevronForwardOutline, heartOutline, ellipseOutline
 } from 'ionicons/icons';
 import { Game, GameFilters, PLATFORMS, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
 import { formatReleaseCountdown } from '../../shared/utils/release-countdown';
@@ -22,6 +22,8 @@ import { GameService } from '../../services/game.service';
 import { AuthService } from '../../services/auth.service';
 import { GameCardComponent } from '../../components/game-card/game-card.component';
 import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
+
+type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'with_playtime';
 
 @Component({
   selector: 'app-home',
@@ -125,24 +127,73 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
             <ion-icon name="chevron-forward-outline" class="wishlist-nav-btn__chevron" aria-hidden="true"></ion-icon>
           </button>
 
-          <!-- Stats -->
-          <div class="stats-bar">
-            <div class="stat-item">
+          <!-- Library filters -->
+          <div class="stats-bar" role="group" aria-label="Library filters">
+            <button
+              type="button"
+              class="stat-item"
+              [class.stat-item--clickable]="libraryGamesCount > 0"
+              [class.stat-item--active]="isLibraryFilterActive('all')"
+              [disabled]="libraryGamesCount === 0"
+              (click)="setLibraryFilter('all')"
+              [attr.aria-pressed]="isLibraryFilterActive('all')"
+              [attr.aria-label]="libraryGamesCount > 0 ? 'Show all library games' : null"
+            >
               <ion-icon [name]="isListView ? 'list-outline' : 'grid-outline'"></ion-icon>
-              <span>{{filteredGames().length}} games</span>
-            </div>
-            <div class="stat-item">
+              <span>{{ libraryGamesCount }} games</span>
+            </button>
+            <button
+              type="button"
+              class="stat-item"
+              [class.stat-item--clickable]="notStartedCount > 0"
+              [class.stat-item--active]="isLibraryFilterActive('not_started')"
+              [disabled]="notStartedCount === 0"
+              (click)="setLibraryFilter('not_started')"
+              [attr.aria-pressed]="isLibraryFilterActive('not_started')"
+              [attr.aria-label]="notStartedCount > 0 ? 'Filter by not started games' : null"
+            >
+              <ion-icon name="ellipse-outline"></ion-icon>
+              <span>{{ notStartedCount }} not started</span>
+            </button>
+            <button
+              type="button"
+              class="stat-item"
+              [class.stat-item--clickable]="playingCount > 0"
+              [class.stat-item--active]="isLibraryFilterActive('playing')"
+              [disabled]="playingCount === 0"
+              (click)="setLibraryFilter('playing')"
+              [attr.aria-pressed]="isLibraryFilterActive('playing')"
+              [attr.aria-label]="playingCount > 0 ? 'Filter by currently playing' : null"
+            >
               <ion-icon name="time-outline"></ion-icon>
               <span>{{ playingCount }} playing</span>
-            </div>
-            <div class="stat-item">
+            </button>
+            <button
+              type="button"
+              class="stat-item"
+              [class.stat-item--clickable]="completedCount > 0"
+              [class.stat-item--active]="isLibraryFilterActive('completed')"
+              [disabled]="completedCount === 0"
+              (click)="setLibraryFilter('completed')"
+              [attr.aria-pressed]="isLibraryFilterActive('completed')"
+              [attr.aria-label]="completedCount > 0 ? 'Filter by completed games' : null"
+            >
               <ion-icon name="checkmark-circle-outline"></ion-icon>
               <span>{{ completedCount }} completed</span>
-            </div>
-            <div class="stat-item">
+            </button>
+            <button
+              type="button"
+              class="stat-item"
+              [class.stat-item--clickable]="playtimeGamesCount > 0"
+              [class.stat-item--active]="isLibraryFilterActive('with_playtime')"
+              [disabled]="playtimeGamesCount === 0"
+              (click)="setLibraryFilter('with_playtime')"
+              [attr.aria-pressed]="isLibraryFilterActive('with_playtime')"
+              [attr.aria-label]="playtimeGamesCount > 0 ? 'Filter by games with playtime' : null"
+            >
               <ion-icon name="time-outline"></ion-icon>
-              <span>{{totalPlaytime}}h played</span>
-            </div>
+              <span>{{ totalPlaytime }}h played</span>
+            </button>
           </div>
         </div>
 
@@ -244,35 +295,23 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
           </div>
         </div>
 
-        <!-- Currently Playing -->
-        <section class="library-section" *ngIf="showStatusSections && currentlyPlayingGames.length">
-          <div class="section-header">
-            <h2 class="section-title">Currently Playing</h2>
-            <span class="section-count">{{ currentlyPlayingGames.length }}</span>
-          </div>
-          <div class="games-grid" *ngIf="!isListView">
-            <app-game-card
-              *ngFor="let game of currentlyPlayingGames; trackBy: trackByGameId"
-              [game]="game"
-              (onToggleCompleted)="cycleStatus($event)"
-              (onDelete)="deleteGame($event)"
-              class="game-card-wrapper"
-            ></app-game-card>
-          </div>
-          <ion-list class="games-list" *ngIf="isListView">
-            <ng-container *ngTemplateOutlet="listItems; context: { $implicit: currentlyPlayingGames }"></ng-container>
-          </ion-list>
-        </section>
-
         <!-- Library -->
-        <section class="library-section" *ngIf="showStatusSections || displayGames.length > 0">
+        <section
+          id="library-section"
+          class="library-section"
+          *ngIf="showStatusSections || displayGames.length > 0"
+        >
           <div class="section-header" *ngIf="showStatusSections">
             <h2 class="section-title">Your Library</h2>
-            <span class="section-count">{{ libraryGamesCount }}</span>
+            <span class="section-count">{{ librarySectionCountLabel }}</span>
           </div>
 
           <p class="section-empty" *ngIf="showStatusSections && libraryGamesCount === 0">
             No games in your library yet.
+          </p>
+
+          <p class="section-empty" *ngIf="showStatusSections && libraryGamesCount > 0 && displayGames.length === 0">
+            {{ getLibraryEmptyMessage() }}
           </p>
 
         <!-- Games Grid View -->
@@ -755,7 +794,7 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       scroll-margin-top: 6rem;
     }
 
-    /* Stats Bar */
+    /* Stats Bar / Library filters */
     .stats-bar {
       display: flex;
       gap: 1.5rem;
@@ -770,13 +809,62 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       display: flex;
       align-items: center;
       gap: 0.625rem;
+      margin: 0;
+      padding: 0.375rem 0.625rem;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      font: inherit;
       color: #94a3b8;
       font-size: 0.875rem;
+    }
+
+    .stat-item:disabled {
+      cursor: default;
+      padding: 0;
+    }
+
+    .stat-item--clickable {
+      cursor: pointer;
+      transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        transform 0.15s ease;
+    }
+
+    .stat-item--active {
+      background: rgba(168, 85, 247, 0.16);
+      color: #e9d5ff;
+    }
+
+    .stat-item--active ion-icon {
+      color: #c084fc;
+    }
+
+    @media (hover: hover) {
+      .stat-item--clickable:hover:not(.stat-item--active) {
+        color: #e2e8f0;
+        background: rgba(168, 85, 247, 0.08);
+      }
+    }
+
+    .stat-item--clickable:focus-visible {
+      color: #e2e8f0;
+      outline: none;
+    }
+
+    .stat-item--clickable:active {
+      transform: scale(0.98);
     }
 
     .stat-item ion-icon {
       color: #a855f7;
       font-size: 1.125rem;
+      pointer-events: none;
+    }
+
+    .stat-item span {
+      pointer-events: none;
     }
 
     .filters-header {
@@ -914,13 +1002,14 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
       justify-content: center;
       min-width: 1.75rem;
       height: 1.75rem;
-      padding: 0 0.5rem;
+      padding: 0 0.625rem;
       border-radius: 999px;
       background: rgba(168, 85, 247, 0.16);
       border: 1px solid rgba(168, 85, 247, 0.28);
       color: #d8b4fe;
       font-size: 0.75rem;
       font-weight: 700;
+      white-space: nowrap;
     }
 
     .section-empty {
@@ -1256,6 +1345,8 @@ export class HomePage implements OnInit, OnDestroy {
   sortBy: 'title' | 'releaseYear' | 'rating' | 'createdAt' = 'createdAt';
   sortOrder: 'asc' | 'desc' = 'desc';
 
+  libraryStatusFilter: LibraryStatusFilter = 'all';
+
   // Toast
   toastMessage = '';
   toastColor = 'success';
@@ -1275,7 +1366,7 @@ export class HomePage implements OnInit, OnDestroy {
       gameControllerOutline, addOutline, searchOutline, filterOutline,
       logOutOutline, gridOutline, listOutline,
       starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
-      closeOutline, imageOutline, chevronForwardOutline, heartOutline
+      closeOutline, imageOutline, chevronForwardOutline, heartOutline, ellipseOutline
     });
   }
 
@@ -1301,6 +1392,7 @@ export class HomePage implements OnInit, OnDestroy {
     this.gameService.games$.pipe(takeUntil(this.destroy$))
       .subscribe(games => {
         this.games = games;
+        this.syncLibraryFilter();
       });
   }
 
@@ -1473,6 +1565,7 @@ export class HomePage implements OnInit, OnDestroy {
   cycleStatus(gameId: string): void {
     this.gameService.cycleStatus(gameId).subscribe({
       next: () => {
+        this.syncLibraryFilter();
         this.showToast('Game status updated', 'success');
       },
       error: () => {
@@ -1517,8 +1610,8 @@ export class HomePage implements OnInit, OnDestroy {
     return !this.hasActiveFilters();
   }
 
-  get currentlyPlayingGames(): Game[] {
-    return this.filteredGames().filter((game) => game.status === 'playing');
+  get libraryGames(): Game[] {
+    return this.filteredGames().filter((game) => game.status !== 'wishlist');
   }
 
   get wishlistGames(): Game[] {
@@ -1526,11 +1619,94 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   get libraryGamesCount(): number {
-    return this.filteredGames().filter((game) => game.status !== 'wishlist').length;
+    return this.libraryGames.length;
   }
 
   get displayGames(): Game[] {
-    return this.filteredGames().filter((game) => game.status !== 'wishlist');
+    switch (this.libraryStatusFilter) {
+      case 'not_started':
+        return this.libraryGames.filter((game) => game.status === 'not_started');
+      case 'playing':
+        return this.libraryGames.filter((game) => game.status === 'playing');
+      case 'completed':
+        return this.libraryGames.filter((game) => game.status === 'completed');
+      case 'with_playtime':
+        return this.libraryGames.filter((game) => (game.playtime || 0) > 0);
+      default:
+        return this.libraryGames;
+    }
+  }
+
+  setLibraryFilter(filter: LibraryStatusFilter): void {
+    if (!this.canSelectLibraryFilter(filter)) {
+      return;
+    }
+
+    this.libraryStatusFilter = this.libraryStatusFilter === filter ? 'all' : filter;
+  }
+
+  isLibraryFilterActive(filter: LibraryStatusFilter): boolean {
+    return this.libraryStatusFilter === filter;
+  }
+
+  canSelectLibraryFilter(filter: LibraryStatusFilter): boolean {
+    switch (filter) {
+      case 'all':
+        return this.libraryGamesCount > 0;
+      case 'not_started':
+        return this.notStartedCount > 0;
+      case 'playing':
+        return this.playingCount > 0;
+      case 'completed':
+        return this.completedCount > 0;
+      case 'with_playtime':
+        return this.playtimeGamesCount > 0;
+    }
+  }
+
+  private syncLibraryFilter(): void {
+    if (this.libraryStatusFilter === 'all') {
+      return;
+    }
+
+    if (!this.canSelectLibraryFilter(this.libraryStatusFilter)) {
+      this.libraryStatusFilter = 'all';
+    }
+  }
+
+  get librarySectionCountLabel(): string {
+    const label = this.activeLibraryFilterLabel;
+    return label ? `${this.displayGames.length} ${label}` : `${this.displayGames.length}`;
+  }
+
+  get activeLibraryFilterLabel(): string | null {
+    switch (this.libraryStatusFilter) {
+      case 'not_started':
+        return 'not started';
+      case 'playing':
+        return 'playing';
+      case 'completed':
+        return 'completed';
+      case 'with_playtime':
+        return 'played';
+      default:
+        return null;
+    }
+  }
+
+  getLibraryEmptyMessage(): string {
+    switch (this.libraryStatusFilter) {
+      case 'not_started':
+        return 'No not started games in your library.';
+      case 'playing':
+        return 'No games currently playing.';
+      case 'completed':
+        return 'No completed games in your library.';
+      case 'with_playtime':
+        return 'No games with recorded playtime.';
+      default:
+        return 'No games in your library yet.';
+    }
   }
 
   scrollToWishlist(): void {
@@ -1573,6 +1749,7 @@ export class HomePage implements OnInit, OnDestroy {
   private performDelete(gameId: string): void {
     this.gameService.deleteGame(gameId).subscribe({
       next: () => {
+        this.syncLibraryFilter();
         this.showToast('Game deleted', 'success');
         this.loadFilterOptions();
       },
@@ -1598,14 +1775,22 @@ export class HomePage implements OnInit, OnDestroy {
 
   // Stats
   get completedCount(): number {
-    return this.filteredGames().filter((g) => g.status === 'completed').length;
+    return this.libraryGames.filter((g) => g.status === 'completed').length;
   }
 
   get playingCount(): number {
-    return this.filteredGames().filter((g) => g.status === 'playing').length;
+    return this.libraryGames.filter((g) => g.status === 'playing').length;
+  }
+
+  get notStartedCount(): number {
+    return this.libraryGames.filter((g) => g.status === 'not_started').length;
   }
 
   get totalPlaytime(): number {
-    return this.filteredGames().reduce((sum, g) => sum + (g.playtime || 0), 0);
+    return this.libraryGames.reduce((sum, g) => sum + (g.playtime || 0), 0);
+  }
+
+  get playtimeGamesCount(): number {
+    return this.libraryGames.filter((g) => (g.playtime || 0) > 0).length;
   }
 }
