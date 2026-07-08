@@ -629,9 +629,46 @@ ion-toggle {
   background: rgba(239, 68, 68, 0.35);
 }
 
-.logout-btn:hover,
-.logout-btn:focus-visible {
+.header-icon-btn.view-toggle-btn:hover,
+.header-icon-btn.view-toggle-btn:focus-visible {
+  --background: rgba(168, 85, 247, 0.35);
+  --background-hover: rgba(168, 85, 247, 0.35);
+  --background-activated: rgba(168, 85, 247, 0.42);
+  --color: #e9d5ff;
+}
+
+.header-icon-btn.view-toggle-btn:hover::part(native),
+.header-icon-btn.view-toggle-btn:focus-visible::part(native) {
+  background: rgba(168, 85, 247, 0.35);
+}
+
+.header-icon-btn.view-toggle-btn.active:hover,
+.header-icon-btn.view-toggle-btn.active:focus-visible {
+  --background: rgba(168, 85, 247, 0.45);
+  --background-hover: rgba(168, 85, 247, 0.45);
+  --color: #f3e8ff;
+}
+
+.header-icon-btn.view-toggle-btn.active:hover::part(native),
+.header-icon-btn.view-toggle-btn.active:focus-visible::part(native) {
+  background: rgba(168, 85, 247, 0.45);
+}
+
+.header-icon-btn.logout-btn {
+  --color: #f87171;
+}
+
+.header-icon-btn.logout-btn:hover,
+.header-icon-btn.logout-btn:focus-visible {
+  --background: rgba(239, 68, 68, 0.35);
+  --background-hover: rgba(239, 68, 68, 0.35);
+  --background-activated: rgba(239, 68, 68, 0.42);
   --color: #fecaca;
+}
+
+.header-icon-btn.logout-btn:hover::part(native),
+.header-icon-btn.logout-btn:focus-visible::part(native) {
+  background: rgba(239, 68, 68, 0.35);
 }
 
 .brand-mark {
