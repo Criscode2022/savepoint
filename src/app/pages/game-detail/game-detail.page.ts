@@ -2,8 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { 
-  IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
-  IonTitle, IonIcon, IonButton, IonCard, IonCardContent,
+    IonContent, IonHeader, IonToolbar, IonBackButton,
+    IonIcon, IonButton, IonCard, IonCardContent,
   IonChip, IonToast, IonSelect, IonSelectOption, AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -23,27 +23,43 @@ import { canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
   standalone: true,
   imports: [
     CommonModule, RouterLink, GameCoverComponent,
-    IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
-    IonTitle, IonIcon, IonButton, IonCard, IonCardContent,
+    IonContent, IonHeader, IonToolbar, IonBackButton,
+    IonIcon, IonButton, IonCard, IonCardContent,
     IonChip, IonToast, IonSelect, IonSelectOption
   ],
   template: `
     <ion-header class="ion-no-border">
-      <ion-toolbar class="detail-toolbar">
-        <ion-buttons slot="start">
-          <ion-back-button defaultHref="/home" icon="arrow-back-outline"></ion-back-button>
-        </ion-buttons>
-        
-        <ion-title class="gaming-font">Game Details</ion-title>
-        
-        <ion-buttons slot="end" *ngIf="game">
-          <ion-button [routerLink]="['/edit', game.id]">
-            <ion-icon name="create-outline"></ion-icon>
-          </ion-button>
-          <ion-button (click)="deleteGame()" color="danger">
-            <ion-icon name="trash-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
+      <ion-toolbar class="header-toolbar">
+        <div class="header-inner">
+          <div class="header-brand">
+            <ion-back-button
+              class="header-back-btn"
+              defaultHref="/home"
+              text=""
+              icon="arrow-back-outline"
+            ></ion-back-button>
+            <h1 class="header-title gaming-font">Game Details</h1>
+          </div>
+
+          <div class="header-actions" *ngIf="game">
+            <ion-button
+              [routerLink]="['/edit', game.id]"
+              class="header-icon-btn edit-btn"
+              fill="clear"
+              aria-label="Edit game"
+            >
+              <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+            <ion-button
+              (click)="deleteGame()"
+              class="header-icon-btn delete-btn"
+              fill="clear"
+              aria-label="Delete game"
+            >
+              <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
       </ion-toolbar>
     </ion-header>
 
@@ -242,12 +258,6 @@ import { canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
     </ion-content>
   `,
   styles: [`
-    .detail-toolbar {
-      --background: rgba(15, 15, 26, 0.95);
-      --border-color: rgba(139, 92, 246, 0.2);
-      backdrop-filter: blur(20px);
-    }
-
     .detail-content {
       --background: var(--color-bg-primary);
     }

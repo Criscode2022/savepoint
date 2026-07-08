@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { 
-  IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
+  IonContent, IonHeader, IonToolbar, IonButton,
   IonIcon, IonCard, IonCardHeader, IonCardTitle, IonCardContent,
   IonAvatar, IonItem, IonLabel, IonGrid, IonRow, IonCol, IonBadge,
   IonProgressBar, IonList, IonToast
@@ -24,27 +24,38 @@ import { Subject, takeUntil } from 'rxjs';
   standalone: true,
   imports: [
     CommonModule, RouterLink,
-    IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
+    IonContent, IonHeader, IonToolbar, IonButton,
     IonIcon, IonCard, IonCardHeader, IonCardTitle, IonCardContent,
     IonAvatar, IonItem, IonLabel, IonGrid, IonRow, IonCol, IonBadge,
     IonProgressBar, IonList, IonToast
   ],
   template: `
     <ion-header class="ion-no-border">
-      <ion-toolbar class="profile-toolbar">
-        <ion-buttons slot="start">
-          <ion-button routerLink="/home">
-            <ion-icon name="arrow-back-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-        
-        <ion-title class="gaming-font">Profile</ion-title>
-        
-        <ion-buttons slot="end">
-          <ion-button (click)="logout()">
-            <ion-icon name="log-out-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
+      <ion-toolbar class="header-toolbar">
+        <div class="header-inner">
+          <div class="header-brand">
+            <ion-button
+              routerLink="/home"
+              class="header-back-btn"
+              fill="clear"
+              aria-label="Back to home"
+            >
+              <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+            <h1 class="header-title gaming-font">Profile</h1>
+          </div>
+
+          <div class="header-actions">
+            <ion-button
+              (click)="logout()"
+              class="header-icon-btn logout-btn"
+              fill="clear"
+              aria-label="Log out"
+            >
+              <ion-icon name="log-out-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
       </ion-toolbar>
     </ion-header>
 
@@ -188,10 +199,6 @@ import { Subject, takeUntil } from 'rxjs';
     </ion-content>
   `,
   styles: [`
-    .profile-toolbar {
-      --color: #94a3b8;
-    }
-
     .profile-container {
       max-width: 1200px;
     }

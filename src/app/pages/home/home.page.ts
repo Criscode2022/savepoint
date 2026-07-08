@@ -462,116 +462,6 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
       display: contents;
     }
 
-    .header-toolbar {
-      --background: rgba(10, 10, 15, 0.92);
-      --border-color: rgba(148, 163, 184, 0.12);
-      --padding-top: 0;
-      --padding-bottom: 0;
-      --min-height: 68px;
-      backdrop-filter: blur(18px);
-      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-    }
-
-    .header-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-      max-width: 1600px;
-      margin: 0 auto;
-      padding: 0.75rem 1.25rem;
-      gap: 1rem;
-    }
-
-    .header-brand {
-      display: flex;
-      align-items: center;
-      gap: 0.875rem;
-      min-width: 0;
-    }
-
-    .brand-mark {
-      width: 42px;
-      height: 42px;
-      border-radius: 13px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      background: linear-gradient(135deg, rgba(168, 85, 247, 0.22) 0%, rgba(6, 182, 212, 0.12) 100%);
-      border: 1px solid rgba(168, 85, 247, 0.32);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-    }
-
-    .brand-mark ion-icon {
-      font-size: 1.25rem;
-      color: #d8b4fe;
-    }
-
-    .brand-copy {
-      display: flex;
-      flex-direction: column;
-      gap: 0.125rem;
-      min-width: 0;
-    }
-
-    .brand-name {
-      font-size: 1.125rem;
-      font-weight: 700;
-      color: #f8fafc;
-      line-height: 1.1;
-    }
-
-    .brand-tagline {
-      font-size: 0.6875rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #64748b;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-shrink: 0;
-    }
-
-    .header-icon-btn {
-      --background: rgba(255, 255, 255, 0.04);
-      --background-hover: rgba(168, 85, 247, 0.16);
-      --background-activated: rgba(168, 85, 247, 0.22);
-      --border-radius: 12px;
-      --border-width: 0;
-      --color: #94a3b8;
-      --padding-start: 0;
-      --padding-end: 0;
-      width: 42px;
-      height: 42px;
-      margin: 0;
-      border: none;
-      transition: transform 0.2s ease;
-    }
-
-    .header-icon-btn::part(native) {
-      border-radius: 12px;
-    }
-
-    .header-icon-btn:hover,
-    .header-icon-btn:focus-visible {
-      --color: #e2e8f0;
-    }
-
-    .header-icon-btn.active {
-      --background: rgba(168, 85, 247, 0.18);
-      --color: #e9d5ff;
-    }
-
-    .logout-btn:hover,
-    .logout-btn:focus-visible {
-      --color: #fecaca;
-    }
-
     /* Search Section */
     .search-section {
       margin-bottom: 1rem;
@@ -1323,14 +1213,6 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
         min-width: 48px;
         min-height: 48px;
         max-height: 48px;
-      }
-
-      .brand-tagline {
-        display: none;
-      }
-
-      .header-inner {
-        padding-inline: 1rem;
       }
 
       .games-grid {

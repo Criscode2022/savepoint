@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm, NgModel } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
-  IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
-  IonTitle, IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
+  IonContent, IonHeader, IonToolbar, IonBackButton,
+  IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
   IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
   IonTextarea, IonToggle, IonToast, IonChip, IonSegment, IonSegmentButton
 } from '@ionic/angular/standalone';
@@ -19,19 +19,25 @@ import { PlatformService } from '../../services/platform.service';
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterLink,
-    IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton,
-    IonTitle, IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
+    IonContent, IonHeader, IonToolbar, IonBackButton,
+    IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
     IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
     IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton
   ],
   template: `
     <ion-header class="ion-no-border">
-      <ion-toolbar class="form-toolbar">
-        <ion-buttons slot="start">
-          <ion-back-button defaultHref="/home" icon="arrow-back-outline"></ion-back-button>
-        </ion-buttons>
-        
-        <ion-title class="gaming-font">{{ pageTitle }}</ion-title>
+      <ion-toolbar class="header-toolbar">
+        <div class="header-inner">
+          <div class="header-brand">
+            <ion-back-button
+              class="header-back-btn"
+              defaultHref="/home"
+              text=""
+              icon="arrow-back-outline"
+            ></ion-back-button>
+            <h1 class="header-title gaming-font">{{ pageTitle }}</h1>
+          </div>
+        </div>
       </ion-toolbar>
     </ion-header>
 
