@@ -7,7 +7,7 @@ import {
   IonContent, IonHeader, IonToolbar, IonButton,
   IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
   IonBadge, IonList, IonItem, IonThumbnail,
-  IonSelect, IonSelectOption, IonToast, AlertController, ViewWillEnter
+  IonSelect, IonSelectOption, IonToast, IonSpinner, AlertController, ViewWillEnter
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -33,7 +33,7 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
     IonContent, IonHeader, IonToolbar, IonButton,
     IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
     IonBadge, IonList, IonItem, IonThumbnail,
-    IonSelect, IonSelectOption, IonToast
+    IonSelect, IonSelectOption, IonToast, IonSpinner
   ],
   template: `
     <ion-header class="ion-no-border home-header">
@@ -295,11 +295,15 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
           </div>
         </div>
 
+        <div class="games-loading" *ngIf="gamesLoading()">
+          <ion-spinner name="crescent"></ion-spinner>
+        </div>
+
         <!-- Library -->
         <section
           id="library-section"
           class="library-section"
-          *ngIf="showStatusSections || displayGames.length > 0"
+          *ngIf="!gamesLoading() && (showStatusSections || displayGames.length > 0)"
         >
           <div class="section-header" *ngIf="showStatusSections">
             <h2 class="section-title">Your Library</h2>
@@ -335,7 +339,7 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
         <section
           id="wishlist-section"
           class="library-section wishlist-section"
-          *ngIf="showStatusSections || wishlistGames.length > 0"
+          *ngIf="!gamesLoading() && (showStatusSections || wishlistGames.length > 0)"
         >
           <div class="section-header">
             <h2 class="section-title">Wishlist</h2>
@@ -417,7 +421,7 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
         </ng-template>
 
         <!-- Empty State -->
-        <div class="empty-state" *ngIf="filteredGames().length === 0">
+        <div class="empty-state" *ngIf="!gamesLoading() && filteredGames().length === 0">
           <div class="empty-icon">
             <ion-icon name="game-controller-outline"></ion-icon>
           </div>
@@ -1153,6 +1157,18 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
       transform: none;
     }
 
+    .games-loading {
+      display: flex;
+      justify-content: center;
+      padding: 3rem 0 4rem;
+    }
+
+    .games-loading ion-spinner {
+      width: 2.5rem;
+      height: 2.5rem;
+      color: #a855f7;
+    }
+
     /* Empty State */
     .empty-state {
       text-align: center;
@@ -1331,6 +1347,7 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
 export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   games: Game[] = [];
   readonly filteredGames: Signal<Game[]>;
+  readonly gamesLoading: Signal<boolean>;
 
   // View mode
   isListView = false;
@@ -1372,6 +1389,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     private alertController: AlertController
   ) {
     this.filteredGames = this.gameService.filteredGames;
+    this.gamesLoading = this.gameService.gamesLoading;
     addIcons({
       gameControllerOutline, addOutline, searchOutline, filterOutline,
       logOutOutline, gridOutline, listOutline,

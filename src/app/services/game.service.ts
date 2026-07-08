@@ -7,7 +7,7 @@ import {
   switchMap,
   throwError,
 } from "rxjs";
-import { catchError, map, tap } from "rxjs/operators";
+import { catchError, finalize, map, tap } from "rxjs/operators";
 import {
   CreateGameRequest,
   deriveGameStatus,
@@ -114,6 +114,7 @@ export class GameService {
   private gamesSubject = new BehaviorSubject<Game[]>([]);
   games$ = this.gamesSubject.asObservable();
   readonly filteredGames = signal<Game[]>([]);
+  readonly gamesLoading = signal(false);
   private lastFilters: GameFilters | undefined;
 
   /**
@@ -129,6 +130,7 @@ export class GameService {
       return throwError(() => new Error("User not authenticated"));
     }
 
+    this.gamesLoading.set(true);
     return from(
       this.fetchGamesWithPagination(filter, page, limit, currentUser.id),
     ).pipe(
@@ -136,6 +138,7 @@ export class GameService {
         this.gamesSubject.next(response.games);
         this.filteredGames.set(response.games);
       }),
+      finalize(() => this.gamesLoading.set(false)),
       catchError((error) => this.handleError(error, "Failed to fetch games")),
     );
   }
@@ -150,11 +153,13 @@ export class GameService {
       return throwError(() => new Error("User not authenticated"));
     }
 
+    this.gamesLoading.set(true);
     return from(this.fetchGames(filters, currentUser.id)).pipe(
       tap((games) => {
         this.gamesSubject.next(games);
         this.filteredGames.set(games);
       }),
+      finalize(() => this.gamesLoading.set(false)),
       catchError((error) => this.handleError(error, "Failed to fetch games")),
     );
   }
