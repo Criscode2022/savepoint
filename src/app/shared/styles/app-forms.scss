@@ -581,6 +581,10 @@ ion-toggle {
   box-shadow: 0 4px 18px rgba(168, 85, 247, 0.28);
 }
 
+.submit-btn ion-icon {
+  margin-inline-end: 0.5rem;
+}
+
 @media (hover: hover) {
   .cancel-btn:hover::part(native) {
     transform: translateY(-1px);
