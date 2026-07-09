@@ -1,0 +1,123 @@
+{
+  "ok": false,
+  "steps": [
+    {
+      "step": "login",
+      "ok": true,
+      "url": "http://localhost:4200/home"
+    },
+    {
+      "step": "login-screenshot",
+      "file": "C:\\Users\\ALUMNO TARDE\\Documents\\repositorios\\videogames-library\\.browser-check\\01-home-after-login.png"
+    },
+    {
+      "step": "add-game",
+      "ok": true,
+      "url": "http://localhost:4200/add",
+      "file": "C:\\Users\\ALUMNO TARDE\\Documents\\repositorios\\videogames-library\\.browser-check\\02-add-game.png"
+    },
+    {
+      "step": "wishlist-add",
+      "ok": true,
+      "url": "http://localhost:4200/wishlist/add",
+      "file": "C:\\Users\\ALUMNO TARDE\\Documents\\repositorios\\videogames-library\\.browser-check\\02-wishlist-add.png"
+    },
+    {
+      "step": "play-history",
+      "ok": true,
+      "url": "http://localhost:4200/play-history",
+      "file": "C:\\Users\\ALUMNO TARDE\\Documents\\repositorios\\videogames-library\\.browser-check\\02-play-history.png"
+    },
+    {
+      "step": "profile",
+      "ok": true,
+      "url": "http://localhost:4200/profile",
+      "file": "C:\\Users\\ALUMNO TARDE\\Documents\\repositorios\\videogames-library\\.browser-check\\02-profile.png"
+    },
+    {
+      "step": "game-detail",
+      "ok": true,
+      "url": "http://localhost:4200/game/38ab0483-a779-4d88-ae69-3fd4b6428beb",
+      "file": "C:\\Users\\ALUMNO TARDE\\Documents\\repositorios\\videogames-library\\.browser-check\\03-game-detail.png"
+    },
+    {
+      "step": "game-edit",
+      "ok": true,
+      "url": "http://localhost:4200/edit/38ab0483-a779-4d88-ae69-3fd4b6428beb",
+      "file": "C:\\Users\\ALUMNO TARDE\\Documents\\repositorios\\videogames-library\\.browser-check\\04-game-edit.png"
+    },
+    {
+      "step": "home-mobile",
+      "ok": true,
+      "url": "http://localhost:4200/home",
+      "file": "C:\\Users\\ALUMNO TARDE\\Documents\\repositorios\\videogames-library\\.browser-check\\05-home-mobile.png"
+    }
+  ],
+  "consoleErrors": [
+    {
+      "url": "http://localhost:4200/login",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "url": "http://localhost:4200/login",
+      "text": "Refused to execute script from 'http://localhost:4200/assets/env.js' because its MIME type ('text/html') is not executable, and strict MIME type checking is enabled."
+    },
+    {
+      "url": "http://localhost:4200/add",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "url": "http://localhost:4200/add",
+      "text": "Refused to execute script from 'http://localhost:4200/assets/env.js' because its MIME type ('text/html') is not executable, and strict MIME type checking is enabled."
+    },
+    {
+      "url": "http://localhost:4200/wishlist/add",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "url": "http://localhost:4200/wishlist/add",
+      "text": "Refused to execute script from 'http://localhost:4200/assets/env.js' because its MIME type ('text/html') is not executable, and strict MIME type checking is enabled."
+    },
+    {
+      "url": "http://localhost:4200/play-history",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "url": "http://localhost:4200/play-history",
+      "text": "Refused to execute script from 'http://localhost:4200/assets/env.js' because its MIME type ('text/html') is not executable, and strict MIME type checking is enabled."
+    },
+    {
+      "url": "http://localhost:4200/profile",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "url": "http://localhost:4200/profile",
+      "text": "Refused to execute script from 'http://localhost:4200/assets/env.js' because its MIME type ('text/html') is not executable, and strict MIME type checking is enabled."
+    },
+    {
+      "url": "http://localhost:4200/profile",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "url": "http://localhost:4200/profile",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "url": "http://localhost:4200/home",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "url": "http://localhost:4200/home",
+      "text": "Refused to execute script from 'http://localhost:4200/assets/env.js' because its MIME type ('text/html') is not executable, and strict MIME type checking is enabled."
+    },
+    {
+      "url": "http://localhost:4200/home",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "url": "http://localhost:4200/home",
+      "text": "Refused to execute script from 'http://localhost:4200/assets/env.js' because its MIME type ('text/html') is not executable, and strict MIME type checking is enabled."
+    }
+  ],
+  "pageErrors": []
+}

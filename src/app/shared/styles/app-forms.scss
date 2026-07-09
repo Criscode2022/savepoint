@@ -30,10 +30,10 @@
 .recent-games-card,
 .actions-card,
 .stat-card {
-  background: rgba(18, 18, 32, 0.92);
+  background: rgba(21, 21, 32, 0.92);
   border-radius: 20px;
-  border: 1px solid rgba(168, 85, 247, 0.18);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-neon);
+  box-shadow: var(--shadow-card);
   margin: 0 0 1.25rem;
 }
 
@@ -183,7 +183,7 @@
 .field-hint {
   margin: 0.375rem 0 0;
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--ink-muted);
   line-height: 1.4;
 }
 
@@ -268,7 +268,7 @@
   --padding-top: 12px;
   --padding-bottom: 12px;
   --color: #f8fafc;
-  --placeholder-color: #64748b;
+  --placeholder-color: var(--ink-muted);
   --placeholder-opacity: 1;
   font-size: 0.9375rem;
   width: 100%;
@@ -281,7 +281,7 @@
   --padding-top: 10px;
   --padding-bottom: 10px;
   --color: #f8fafc;
-  --placeholder-color: #64748b;
+  --placeholder-color: var(--ink-muted);
   --placeholder-opacity: 1;
   font-size: 0.9375rem;
   width: 100%;
@@ -399,7 +399,7 @@ ion-toggle {
   --padding-bottom: 0;
   --background: transparent;
   --color: #f8fafc;
-  --placeholder-color: #64748b;
+  --placeholder-color: var(--ink-muted);
   --placeholder-opacity: 1;
   --highlight-color-focused: transparent;
   font-size: 0.95rem;
@@ -414,7 +414,7 @@ ion-toggle {
 .gaming-searchbar {
   --background: rgba(15, 15, 28, 0.95);
   --color: #f8fafc;
-  --placeholder-color: #64748b;
+  --placeholder-color: var(--ink-muted);
   --icon-color: #a855f7;
   --clear-button-color: #94a3b8;
   --border-radius: 14px;
@@ -708,7 +708,7 @@ ion-toggle {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--ink-muted);
 }
 
 /* ─── Action bars ───────────────────────────────────────────────── */
@@ -757,10 +757,10 @@ ion-toggle {
 }
 
 .submit-btn {
-  --background: linear-gradient(135deg, #a855f7 0%, #7c3aed 45%, #06b6d4 100%);
-  --background-hover: linear-gradient(135deg, #c084fc 0%, #8b5cf6 45%, #22d3ee 100%);
-  --background-activated: linear-gradient(135deg, #9333ea 0%, #6d28d9 45%, #0891b2 100%);
-  --border-radius: 12px;
+  --background: var(--neon-purple);
+  --background-hover: var(--neon-purple-deep);
+  --background-activated: #6d28d9;
+  --border-radius: var(--radius-md);
   --border-width: 0;
   --padding-start: 22px;
   --padding-end: 22px;
@@ -802,10 +802,7 @@ ion-toggle {
 
   .submit-btn:not([disabled]):hover::part(native) {
     transform: translateY(-2px);
-    box-shadow:
-      0 10px 28px rgba(168, 85, 247, 0.42),
-      0 4px 14px rgba(6, 182, 212, 0.28);
-    filter: brightness(1.07) saturate(1.08);
+    box-shadow: var(--shadow-neon);
   }
 }
 

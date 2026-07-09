@@ -1,0 +1,156 @@
+/* ─── Profile page ───────────────────────────────────────────────── */
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  background: var(--vault-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-neon);
+  margin-bottom: 1.5rem;
+}
+
+.profile-avatar {
+  width: 100px;
+  height: 100px;
+  border: 3px solid rgba(168, 85, 247, 0.35);
+  box-shadow: var(--shadow-card);
+}
+
+.profile-name {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+  margin: 0 0 0.5rem;
+}
+
+.profile-email {
+  color: var(--ink-muted);
+  margin: 0 0 1rem;
+}
+
+.level-badge {
+  --background: var(--neon-purple);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.stats-grid {
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  text-align: center;
+  margin: 0;
+}
+
+.stat-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.stat-icon-wrapper.games {
+  background: rgba(168, 85, 247, 0.16);
+  color: var(--neon-purple);
+}
+
+.stat-icon-wrapper.completed {
+  background: rgba(34, 197, 94, 0.16);
+  color: var(--status-completed);
+}
+
+.stat-icon-wrapper.hours {
+  background: rgba(245, 158, 11, 0.16);
+  color: var(--semantic-warning);
+}
+
+.stat-icon-wrapper.rating {
+  background: rgba(236, 72, 153, 0.16);
+  color: var(--neon-pink);
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.progress-value {
+  color: var(--ink-primary);
+  font-weight: 600;
+}
+
+ion-progress-bar {
+  --background: rgba(168, 85, 247, 0.16);
+  --progress-background: var(--status-completed);
+  height: 8px;
+  border-radius: 4px;
+}
+
+.profile-container {
+  max-width: 1200px;
+}
+
+.recent-games-card ion-item {
+  cursor: pointer;
+}
+
+.recent-games-card ion-item:last-child {
+  margin-bottom: 0;
+}
+
+.profile-badges {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.level-badge ion-icon {
+  margin-right: 0.25rem;
+}
+
+.progress-item {
+  padding: 1rem 0;
+}
+
+.profile-content ion-list {
+  background: transparent;
+  padding: 0;
+}
+
+@media (max-width: 768px) {
+  .profile-avatar {
+    width: 80px;
+    height: 80px;
+  }
+
+  .profile-name {
+    font-size: 1.5rem;
+  }
+
+  .profile-badges {
+    justify-content: center;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+}

@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-09T13:30:00.000Z",
+  "title": "Design System: GameVault",
+  "extensions": {
+    "colorMeta": {
+      "neon-purple": {
+        "role": "primary",
+        "displayName": "Neon Purple",
+        "canonical": "oklch(62% 0.26 300)",
+        "tonalRamp": [
+          "oklch(18% 0.08 300)",
+          "oklch(28% 0.14 300)",
+          "oklch(38% 0.18 300)",
+          "oklch(48% 0.22 300)",
+          "oklch(58% 0.25 300)",
+          "oklch(62% 0.26 300)",
+          "oklch(72% 0.22 300)",
+          "oklch(92% 0.08 300)"
+        ]
+      },
+      "neon-cyan": {
+        "role": "secondary",
+        "displayName": "Neon Cyan",
+        "canonical": "oklch(70% 0.14 195)",
+        "tonalRamp": [
+          "oklch(18% 0.04 195)",
+          "oklch(28% 0.08 195)",
+          "oklch(38% 0.10 195)",
+          "oklch(48% 0.12 195)",
+          "oklch(58% 0.13 195)",
+          "oklch(70% 0.14 195)",
+          "oklch(80% 0.12 195)",
+          "oklch(94% 0.04 195)"
+        ]
+      },
+      "vault-bg": {
+        "role": "neutral",
+        "displayName": "Vault Background",
+        "canonical": "oklch(8% 0.01 280)",
+        "tonalRamp": [
+          "oklch(8% 0.01 280)",
+          "oklch(12% 0.012 280)",
+          "oklch(16% 0.014 280)",
+          "oklch(22% 0.016 280)",
+          "oklch(32% 0.018 280)",
+          "oklch(45% 0.020 280)",
+          "oklch(65% 0.018 280)",
+          "oklch(92% 0.008 280)"
+        ]
+      },
+      "ink-primary": {
+        "role": "neutral",
+        "displayName": "Ink Primary",
+        "canonical": "oklch(98% 0.005 250)",
+        "tonalRamp": [
+          "oklch(15% 0.01 250)",
+          "oklch(25% 0.012 250)",
+          "oklch(35% 0.014 250)",
+          "oklch(50% 0.016 250)",
+          "oklch(65% 0.018 250)",
+          "oklch(78% 0.012 250)",
+          "oklch(90% 0.008 250)",
+          "oklch(98% 0.005 250)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Brand wordmark and auth hero titles only. Orbitron."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page and section titles in forms and panels."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Descriptions, metadata, form copy. Inter at 0.875rem."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Platform chips, uppercase badges, filter labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-ambient",
+        "value": "0 12px 32px rgba(0, 0, 0, 0.35)",
+        "purpose": "Default resting shadow on game and form cards."
+      },
+      {
+        "name": "card-hover",
+        "value": "0 20px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(168, 85, 247, 0.25)",
+        "purpose": "Lift + neon rim on interactive card hover."
+      },
+      {
+        "name": "neon-purple-glow",
+        "value": "0 0 20px rgba(168, 85, 247, 0.4)",
+        "purpose": "Primary buttons and brand logo accent glow."
+      }
+    ],
+    "motion": [
+      {
+        "name": "transition-fast",
+        "value": "150ms ease",
+        "purpose": "Icon buttons, chip toggles, micro feedback."
+      },
+      {
+        "name": "transition-normal",
+        "value": "250ms ease",
+        "purpose": "Card hover lift, border color shifts."
+      },
+      {
+        "name": "transition-slow",
+        "value": "350ms ease",
+        "purpose": "Auth panel entrance, overlay fades."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Save, add game, auth submit — purple fill with neon shadow.",
+      "html": "<button class=\"ds-btn-primary\">Add to Library</button>",
+      "css": ".ds-btn-primary { background: #a855f7; color: #ffffff; padding: 12px 24px; font-family: Inter, system-ui, sans-serif; font-size: 0.875rem; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; box-shadow: 0 0 20px rgba(168, 85, 247, 0.4); transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease; } .ds-btn-primary:hover { background: #7c3aed; transform: translateY(-2px); box-shadow: 0 0 30px rgba(168, 85, 247, 0.5); } .ds-btn-primary:focus-visible { outline: 2px solid #a855f7; outline-offset: 2px; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Status toggles and secondary actions on cards.",
+      "html": "<button class=\"ds-btn-outline\"><span class=\"ds-btn-outline__icon\">●</span> Playing</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; gap: 6px; width: 100%; background: transparent; color: #e2e8f0; padding: 11px 14px; font-family: Inter, system-ui, sans-serif; font-size: 0.8125rem; font-weight: 700; border: 1px solid rgba(148, 163, 184, 0.28); border-radius: 12px; cursor: pointer; transition: background 0.25s ease, border-color 0.25s ease; } .ds-btn-outline:hover { background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.35); } .ds-btn-outline:focus-visible { outline: 2px solid #a855f7; outline-offset: 2px; } .ds-btn-outline__icon { color: #93c5fd; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Library search field with leading icon.",
+      "html": "<div class=\"ds-search\"><svg class=\"ds-search__icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input class=\"ds-search__input\" type=\"search\" placeholder=\"Search your library…\" /></div>",
+      "css": ".ds-search { display: flex; align-items: center; gap: 10px; background: #0f0f15; border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 12px; padding: 12px 16px; transition: border-color 0.25s ease, box-shadow 0.25s ease; } .ds-search:focus-within { border-color: #a855f7; box-shadow: 0 0 10px rgba(168, 85, 247, 0.35); } .ds-search__icon { color: #94a3b8; flex-shrink: 0; } .ds-search__input { flex: 1; background: transparent; border: none; color: #f8fafc; font-family: Inter, system-ui, sans-serif; font-size: 0.875rem; outline: none; } .ds-search__input::placeholder { color: #94a3b8; }"
+    },
+    {
+      "name": "Genre Chip",
+      "kind": "chip",
+      "refersTo": "chip-genre",
+      "description": "Filter and metadata genre tags on game cards.",
+      "html": "<span class=\"ds-chip\">Action RPG</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; padding: 6px 12px; background: rgba(168, 85, 247, 0.16); color: #e9d5ff; font-family: Inter, system-ui, sans-serif; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(168, 85, 247, 0.28); border-radius: 999px; }"
+    },
+    {
+      "name": "Game Card",
+      "kind": "card",
+      "refersTo": "button-outline",
+      "description": "Signature collection card with cover, metadata, and status footer.",
+      "html": "<article class=\"ds-game-card\"><div class=\"ds-game-card__cover\"><span class=\"ds-game-card__platform\">PS5</span></div><div class=\"ds-game-card__body\"><h3 class=\"ds-game-card__title\">Elden Ring</h3><p class=\"ds-game-card__meta\">FromSoftware · 2022</p></div><div class=\"ds-game-card__footer\"><button class=\"ds-game-card__status\">Playing</button></div></article>",
+      "css": ".ds-game-card { background: linear-gradient(180deg, rgba(24,24,42,0.98) 0%, rgba(15,15,28,0.98) 100%); border-radius: 18px; border: 1px solid rgba(148, 163, 184, 0.14); box-shadow: 0 12px 32px rgba(0,0,0,0.35); overflow: hidden; transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease; cursor: pointer; } .ds-game-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(168,85,247,0.25); border-color: rgba(168,85,247,0.35); } .ds-game-card__cover { aspect-ratio: 3/4; background: #151520; position: relative; } .ds-game-card__platform { position: absolute; bottom: 12px; left: 12px; padding: 5px 10px; border-radius: 999px; background: rgba(0,55,145,0.88); color: #fff; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; } .ds-game-card__body { padding: 16px 18px 10px; } .ds-game-card__title { margin: 0 0 8px; font-family: Inter, system-ui, sans-serif; font-size: 1.0625rem; font-weight: 700; color: #f8fafc; line-height: 1.35; } .ds-game-card__meta { margin: 0; font-size: 0.8125rem; color: #c4b5fd; font-weight: 600; } .ds-game-card__footer { padding: 12px 18px 18px; border-top: 1px solid rgba(148,163,184,0.1); } .ds-game-card__status { width: 100%; background: rgba(59,130,246,0.12); color: #93c5fd; border: 1px solid rgba(59,130,246,0.35); border-radius: 12px; padding: 11px 14px; font-family: Inter, system-ui, sans-serif; font-size: 0.8125rem; font-weight: 700; cursor: pointer; transition: background 0.25s ease; } .ds-game-card__status:hover { background: rgba(59,130,246,0.2); }"
+    },
+    {
+      "name": "Header Brand",
+      "kind": "nav",
+      "refersTo": "button-primary",
+      "description": "App header brand mark with Orbitron wordmark.",
+      "html": "<header class=\"ds-header\"><div class=\"ds-header__brand\"><span class=\"ds-header__name\">Game<span class=\"ds-header__accent\">Vault</span></span><span class=\"ds-header__tagline\">Your collection</span></div></header>",
+      "css": ".ds-header { background: #12121a; padding: 16px 20px; border-bottom: 1px solid rgba(168,85,247,0.2); } .ds-header__brand { display: flex; flex-direction: column; gap: 2px; } .ds-header__name { font-family: Orbitron, system-ui, sans-serif; font-size: 1.25rem; font-weight: 700; color: #f8fafc; letter-spacing: 0.02em; } .ds-header__accent { background: linear-gradient(135deg, #a855f7 0%, #06b6d4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; } .ds-header__tagline { font-family: Inter, system-ui, sans-serif; font-size: 0.75rem; color: #94a3b8; font-weight: 500; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Neon Vault",
+    "overview": "GameVault is a power-user game library tool dressed in cyberpunk atmosphere. The interface behaves like Steam or GOG — dense metadata, fast filters, scannable grids — while the dark vault framing signals ownership of a personal collection. Design serves the task: users are cataloging, searching, and updating play state, not admiring chrome.",
+    "keyCharacteristics": [
+      "Dark-first surfaces with layered depth",
+      "Information-dense library views with platform badges, status chips, and inline stats",
+      "Inter for all UI copy; Orbitron reserved for brand wordmark and hero titles only",
+      "Purple-led accent with cyan/pink/green reserved for semantic status",
+      "Tactile cards with lift-on-hover",
+      "WCAG AAA text contrast prioritized on body copy"
+    ],
+    "rules": [
+      {
+        "name": "The One Glow Rule",
+        "body": "Neon box-shadow and pulse animations appear only on hover, focus, or brand hero moments — never as a default resting state on every card.",
+        "section": "colors"
+      },
+      {
+        "name": "The Readable Dark Rule",
+        "body": "Body text and placeholders must meet WCAG AAA where practical (#cbd5e1 minimum on #151520). Muted gray (#64748b) is deprecated for readable copy.",
+        "section": "colors"
+      },
+      {
+        "name": "The Orbitron Gate",
+        "body": "Orbitron is forbidden on buttons, form labels, data tables, and navigation items. If it's not the brand name or a page hero, it's Inter.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Surfaces are flat at rest. Shadows and glow appear as a response to hover, focus, or primary CTA — not on every container.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use Inter for all UI text and Orbitron only for brand/display moments.",
+      "Do keep library views information-dense — metadata, filters, and stats visible without drilling in.",
+      "Do apply neon purple to primary actions and focus states; cyan/pink/green for semantic status only.",
+      "Do lift cards on hover (4px) with border intensification.",
+      "Do respect prefers-reduced-motion.",
+      "Do maintain AAA text contrast on body copy (#cbd5e1+) even when it softens neon accents."
+    ],
+    "donts": [
+      "Don't use over-neon / RGB gamer cliché — constant glow, gradient text on every heading, pulsing borders as default decoration.",
+      "Don't use mobile free-to-play UI patterns — loot-box energy, cartoon chrome, loud gradient CTAs, fake urgency.",
+      "Don't ship spreadsheet ugly layouts — raw tables with no hierarchy, no scan path, no collection delight.",
+      "Don't fall into generic SaaS dashboard patterns — cream cards, hero metrics, eyebrow labels on every section.",
+      "Don't use gradient text except the single Vault brand span in the header.",
+      "Don't nest cards or use side-stripe borders on list items.",
+      "Don't put Orbitron on buttons, labels, or data-dense UI."
+    ]
+  }
+}

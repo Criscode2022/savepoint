@@ -34,7 +34,7 @@ import { GameService } from '../../services/game.service';
               text=""
               icon="arrow-back-outline"
             ></ion-back-button>
-            <h1 class="header-title gaming-font">Edit Game</h1>
+            <h1 class="header-title">Edit Game</h1>
           </div>
         </div>
       </ion-toolbar>
@@ -44,7 +44,7 @@ import { GameService } from '../../services/game.service';
       <div class="form-container">
         <ion-card class="form-card">
           <ion-card-header>
-            <ion-card-title class="gaming-font">Edit Game Information</ion-card-title>
+            <ion-card-title>Edit Game Information</ion-card-title>
           </ion-card-header>
 
           <ion-card-content>

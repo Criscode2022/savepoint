@@ -35,7 +35,7 @@ import { PlatformService } from '../../services/platform.service';
               text=""
               icon="arrow-back-outline"
             ></ion-back-button>
-            <h1 class="header-title gaming-font">{{ pageTitle }}</h1>
+            <h1 class="header-title">{{ pageTitle }}</h1>
           </div>
         </div>
       </ion-toolbar>
@@ -45,7 +45,7 @@ import { PlatformService } from '../../services/platform.service';
       <div class="form-container">
         <ion-card class="form-card">
           <ion-card-header>
-            <ion-card-title class="gaming-font">{{ formCardTitle }}</ion-card-title>
+            <ion-card-title>{{ formCardTitle }}</ion-card-title>
           </ion-card-header>
 
           <ion-card-content>

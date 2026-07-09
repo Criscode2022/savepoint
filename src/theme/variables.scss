@@ -2,80 +2,111 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ─── GameVault design tokens (DESIGN.md canonical) ───────────────── */
+
 :root {
-  /* Gaming Color Palette */
-  --color-bg-primary: #0a0a0f;
-  --color-bg-secondary: #12121a;
+  /* Surfaces */
+  --vault-bg: #0a0a0f;
+  --vault-surface: #12121a;
+  --vault-elevated: #151520;
+  --vault-input: #0f0f15;
+
+  /* Accents */
+  --neon-purple: #a855f7;
+  --neon-purple-deep: #7c3aed;
+  --neon-purple-glow: rgba(168, 85, 247, 0.4);
+  --neon-cyan: #06b6d4;
+  --neon-cyan-glow: rgba(6, 182, 212, 0.4);
+  --neon-pink: #ec4899;
+  --neon-green: #10b981;
+
+  /* Ink */
+  --ink-primary: #f8fafc;
+  --ink-secondary: #cbd5e1;
+  --ink-muted: #94a3b8;
+  --ink-separator: #64748b;
+
+  /* Status */
+  --status-playing: #3b82f6;
+  --status-completed: #22c55e;
+  --status-wishlist: #f472b6;
+  --semantic-error: #ef4444;
+  --semantic-warning: #f59e0b;
+
+  /* Borders & shadows */
+  --border-neon: rgba(168, 85, 247, 0.2);
+  --border-subtle: rgba(148, 163, 184, 0.14);
+  --shadow-card: 0 12px 32px rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 20px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(168, 85, 247, 0.25);
+  --shadow-neon: 0 0 20px var(--neon-purple-glow);
+
+  /* Radius & spacing */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 18px;
+  --radius-pill: 999px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --transition-fast: 150ms var(--ease-out);
+  --transition-normal: 250ms var(--ease-out);
+
+  /* Legacy aliases (existing components) */
+  --color-bg-primary: var(--vault-bg);
+  --color-bg-secondary: var(--vault-surface);
   --color-bg-tertiary: #1a1a25;
-  --color-bg-card: #151520;
-  --color-bg-input: #0f0f15;
-  
-  /* Neon Accents */
-  --color-neon-purple: #a855f7;
-  --color-neon-purple-glow: rgba(168, 85, 247, 0.5);
-  --color-neon-cyan: #06b6d4;
-  --color-neon-cyan-glow: rgba(6, 182, 212, 0.5);
-  --color-neon-pink: #ec4899;
-  --color-neon-pink-glow: rgba(236, 72, 153, 0.5);
-  --color-neon-green: #10b981;
-  --color-neon-green-glow: rgba(16, 185, 129, 0.5);
-  
-  /* Text Colors */
-  --color-text-primary: #f8fafc;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
-  --color-text-accent: #a855f7;
-  
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #a855f7 0%, #06b6d4 100%);
-  --gradient-glow: linear-gradient(135deg, rgba(168, 85, 247, 0.3) 0%, rgba(6, 182, 212, 0.3) 100%);
-  --gradient-dark: linear-gradient(180deg, #12121a 0%, #0a0a0f 100%);
-  
-  /* Shadows */
-  --shadow-neon-purple: 0 0 20px rgba(168, 85, 247, 0.4);
-  --shadow-neon-cyan: 0 0 20px rgba(6, 182, 212, 0.4);
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
-  --shadow-elevated: 0 8px 40px rgba(0, 0, 0, 0.5);
-  
-  /* Borders */
-  --border-color: rgba(168, 85, 247, 0.2);
-  --border-glow: 1px solid rgba(168, 85, 247, 0.3);
-  
-  /* Transitions */
-  --transition-fast: 150ms ease;
-  --transition-normal: 300ms ease;
-  --transition-slow: 500ms ease;
-  
-  /* Ionic Overrides */
-  --ion-background-color: var(--color-bg-primary);
-  --ion-text-color: var(--color-text-primary);
-  --ion-toolbar-background: var(--color-bg-secondary);
-  --ion-toolbar-color: var(--color-text-primary);
-  --ion-item-background: var(--color-bg-card);
-  --ion-card-background: var(--color-bg-card);
-  --ion-tab-bar-background: var(--color-bg-secondary);
-  --ion-tab-bar-color: var(--color-text-secondary);
-  --ion-tab-bar-color-selected: var(--color-neon-purple);
+  --color-bg-card: var(--vault-elevated);
+  --color-bg-input: var(--vault-input);
+  --color-primary: var(--neon-purple);
+  --color-primary-light: #c084fc;
+  --color-primary-dark: var(--neon-purple-deep);
+  --color-primary-glow: var(--neon-purple-glow);
+  --color-secondary: var(--neon-cyan);
+  --color-accent: var(--neon-pink);
+  --color-text-primary: var(--ink-primary);
+  --color-text-secondary: var(--ink-secondary);
+  --color-text-muted: var(--ink-muted);
+  --color-border: var(--border-subtle);
+  --color-neon-purple: var(--neon-purple);
+  --color-neon-cyan: var(--neon-cyan);
+  --color-neon-pink: var(--neon-pink);
+  --color-neon-green: var(--neon-green);
+  --gradient-brand: linear-gradient(135deg, var(--neon-purple) 0%, var(--neon-cyan) 100%);
+  --border-glow: 1px solid var(--border-neon);
+
+  /* Ionic */
+  --ion-background-color: var(--vault-bg);
+  --ion-text-color: var(--ink-primary);
+  --ion-toolbar-background: var(--vault-surface);
+  --ion-toolbar-color: var(--ink-primary);
+  --ion-item-background: var(--vault-elevated);
+  --ion-card-background: var(--vault-elevated);
+  --ion-tab-bar-background: var(--vault-surface);
+  --ion-tab-bar-color: var(--ink-muted);
+  --ion-tab-bar-color-selected: var(--neon-purple);
 }
 
-/* Tailwind Theme Configuration */
 @theme {
-  --color-bg-primary: var(--color-bg-primary);
-  --color-bg-secondary: var(--color-bg-secondary);
-  --color-bg-tertiary: var(--color-bg-tertiary);
-  --color-bg-card: var(--color-bg-card);
-  
-  --color-neon-purple: var(--color-neon-purple);
-  --color-neon-cyan: var(--color-neon-cyan);
-  --color-neon-pink: var(--color-neon-pink);
-  --color-neon-green: var(--color-neon-green);
-  
-  --color-text-primary: var(--color-text-primary);
-  --color-text-secondary: var(--color-text-secondary);
-  --color-text-muted: var(--color-text-muted);
+  --color-bg-primary: var(--vault-bg);
+  --color-bg-secondary: var(--vault-surface);
+  --color-bg-card: var(--vault-elevated);
+  --color-neon-purple: var(--neon-purple);
+  --color-neon-cyan: var(--neon-cyan);
+  --color-neon-pink: var(--neon-pink);
+  --color-neon-green: var(--neon-green);
+  --color-text-primary: var(--ink-primary);
+  --color-text-secondary: var(--ink-secondary);
+  --color-text-muted: var(--ink-muted);
 }
 
-/* Global Styles */
+/* ─── Base ───────────────────────────────────────────────────────── */
+
 * {
   box-sizing: border-box;
 }
@@ -87,54 +118,85 @@ html {
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: var(--color-bg-primary);
-  color: var(--color-text-primary);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background-color: var(--vault-bg);
+  color: var(--ink-primary);
+  line-height: 1.55;
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Scrollbar */
+/* Orbitron: brand wordmark + auth hero only */
+.gaming-font {
+  font-family: "Orbitron", system-ui, sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.text-gradient {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--neon-purple);
+  outline-offset: 2px;
+}
+
+::selection {
+  background-color: var(--neon-purple);
+  color: #fff;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-secondary);
+  background: var(--vault-surface);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-neon-purple);
-  border-radius: 4px;
+  background: var(--neon-purple-deep);
+  border-radius: var(--radius-sm);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9333ea;
+  background: var(--neon-purple);
 }
 
-/* Selection */
-::selection {
-  background-color: var(--color-neon-purple);
-  color: white;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
-/* Ionic Dark Theme Overrides */
+/* ─── Ionic dark overrides ───────────────────────────────────────── */
+
 .dark ion-content {
-  --background: var(--color-bg-primary);
+  --background: var(--vault-bg);
 }
 
 .dark ion-header {
-  --background: var(--color-bg-secondary);
+  --background: var(--vault-surface);
 }
 
 .dark ion-toolbar {
-  --background: var(--color-bg-secondary);
-  --border-color: var(--border-color);
+  --background: var(--vault-surface);
+  --border-color: var(--border-neon);
 }
 
 .dark ion-card {
-  --background: var(--color-bg-card);
+  --background: var(--vault-elevated);
   box-shadow: var(--shadow-card);
   border: var(--border-glow);
 }
@@ -143,194 +205,42 @@ body {
 .dark ion-textarea,
 .dark ion-select {
   --background: transparent;
-  --color: var(--color-text-primary);
-  --placeholder-color: var(--color-text-muted);
+  --color: var(--ink-primary);
+  --placeholder-color: var(--ink-muted);
 }
 
 .dark ion-item:not(.form-item):not(.toggle-item):not(.game-list-item) {
   --background: transparent;
-  --border-color: var(--border-color);
+  --border-color: var(--border-neon);
 }
 
 .dark ion-searchbar:not(.gaming-searchbar) {
-  --background: var(--color-bg-input);
-  --color: var(--color-text-primary);
-  --placeholder-color: var(--color-text-muted);
-  --icon-color: var(--color-text-secondary);
+  --background: var(--vault-input);
+  --color: var(--ink-primary);
+  --placeholder-color: var(--ink-muted);
+  --icon-color: var(--ink-muted);
   --box-shadow: none;
   border: var(--border-glow);
-  border-radius: 12px;
-}
-
-.dark ion-input {
-  --background: var(--color-bg-input);
-  --color: var(--color-text-primary);
-  --placeholder-color: var(--color-text-muted);
-}
-
-/* Force white icons in input items with margin */
-.dark ion-item ion-icon[slot="start"],
-.dark ion-item ion-icon[slot="end"] {
-  color: white !important;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
-}
-
-.dark ion-item ion-icon[slot="start"] {
-  margin-right: 12px;
-}
-
-.dark ion-item ion-icon[slot="end"] {
-  margin-left: 12px;
-}
-
-.dark ion-select {
-  --background: var(--color-bg-input);
-  --color: var(--color-text-primary);
+  border-radius: var(--radius-md);
 }
 
 .dark ion-button {
-  --background: var(--gradient-primary);
-  --color: white;
-  --border-radius: 12px;
-  --box-shadow: var(--shadow-neon-purple);
+  --background: var(--neon-purple);
+  --background-hover: var(--neon-purple-deep);
+  --background-activated: #6d28d9;
+  --color: #fff;
+  --border-radius: var(--radius-md);
   font-weight: 600;
 }
 
 .dark ion-button.button-outline {
   --background: transparent;
-  --color: var(--color-neon-purple);
-  --border-color: var(--color-neon-purple);
-  --border-width: 2px;
+  --color: var(--neon-purple);
+  --border-color: var(--neon-purple);
+  --border-width: 1px;
   --box-shadow: none;
 }
 
 .dark ion-button.button-outline:hover {
-  --background: rgba(168, 85, 247, 0.1);
-}
-
-/* Animation Keyframes */
-@keyframes glow {
-  0%, 100% {
-    box-shadow: 0 0 5px var(--color-neon-purple-glow),
-                0 0 10px var(--color-neon-purple-glow),
-                0 0 20px var(--color-neon-purple-glow);
-  }
-  50% {
-    box-shadow: 0 0 10px var(--color-neon-purple-glow),
-                0 0 20px var(--color-neon-purple-glow),
-                0 0 40px var(--color-neon-purple-glow);
-  }
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-/* Utility Classes */
-.animate-glow {
-  animation: glow 2s ease-in-out infinite;
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-.animate-slide-up {
-  animation: slide-up 0.5s ease-out;
-}
-
-.animate-fade-in {
-  animation: fade-in 0.3s ease-out;
-}
-
-.gaming-card {
-  background: var(--color-bg-card);
-  border: var(--border-glow);
-  border-radius: 16px;
-  box-shadow: var(--shadow-card);
-  transition: all var(--transition-normal);
-}
-
-.gaming-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-neon-purple);
-  border-color: var(--color-neon-purple);
-}
-
-.gaming-gradient-text {
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.gaming-button {
-  background: var(--gradient-primary);
-  border: none;
-  border-radius: 12px;
-  color: white;
-  font-weight: 600;
-  padding: 12px 24px;
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  box-shadow: var(--shadow-neon-purple);
-}
-
-.gaming-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 30px var(--color-neon-purple-glow);
-}
-
-.gaming-input {
-  background: var(--color-bg-input);
-  border: var(--border-glow);
-  border-radius: 12px;
-  color: var(--color-text-primary);
-  padding: 12px 16px;
-  transition: all var(--transition-normal);
-}
-
-.gaming-input:focus {
-  outline: none;
-  border-color: var(--color-neon-purple);
-  box-shadow: 0 0 10px var(--color-neon-purple-glow);
-}
-
-.gaming-input::placeholder {
-  color: var(--color-text-muted);
-}
-
-.neon-border {
-  border: var(--border-glow);
-  transition: all var(--transition-normal);
-}
-
-.neon-border:hover {
-  border-color: var(--color-neon-purple);
-  box-shadow: 0 0 15px var(--color-neon-purple-glow);
+  --background: rgba(168, 85, 247, 0.12);
 }

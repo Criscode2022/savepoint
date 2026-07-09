@@ -1,5 +1,9 @@
 @use './theme/variables.scss';
 @use './app/shared/styles/app-forms.scss';
+@use './app/shared/styles/app-library.scss';
+@use './app/shared/styles/app-detail.scss';
+@use './app/shared/styles/app-profile.scss';
+@use './app/shared/styles/app-history.scss';
 @use './app/shared/styles/app-alerts.scss';
 @use './app/shared/styles/app-action-sheets.scss';
 
@@ -70,7 +74,7 @@
   --ion-color-dark-shade: #12121a;
   --ion-color-dark-tint: #2a2a35;
 
-  --ion-color-medium: #64748b;
+  --ion-color-medium: #94a3b8;
   --ion-color-medium-rgb: 100, 116, 139;
   --ion-color-medium-contrast: #ffffff;
   --ion-color-medium-contrast-rgb: 255, 255, 255;

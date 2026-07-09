@@ -290,7 +290,7 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
     }
 
     .separator {
-      color: #64748b;
+      color: var(--ink-separator);
     }
 
     .year {
@@ -566,6 +566,6 @@ export class GameCardComponent {
   }
 
   getPlatformColor(): string {
-    return this.game.platform.color || '#8b5cf6';
+    return this.game.platform.color || '#a855f7';
   }
 }
