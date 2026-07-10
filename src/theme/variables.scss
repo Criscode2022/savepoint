@@ -10,6 +10,7 @@
   --vault-surface: #12121a;
   --vault-elevated: #151520;
   --vault-input: #0f0f15;
+  --vault-header: rgba(32, 32, 48, 0.88);
 
   /* Accents */
   --neon-purple: #a855f7;
@@ -84,7 +85,7 @@
   /* Ionic */
   --ion-background-color: var(--vault-bg);
   --ion-text-color: var(--ink-primary);
-  --ion-toolbar-background: var(--vault-surface);
+  --ion-toolbar-background: var(--vault-header);
   --ion-toolbar-color: var(--ink-primary);
   --ion-item-background: var(--vault-elevated);
   --ion-card-background: var(--vault-elevated);
@@ -188,12 +189,12 @@ body {
 }
 
 .dark ion-header {
-  --background: var(--vault-surface);
+  --background: var(--vault-header);
 }
 
 .dark ion-toolbar {
-  --background: var(--vault-surface);
-  --border-color: var(--border-neon);
+  --background: var(--vault-header);
+  --border-color: rgba(148, 163, 184, 0.18);
 }
 
 .dark ion-card {

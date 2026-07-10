@@ -542,15 +542,15 @@ ion-toggle {
 .form-toolbar,
 .detail-toolbar,
 .profile-toolbar {
-  --background: rgba(10, 10, 15, 0.92);
-  --border-color: rgba(148, 163, 184, 0.12);
+  --background: var(--vault-header);
+  --border-color: rgba(148, 163, 184, 0.18);
   --padding-top: 0.625rem;
   --padding-bottom: 0.625rem;
   --padding-start: 0;
   --padding-end: 0;
   --min-height: 88px;
   backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
 }
 
 .header-inner {

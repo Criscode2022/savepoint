@@ -1,9 +1,9 @@
 /* ─── Play history page ──────────────────────────────────────────── */
 
 .history-toolbar {
-  --background: rgba(10, 10, 15, 0.92);
+  --background: var(--vault-header);
   --color: var(--ink-primary);
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
 }
 
 .history-content {

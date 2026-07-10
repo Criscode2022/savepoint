@@ -431,56 +431,58 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
               />
             </ion-thumbnail>
 
-            <ion-label class="game-info">
-              <h3 class="game-title">{{ game.title }}</h3>
+            <div class="game-list-content">
+              <ion-label class="game-info">
+                <h3 class="game-title">{{ game.title }}</h3>
 
-              <div class="game-meta-row">
-                <span *ngIf="game.platform.name" class="platform-tag">{{ game.platform.name }}</span>
-                <span *ngIf="game.releaseYear" class="game-year">{{ game.releaseYear }}</span>
-                <span *ngIf="game.rating != null" class="rating-tag">
-                  <app-game-rating
-                    [rating]="game.rating"
-                    [readonly]="true"
-                    size="sm"
-                    [showValue]="false"
-                  />
-                </span>
+                <div class="game-meta-row">
+                  <span *ngIf="game.platform.name" class="platform-tag">{{ game.platform.name }}</span>
+                  <span *ngIf="game.releaseYear" class="game-year">{{ game.releaseYear }}</span>
+                  <span *ngIf="game.rating != null" class="rating-tag">
+                    <app-game-rating
+                      [rating]="game.rating"
+                      [readonly]="true"
+                      size="sm"
+                      [showValue]="false"
+                    />
+                  </span>
+                </div>
+
+                <p class="game-description" *ngIf="game.description">{{ game.description }}</p>
+
+                <p
+                  class="game-secondary"
+                  *ngIf="game.developer.name || game.playtimeHours || (showCountdown && game.status === 'wishlist')"
+                >
+                  <span *ngIf="game.developer.name">{{ game.developer.name }}</span>
+                  <span *ngIf="game.playtimeHours">{{ game.playtimeHours }}h played</span>
+                  <span *ngIf="showCountdown && game.status === 'wishlist'" class="wishlist-countdown">
+                    {{ getCountdownLabel(game) }}
+                  </span>
+                </p>
+              </ion-label>
+
+              <div class="game-status">
+                <ion-badge
+                  [color]="getStatusColor(game.status)"
+                  class="status-badge"
+                  [class.status-badge--disabled]="isWishlistLocked(game)"
+                  (click)="handleStatusClick($event, game)"
+                >
+                  <ion-icon [name]="getStatusIcon(game.status)"></ion-icon>
+                  {{ getStatusLabel(game.status) }}
+                </ion-badge>
+
+                <button
+                  *ngIf="showMarkCompleted(game)"
+                  type="button"
+                  class="play-history-btn mark-completed-btn list-mark-completed-btn"
+                  (click)="handleMarkCompletedClick($event, game.id)"
+                >
+                  <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
+                  <span class="play-history-btn__label">Mark as completed</span>
+                </button>
               </div>
-
-              <p class="game-description" *ngIf="game.description">{{ game.description }}</p>
-
-              <p
-                class="game-secondary"
-                *ngIf="game.developer.name || game.playtimeHours || (showCountdown && game.status === 'wishlist')"
-              >
-                <span *ngIf="game.developer.name">{{ game.developer.name }}</span>
-                <span *ngIf="game.playtimeHours">{{ game.playtimeHours }}h played</span>
-                <span *ngIf="showCountdown && game.status === 'wishlist'" class="wishlist-countdown">
-                  {{ getCountdownLabel(game) }}
-                </span>
-              </p>
-            </ion-label>
-
-            <div class="game-status" slot="end">
-              <ion-badge
-                [color]="getStatusColor(game.status)"
-                class="status-badge"
-                [class.status-badge--disabled]="isWishlistLocked(game)"
-                (click)="handleStatusClick($event, game)"
-              >
-                <ion-icon [name]="getStatusIcon(game.status)"></ion-icon>
-                {{ getStatusLabel(game.status) }}
-              </ion-badge>
-
-              <button
-                *ngIf="showMarkCompleted(game)"
-                type="button"
-                class="play-history-btn mark-completed-btn list-mark-completed-btn"
-                (click)="handleMarkCompletedClick($event, game.id)"
-              >
-                <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
-                <span class="play-history-btn__label">Mark as completed</span>
-              </button>
             </div>
           </ion-item>
         </ng-template>
