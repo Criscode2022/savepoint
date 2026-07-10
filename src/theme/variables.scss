@@ -59,6 +59,12 @@
   --transition-fast: 150ms var(--ease-out);
   --transition-normal: 250ms var(--ease-out);
 
+  /* Responsive tiers: mobile ≤639px, tablet 640–1023px, laptop ≥1024px */
+  --bp-mobile-max: 639px;
+  --bp-tablet-min: 640px;
+  --bp-tablet-max: 1023px;
+  --bp-laptop-min: 1024px;
+
   /* Legacy aliases (existing components) */
   --color-bg-primary: var(--vault-bg);
   --color-bg-secondary: var(--vault-surface);

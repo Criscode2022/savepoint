@@ -536,7 +536,7 @@
   font-weight: 600;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1023px) {
   .content-layout {
     grid-template-columns: 1fr;
   }
@@ -546,7 +546,7 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 639px) {
   .detail-page {
     padding-inline: 1rem;
   }

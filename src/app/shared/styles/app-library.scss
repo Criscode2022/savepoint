@@ -573,7 +573,7 @@
   cursor: not-allowed;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 639px) {
   .game-list-item .game-thumbnail {
     --size: 68px;
     margin-inline-end: 0.75rem;
@@ -581,30 +581,6 @@
 
   .game-list-item .game-title {
     font-size: 0.9375rem;
-  }
-
-  .game-list-content {
-    align-items: flex-start;
-  }
-
-  .game-list-item ion-label.game-info {
-    flex: 1 1 100%;
-    width: 100%;
-  }
-
-  .game-list-item .game-status {
-    flex: 1 1 100%;
-    width: 100%;
-    min-width: 0;
-    align-self: stretch;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .game-list-item .list-mark-completed-btn {
-    flex: 1 1 auto;
-    min-width: 0;
   }
 }
 
@@ -729,7 +705,7 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 639px) {
   .search-section {
     padding: 0.75rem;
   }
@@ -782,6 +758,30 @@
   .games-grid {
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 1.25rem;
+  }
+
+  .game-list-content {
+    align-items: flex-start;
+  }
+
+  .game-list-item ion-label.game-info {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .game-list-item .game-status {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    align-self: stretch;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .game-list-item .list-mark-completed-btn {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 }
 

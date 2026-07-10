@@ -421,23 +421,3 @@
     padding-inline: 1rem;
   }
 }
-
-@media (min-width: 768px) {
-  .profile-header {
-    padding: 1.5rem 1.375rem;
-    gap: 1.5rem;
-  }
-
-  .profile-avatar {
-    width: 96px;
-    height: 96px;
-  }
-
-  .profile-name {
-    font-size: 1.5rem;
-  }
-
-  .stat-value {
-    font-size: 1.625rem;
-  }
-}
