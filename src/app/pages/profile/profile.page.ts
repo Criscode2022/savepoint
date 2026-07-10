@@ -19,15 +19,17 @@ import { AuthUser } from '../../models/auth.model';
 import { Game, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
 import { Subject, takeUntil } from 'rxjs';
 
+import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
+
 @Component({
   selector: 'app-profile',
   standalone: true,
   imports: [
-    CommonModule, RouterLink,
+    CommonModule, RouterLink, GameCoverComponent,
     IonContent, IonHeader, IonToolbar, IonButton,
     IonIcon, IonCard, IonCardHeader, IonCardTitle, IonCardContent,
-    IonAvatar, IonItem, IonLabel, IonGrid, IonRow, IonCol, IonBadge,
-    IonProgressBar, IonList, IonToast
+    IonAvatar, IonGrid, IonRow, IonCol,
+    IonProgressBar, IonToast
   ],
   template: `
     <ion-header class="ion-no-border">
@@ -62,25 +64,34 @@ import { Subject, takeUntil } from 'rxjs';
     <ion-content class="profile-content">
       <div class="profile-container" *ngIf="user">
         <!-- Profile Header -->
-        <div class="profile-header">
+        <header class="profile-header">
           <ion-avatar class="profile-avatar">
-            <img 
-              [src]="user.avatarUrl || '/assets/images/default-avatar.png'" 
+            <img
+              *ngIf="user.avatarUrl && !avatarLoadFailed"
+              [src]="user.avatarUrl"
               [alt]="user.username || user.email"
+              (error)="avatarLoadFailed = true"
             />
+            <div
+              *ngIf="!user.avatarUrl || avatarLoadFailed"
+              class="profile-avatar-fallback"
+              aria-hidden="true"
+            >
+              <ion-icon name="person-outline"></ion-icon>
+            </div>
           </ion-avatar>
-          
+
           <div class="profile-info">
             <h1 class="profile-name">{{ user.username || 'Gamer' }}</h1>
             <p class="profile-email">{{ user.email }}</p>
             <div class="profile-badges">
-              <ion-badge class="level-badge" color="primary">
-                <ion-icon name="trophy-outline"></ion-icon>
+              <span class="level-badge">
+                <ion-icon name="trophy-outline" aria-hidden="true"></ion-icon>
                 Level {{ userLevel }}
-              </ion-badge>
+              </span>
             </div>
           </div>
-        </div>
+        </header>
 
         <!-- Stats Grid -->
         <ion-grid class="stats-grid">
@@ -136,54 +147,57 @@ import { Subject, takeUntil } from 'rxjs';
         </ion-grid>
 
         <!-- Progress Section -->
-        <ion-card class="progress-card">
+        <ion-card class="profile-card progress-card">
           <ion-card-header>
             <ion-card-title>Collection Progress</ion-card-title>
           </ion-card-header>
           <ion-card-content>
             <div class="progress-item">
               <div class="progress-header">
-                <span>Completion Rate</span>
+                <span>Completion rate</span>
                 <span class="progress-value">{{ completionRate }}%</span>
               </div>
-              <ion-progress-bar [value]="completionRate" color="success"></ion-progress-bar>
+              <ion-progress-bar [value]="completionRate / 100" color="success"></ion-progress-bar>
             </div>
           </ion-card-content>
         </ion-card>
 
         <!-- Recent Games -->
-        <ion-card class="recent-games-card" *ngIf="recentGames.length > 0">
+        <ion-card class="profile-card recent-games-card">
           <ion-card-header>
             <ion-card-title>Recently Added</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            <ion-list lines="none">
-              <ion-item *ngFor="let game of recentGames" [routerLink]="['/game', game.id]" lines="none">
-                <ion-avatar slot="start">
-                  <img [src]="game.coverImage || '/assets/images/game-placeholder.jpg'" />
-                </ion-avatar>
-                <ion-label>
-                  <h3>{{ game.title }}</h3>
-                  <p>{{ game.platform.name || 'Unknown' }} • {{ game.releaseYear }}</p>
-                </ion-label>
-                <ion-badge slot="end" [color]="getStatusColor(game.status)">
+            <div class="recent-games-list" *ngIf="recentGames.length > 0; else noRecentGames">
+              <a
+                *ngFor="let game of recentGames"
+                class="recent-game-row"
+                [routerLink]="['/game', game.id]"
+              >
+                <div class="recent-game-row__thumb">
+                  <app-game-cover
+                    [title]="game.title"
+                    [coverImage]="game.coverImage"
+                    variant="thumbnail"
+                  ></app-game-cover>
+                </div>
+                <div class="recent-game-row__body">
+                  <h3 class="recent-game-row__title">{{ game.title }}</h3>
+                  <p class="recent-game-row__meta">
+                    {{ game.platform.name || 'Unknown' }} · {{ game.releaseYear }}
+                  </p>
+                </div>
+                <span
+                  class="recent-game-row__status"
+                  [class]="'recent-game-row__status--' + game.status"
+                >
                   {{ getStatusLabel(game.status) }}
-                </ion-badge>
-              </ion-item>
-            </ion-list>
-          </ion-card-content>
-        </ion-card>
-
-        <!-- Account Actions -->
-        <ion-card class="actions-card">
-          <ion-card-header>
-            <ion-card-title>Account</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <ion-button expand="block" fill="clear" (click)="logout()" color="danger">
-              <ion-icon name="log-out-outline" slot="start"></ion-icon>
-              Sign Out
-            </ion-button>
+                </span>
+              </a>
+            </div>
+            <ng-template #noRecentGames>
+              <p class="profile-empty-note">No games in your collection yet.</p>
+            </ng-template>
           </ion-card-content>
         </ion-card>
       </div>
@@ -203,6 +217,7 @@ export class ProfilePage implements OnInit {
   user: AuthUser | null = null;
   games: Game[] = [];
   recentGames: Game[] = [];
+  avatarLoadFailed = false;
   
   toastMessage = '';
   toastColor: 'success' | 'danger' = 'success';
@@ -241,10 +256,14 @@ export class ProfilePage implements OnInit {
     this.gameService.games$.pipe(takeUntil(this.destroy$))
       .subscribe(games => {
         this.games = games;
-        this.recentGames = games.slice(0, 5);
+        this.recentGames = [...games]
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          )
+          .slice(0, 5);
       });
-    
-    // Trigger initial load
+
     this.gameService.getGames().pipe(takeUntil(this.destroy$)).subscribe();
   }
 
@@ -262,16 +281,6 @@ export class ProfilePage implements OnInit {
 
   getStatusLabel(status: GamePlayStatus): string {
     return GAME_STATUS_LABELS[status];
-  }
-
-  getStatusColor(status: GamePlayStatus): string {
-    const colors: Record<GamePlayStatus, string> = {
-      not_started: 'medium',
-      playing: 'primary',
-      completed: 'success',
-      wishlist: 'tertiary',
-    };
-    return colors[status];
   }
 
   get totalHours(): number {

@@ -836,15 +836,15 @@ ion-toggle {
 .recent-games-card ion-item,
 .game-list-item {
   --background: rgba(15, 15, 28, 0.95);
-  --padding-start: 14px;
-  --padding-end: 14px;
-  --padding-top: 12px;
-  --padding-bottom: 12px;
-  --inner-padding-end: 8px;
-  --min-height: 72px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 14px;
+  --padding-bottom: 14px;
+  --inner-padding-end: 12px;
+  --min-height: 88px;
   border: 1px solid rgba(148, 163, 184, 0.12);
   border-radius: 14px;
-  margin-bottom: 0.625rem;
+  margin-bottom: 0.75rem;
 }
 
 .recent-games-card ion-item h3,
@@ -855,7 +855,8 @@ ion-toggle {
 
 .recent-games-card ion-item p,
 .game-list-item .game-meta,
-.game-list-item .game-details {
+.game-list-item .game-description,
+.game-list-item .game-secondary {
   color: #94a3b8;
 }
 

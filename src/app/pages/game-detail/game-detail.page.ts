@@ -137,24 +137,87 @@ import { canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
       <div class="detail-page">
         <section class="content-section">
           <div class="content-layout">
-            <ion-card class="info-card">
-              <ion-card-content>
-                <h2 class="section-title">About</h2>
-                <p class="description" *ngIf="game.description; else noDescription">{{ game.description }}</p>
-                <ng-template #noDescription>
-                  <p class="description empty">No description added yet.</p>
-                </ng-template>
-
-                <div class="genres-section" *ngIf="game.genre?.length">
-                  <h3 class="subsection-title">Genres</h3>
-                  <div class="genre-chips">
-                    <ion-chip *ngFor="let genre of game.genre" class="genre-chip">
-                      {{ genre }}
-                    </ion-chip>
+            <div class="main-column">
+              <section class="detail-stats" aria-label="Game overview">
+                <article class="detail-stat-card">
+                  <div class="detail-stat-card__icon detail-stat-card__icon--rating">
+                    <ion-icon name="star-outline" aria-hidden="true"></ion-icon>
                   </div>
-                </div>
-              </ion-card-content>
-            </ion-card>
+                  <div class="detail-stat-card__body">
+                    <span class="detail-stat-card__value">{{ getRatingDisplay() }}</span>
+                    <span class="detail-stat-card__label">Your rating</span>
+                  </div>
+                </article>
+
+                <article class="detail-stat-card">
+                  <div class="detail-stat-card__icon detail-stat-card__icon--playtime">
+                    <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+                  </div>
+                  <div class="detail-stat-card__body">
+                    <span class="detail-stat-card__value">{{ getPlaytimeDisplay() }}</span>
+                    <span class="detail-stat-card__label">Playtime</span>
+                  </div>
+                </article>
+
+                <article class="detail-stat-card">
+                  <div class="detail-stat-card__icon detail-stat-card__icon--sessions">
+                    <ion-icon name="game-controller-outline" aria-hidden="true"></ion-icon>
+                  </div>
+                  <div class="detail-stat-card__body">
+                    <span class="detail-stat-card__value">{{ playSessions.length }}</span>
+                    <span class="detail-stat-card__label">Sessions</span>
+                  </div>
+                </article>
+
+                <article class="detail-stat-card">
+                  <div class="detail-stat-card__icon detail-stat-card__icon--tracked">
+                    <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon>
+                  </div>
+                  <div class="detail-stat-card__body">
+                    <span class="detail-stat-card__value">{{ getTrackedMinutesDisplay() }}</span>
+                    <span class="detail-stat-card__label">Tracked time</span>
+                  </div>
+                </article>
+              </section>
+
+              <ion-card class="info-card">
+                <ion-card-content>
+                  <h2 class="section-title">About</h2>
+                  <p class="description" *ngIf="game.description; else noDescription">{{ game.description }}</p>
+                  <ng-template #noDescription>
+                    <p class="description empty">No description added yet.</p>
+                  </ng-template>
+
+                  <div class="genres-section" *ngIf="game.genre?.length">
+                    <h3 class="subsection-title">Genres</h3>
+                    <div class="genre-chips">
+                      <ion-chip *ngFor="let genre of game.genre" class="genre-chip">
+                        {{ genre }}
+                      </ion-chip>
+                    </div>
+                  </div>
+                </ion-card-content>
+              </ion-card>
+
+              <ion-card class="timeline-card">
+                <ion-card-content>
+                  <h2 class="section-title">Library timeline</h2>
+                  <ol class="timeline-list">
+                    <li class="timeline-entry" *ngFor="let event of getTimelineEvents()">
+                      <div class="timeline-entry__content">
+                        <div class="timeline-entry__icon">
+                          <ion-icon [name]="event.icon" aria-hidden="true"></ion-icon>
+                        </div>
+                        <div class="timeline-entry__text">
+                          <span class="timeline-entry__label">{{ event.label }}</span>
+                          <time class="timeline-entry__date">{{ event.date | date:'mediumDate' }}</time>
+                        </div>
+                      </div>
+                    </li>
+                  </ol>
+                </ion-card-content>
+              </ion-card>
+            </div>
 
             <aside class="sidebar">
               <ion-card class="stats-card">
@@ -419,6 +482,76 @@ export class GameDetailPage implements OnInit {
     if (!this.game) return null;
     const hours = this.game.playtimeHours ?? this.game.playtime;
     return hours != null && hours > 0 ? hours : null;
+  }
+
+  getRatingDisplay(): string {
+    return this.game?.rating != null ? `${this.game.rating}/10` : '—';
+  }
+
+  getPlaytimeDisplay(): string {
+    const hours = this.getPlaytime();
+    return hours != null ? `${hours}h` : '0h';
+  }
+
+  getTrackedMinutesDisplay(): string {
+    const totalMinutes = this.playSessions.reduce(
+      (sum, session) => sum + (session.durationMinutes ?? 0),
+      0,
+    );
+
+    if (totalMinutes <= 0) {
+      return '0m';
+    }
+
+    if (totalMinutes < 60) {
+      return `${totalMinutes}m`;
+    }
+
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+
+  getTimelineEvents(): Array<{ label: string; date: string; icon: string }> {
+    if (!this.game) {
+      return [];
+    }
+
+    const events: Array<{ label: string; date: string; icon: string }> = [
+      {
+        label: 'Added to library',
+        date: this.game.createdAt,
+        icon: 'game-controller-outline',
+      },
+    ];
+
+    if (this.game.startedAt) {
+      events.push({
+        label: 'Started playing',
+        date: this.game.startedAt,
+        icon: 'time-outline',
+      });
+    }
+
+    if (this.game.lastPlayedAt) {
+      events.push({
+        label: 'Last played',
+        date: this.game.lastPlayedAt,
+        icon: 'time-outline',
+      });
+    }
+
+    if (this.game.completedAt) {
+      events.push({
+        label: 'Completed',
+        date: this.game.completedAt,
+        icon: 'checkmark-circle-outline',
+      });
+    }
+
+    return events.sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
   }
 
   async deleteGame(): Promise<void> {

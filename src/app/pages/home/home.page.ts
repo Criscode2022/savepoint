@@ -6,7 +6,7 @@ import { Subject, takeUntil, debounceTime, distinctUntilChanged, forkJoin, take 
 import { 
   IonContent, IonHeader, IonToolbar, IonButton,
   IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
-  IonBadge, IonList, IonItem, IonThumbnail,
+  IonBadge, IonList, IonItem, IonThumbnail, IonLabel,
   IonSelect, IonSelectOption, IonToast, IonSpinner, AlertController, ViewWillEnter
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -14,7 +14,8 @@ import {
   gameControllerOutline, addOutline, searchOutline, filterOutline,
   logOutOutline, gridOutline, listOutline,
   starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
-  closeOutline, imageOutline, chevronForwardOutline, heartOutline, ellipseOutline
+  closeOutline, imageOutline, chevronForwardOutline, heartOutline, ellipseOutline,
+  personCircleOutline
 } from 'ionicons/icons';
 import { Game, GameFilters, PLATFORMS, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
 import { formatReleaseCountdown, canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
@@ -32,7 +33,7 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
     CommonModule, FormsModule, RouterLink, GameCardComponent, GameCoverComponent,
     IonContent, IonHeader, IonToolbar, IonButton,
     IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
-    IonBadge, IonList, IonItem, IonThumbnail,
+    IonBadge, IonList, IonItem, IonThumbnail, IonLabel,
     IonSelect, IonSelectOption, IonToast, IonSpinner
   ],
   template: `
@@ -126,6 +127,13 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
             <span class="wishlist-nav-btn__count">{{ wishlistGames.length }}</span>
             <ion-icon name="chevron-forward-outline" class="wishlist-nav-btn__chevron" aria-hidden="true"></ion-icon>
           </button>
+
+          <a routerLink="/profile" class="profile-nav-btn">
+            <ion-icon name="person-circle-outline" aria-hidden="true"></ion-icon>
+            <span class="profile-nav-btn__label">Profile</span>
+            <span class="profile-nav-btn__count">{{ totalCollectionCount }}</span>
+            <ion-icon name="chevron-forward-outline" class="profile-nav-btn__chevron" aria-hidden="true"></ion-icon>
+          </a>
 
           <!-- Library filters -->
           <div class="stats-bar" role="group" aria-label="Library filters">
@@ -387,24 +395,31 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
               />
             </ion-thumbnail>
 
-            <div class="game-info">
+            <ion-label class="game-info">
               <h3 class="game-title">{{ game.title }}</h3>
-              <p class="game-meta">
+
+              <div class="game-meta-row">
                 <span *ngIf="game.platform.name" class="platform-tag">{{ game.platform.name }}</span>
-                <span *ngIf="game.releaseYear">{{ game.releaseYear }}</span>
+                <span *ngIf="game.releaseYear" class="game-year">{{ game.releaseYear }}</span>
                 <span *ngIf="game.rating" class="rating-tag">
-                  <ion-icon name="star-outline" class="star-icon"></ion-icon>
+                  <ion-icon name="star-outline" class="star-icon" aria-hidden="true"></ion-icon>
                   {{ game.rating }}
                 </span>
-              </p>
-              <p class="game-details" *ngIf="game.developer.name || game.playtimeHours || (showCountdown && game.status === 'wishlist')">
+              </div>
+
+              <p class="game-description" *ngIf="game.description">{{ game.description }}</p>
+
+              <p
+                class="game-secondary"
+                *ngIf="game.developer.name || game.playtimeHours || (showCountdown && game.status === 'wishlist')"
+              >
                 <span *ngIf="game.developer.name">{{ game.developer.name }}</span>
                 <span *ngIf="game.playtimeHours">{{ game.playtimeHours }}h played</span>
                 <span *ngIf="showCountdown && game.status === 'wishlist'" class="wishlist-countdown">
                   {{ getCountdownLabel(game) }}
                 </span>
               </p>
-            </div>
+            </ion-label>
 
             <div class="game-status" slot="end">
               <ion-badge
@@ -507,7 +522,8 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       gameControllerOutline, addOutline, searchOutline, filterOutline,
       logOutOutline, gridOutline, listOutline,
       starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
-      closeOutline, imageOutline, chevronForwardOutline, heartOutline, ellipseOutline
+      closeOutline, imageOutline, chevronForwardOutline, heartOutline, ellipseOutline,
+      personCircleOutline
     });
   }
 
@@ -806,6 +822,10 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
 
   get libraryGamesCount(): number {
     return this.libraryGames.length;
+  }
+
+  get totalCollectionCount(): number {
+    return this.libraryGamesCount + this.wishlistGames.length;
   }
 
   get displayGames(): Game[] {
