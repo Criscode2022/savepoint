@@ -28,6 +28,7 @@ import { DatabaseService } from "./database.service";
 import { DirectorService } from "./director.service";
 import { PlatformService } from "./platform.service";
 import { canAddWishlistToLibrary } from "../shared/utils/release-countdown";
+import { statusChangeClearsPlayHistory } from "../shared/utils/game-status.utils";
 
 // Database row types
 interface DbGame {
@@ -600,12 +601,46 @@ export class GameService {
       return throwError(() => new Error("No fields to update"));
     }
 
+    const existing =
+      this.gamesSubject.value.find((g) => g.id === id) ??
+      this.filteredGames().find((g) => g.id === id);
+    const shouldClearPlayHistory =
+      game.status === "not_started" &&
+      existing != null &&
+      statusChangeClearsPlayHistory(existing.status, "not_started");
+
+    if (shouldClearPlayHistory) {
+      data["started_at"] = null;
+      data["last_played_at"] = null;
+      data["completed_at"] = null;
+      data["playtime_hours"] = 0;
+    }
+
+    const previousStatus = existing?.status;
+    const statusChanged =
+      game.status !== undefined &&
+      previousStatus !== undefined &&
+      game.status !== previousStatus;
+
     return this.db.updateById<DbGame>("games", id, data).pipe(
       switchMap((result: DbGame | undefined) => {
         if (!result) {
           throw new Error("Game not found or access denied");
         }
         return this.getGameById(id);
+      }),
+      switchMap((updatedGame) => {
+        if (shouldClearPlayHistory) {
+          return this.clearPlaySessions(id).pipe(map(() => updatedGame));
+        }
+
+        if (statusChanged && game.status) {
+          return this.syncPlaySession(updatedGame, game.status).pipe(
+            map(() => updatedGame),
+          );
+        }
+
+        return of(updatedGame);
       }),
       tap((updatedGame) => {
         const games = this.gamesSubject.value.map((game) =>
@@ -686,6 +721,7 @@ export class GameService {
   }
 
   private applyStatusChange(game: Game, status: GamePlayStatus): Observable<Game> {
+    const previousStatus = game.status;
     const now = new Date().toISOString();
     const update: UpdateGameRequest = {
       status,
@@ -696,6 +732,8 @@ export class GameService {
       update.startedAt = game.startedAt || now;
       update.lastPlayedAt = now;
       update.completedAt = null;
+    } else if (status === "paused") {
+      update.completedAt = null;
     } else if (status === "completed") {
       update.completedAt = now;
       update.lastPlayedAt = now;
@@ -704,14 +742,25 @@ export class GameService {
       }
     } else if (status === "wishlist") {
       update.completedAt = null;
+    } else if (statusChangeClearsPlayHistory(previousStatus, status)) {
+      update.completedAt = null;
+      update.startedAt = null;
+      update.lastPlayedAt = null;
+      update.playtimeHours = 0;
     } else {
       update.completedAt = null;
     }
 
     return this.updateGame(game.id, update).pipe(
-      switchMap((updatedGame) =>
-        this.syncPlaySession(updatedGame, status).pipe(map(() => updatedGame)),
-      ),
+      switchMap((updatedGame) => {
+        if (statusChangeClearsPlayHistory(previousStatus, status)) {
+          return of(updatedGame);
+        }
+
+        return this.syncPlaySession(updatedGame, status).pipe(
+          map(() => updatedGame),
+        );
+      }),
     );
   }
 
@@ -776,9 +825,20 @@ export class GameService {
       if (request.startedAt === undefined && !existing?.startedAt) {
         data["started_at"] = now;
       }
+    } else if (status === "paused") {
+      if (request.completedAt === undefined) {
+        data["completed_at"] = null;
+      }
     } else if (request.completedAt === undefined) {
       data["completed_at"] = null;
     }
+  }
+
+  private clearPlaySessions(gameId: string): Observable<void> {
+    return this.db.delete("play_sessions", { game_id: gameId }).pipe(
+      map(() => undefined),
+      catchError(() => of(undefined)),
+    );
   }
 
   private syncPlaySession(
@@ -803,7 +863,7 @@ export class GameService {
         );
     }
 
-    if (status === "completed") {
+    if (status === "paused" || status === "completed") {
       return this.closeOpenPlaySession(game.id);
     }
 

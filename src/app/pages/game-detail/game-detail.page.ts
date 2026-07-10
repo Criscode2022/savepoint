@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { 
@@ -11,12 +11,16 @@ import {
   arrowBackOutline, starOutline, timeOutline, calendarOutline,
   businessOutline, personOutline, gameControllerOutline,
   checkmarkCircleOutline, createOutline, trashOutline, ellipseOutline, heartOutline,
-  chevronDownOutline
+  chevronDownOutline, pauseCircleOutline
 } from 'ionicons/icons';
 import { Game, GAME_STATUS_LABELS, GamePlayStatus, PlaySession } from '../../models/game.model';
 import { GameService } from '../../services/game.service';
 import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
 import { canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
+import {
+  confirmResetPlayHistory,
+  statusChangeClearsPlayHistory,
+} from '../../shared/utils/game-status.utils';
 
 @Component({
   selector: 'app-game-detail',
@@ -322,6 +326,8 @@ import { canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
   `,
 })
 export class GameDetailPage implements OnInit {
+  @ViewChild('statusSelect') statusSelect?: IonSelect;
+
   game: Game | null = null;
   playSessions: PlaySession[] = [];
   statusSheetOptions = {
@@ -341,7 +347,7 @@ export class GameDetailPage implements OnInit {
       arrowBackOutline, starOutline, timeOutline, calendarOutline,
       businessOutline, personOutline, gameControllerOutline,
       checkmarkCircleOutline, createOutline, trashOutline, ellipseOutline, heartOutline,
-      chevronDownOutline
+      chevronDownOutline, pauseCircleOutline
     });
   }
 
@@ -388,18 +394,51 @@ export class GameDetailPage implements OnInit {
     return !!this.game && this.game.status === 'wishlist' && !canAddWishlistToLibrary(this.game);
   }
 
-  onStatusSelect(event: CustomEvent): void {
+  async onStatusSelect(event: CustomEvent): Promise<void> {
     const status = event.detail.value as GamePlayStatus;
+    const previousStatus = this.game?.status;
+
     if (
       !status ||
       !this.game ||
-      status === this.game.status ||
+      !previousStatus ||
+      status === previousStatus ||
       !this.getAvailableStatusOptions().includes(status)
     ) {
       return;
     }
 
-    this.setStatus(status);
+    if (statusChangeClearsPlayHistory(previousStatus, status)) {
+      const confirmed = await confirmResetPlayHistory(this.alertController);
+      if (!confirmed) {
+        this.resetStatusSelect(previousStatus);
+        return;
+      }
+    }
+
+    this.applyStatus(status);
+  }
+
+  private resetStatusSelect(status: GamePlayStatus): void {
+    if (this.statusSelect) {
+      this.statusSelect.value = status;
+    }
+  }
+
+  private applyStatus(status: GamePlayStatus): void {
+    if (!this.game || this.game.status === status) return;
+
+    this.gameService.setStatus(this.game.id, status, this.game).subscribe({
+      next: (updatedGame) => {
+        this.game = updatedGame;
+        this.loadPlaySessions(updatedGame.id);
+        this.showToast(`${this.getStatusLabel(status)} status saved`, 'success');
+      },
+      error: () => {
+        this.resetStatusSelect(this.game!.status);
+        this.showToast('Failed to update status', 'danger');
+      },
+    });
   }
 
   getAvailableStatusOptions(): GamePlayStatus[] {
@@ -408,10 +447,10 @@ export class GameDetailPage implements OnInit {
         return ['wishlist'];
       }
 
-      return ['not_started', 'playing', 'completed'];
+      return ['not_started', 'playing', 'paused', 'completed'];
     }
 
-    const options: GamePlayStatus[] = ['not_started', 'playing', 'completed', 'wishlist'];
+    const options: GamePlayStatus[] = ['not_started', 'playing', 'paused', 'completed', 'wishlist'];
     if (this.hasBeenPlayed()) {
       return options.filter((status) => status !== 'wishlist');
     }
@@ -423,6 +462,7 @@ export class GameDetailPage implements OnInit {
 
     return (
       this.game.status === 'playing' ||
+      this.game.status === 'paused' ||
       this.game.status === 'completed' ||
       !!this.game.startedAt ||
       !!this.game.lastPlayedAt ||
@@ -433,18 +473,20 @@ export class GameDetailPage implements OnInit {
   }
 
   setStatus(status: GamePlayStatus): void {
+    void this.applyStatusWithConfirmation(status);
+  }
+
+  private async applyStatusWithConfirmation(status: GamePlayStatus): Promise<void> {
     if (!this.game || this.game.status === status) return;
 
-    this.gameService.setStatus(this.game.id, status, this.game).subscribe({
-      next: (updatedGame) => {
-        this.game = updatedGame;
-        this.loadPlaySessions(updatedGame.id);
-        this.showToast(`${this.getStatusLabel(status)} status saved`, 'success');
-      },
-      error: () => {
-        this.showToast('Failed to update status', 'danger');
-      },
-    });
+    if (statusChangeClearsPlayHistory(this.game.status, status)) {
+      const confirmed = await confirmResetPlayHistory(this.alertController);
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    this.applyStatus(status);
   }
 
   getStatusLabel(status: GamePlayStatus): string {
@@ -455,6 +497,7 @@ export class GameDetailPage implements OnInit {
     const icons: Record<GamePlayStatus, string> = {
       not_started: 'ellipse-outline',
       playing: 'time-outline',
+      paused: 'pause-circle-outline',
       completed: 'checkmark-circle-outline',
       wishlist: 'heart-outline',
     };

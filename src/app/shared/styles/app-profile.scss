@@ -338,6 +338,12 @@
   color: #e9d5ff;
 }
 
+.recent-game-row__status--paused {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.28);
+  color: #fde68a;
+}
+
 .recent-game-row__status--completed {
   background: rgba(34, 197, 94, 0.14);
   border-color: rgba(34, 197, 94, 0.28);

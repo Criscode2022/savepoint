@@ -27,19 +27,21 @@ export interface Director {
   createdAt: string;
 }
 
-export type GamePlayStatus = 'not_started' | 'playing' | 'completed' | 'wishlist';
+export type GamePlayStatus = 'not_started' | 'playing' | 'paused' | 'completed' | 'wishlist';
 
 export const GAME_STATUS_LABELS: Record<GamePlayStatus, string> = {
   not_started: 'Not Started',
   playing: 'Playing',
+  paused: 'Paused',
   completed: 'Completed',
   wishlist: 'Wishlist',
 };
 
 export const GAME_STATUS_CYCLE: Record<GamePlayStatus, GamePlayStatus> = {
   not_started: 'playing',
-  playing: 'completed',
-  completed: 'not_started',
+  playing: 'paused',
+  paused: 'playing',
+  completed: 'playing',
   wishlist: 'not_started',
 };
 
@@ -50,6 +52,7 @@ export function deriveGameStatus(game: {
   if (
     game.status === 'not_started' ||
     game.status === 'playing' ||
+    game.status === 'paused' ||
     game.status === 'completed' ||
     game.status === 'wishlist'
   ) {

@@ -15,16 +15,20 @@ import {
   logOutOutline, gridOutline, listOutline,
   starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
   closeOutline, imageOutline, chevronForwardOutline, heartOutline, ellipseOutline,
-  personCircleOutline
+  personCircleOutline, pauseCircleOutline
 } from 'ionicons/icons';
-import { Game, GameFilters, PLATFORMS, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
+import { Game, GameFilters, PLATFORMS, GAME_STATUS_LABELS, GamePlayStatus, GAME_STATUS_CYCLE } from '../../models/game.model';
 import { formatReleaseCountdown, canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
+import {
+  confirmResetPlayHistory,
+  statusChangeClearsPlayHistory,
+} from '../../shared/utils/game-status.utils';
 import { GameService } from '../../services/game.service';
 import { AuthService } from '../../services/auth.service';
 import { GameCardComponent } from '../../components/game-card/game-card.component';
 import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
 
-type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'with_playtime';
+type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'completed' | 'with_playtime';
 
 @Component({
   selector: 'app-home',
@@ -175,6 +179,19 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
             >
               <ion-icon name="time-outline"></ion-icon>
               <span>{{ playingCount }} playing</span>
+            </button>
+            <button
+              type="button"
+              class="stat-item"
+              [class.stat-item--clickable]="pausedCount > 0"
+              [class.stat-item--active]="isLibraryFilterActive('paused')"
+              [disabled]="pausedCount === 0"
+              (click)="setLibraryFilter('paused')"
+              [attr.aria-pressed]="isLibraryFilterActive('paused')"
+              [attr.aria-label]="pausedCount > 0 ? 'Filter by paused games' : null"
+            >
+              <ion-icon name="pause-circle-outline"></ion-icon>
+              <span>{{ pausedCount }} paused</span>
             </button>
             <button
               type="button"
@@ -332,6 +349,7 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
             *ngFor="let game of displayGames; trackBy: trackByGameId"
             [game]="game"
             (onToggleCompleted)="cycleStatus($event)"
+            (onMarkCompleted)="markCompleted($event)"
             (onDelete)="deleteGame($event)"
             class="game-card-wrapper"
           ></app-game-card>
@@ -370,6 +388,7 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
               [game]="game"
               [countdownTick]="countdownTick"
               (onToggleCompleted)="cycleStatus($event)"
+              (onMarkCompleted)="markCompleted($event)"
               (onDelete)="deleteGame($event)"
               class="game-card-wrapper"
             ></app-game-card>
@@ -431,6 +450,16 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'completed' | 'wi
                 <ion-icon [name]="getStatusIcon(game.status)"></ion-icon>
                 {{ getStatusLabel(game.status) }}
               </ion-badge>
+
+              <button
+                *ngIf="showMarkCompleted(game)"
+                type="button"
+                class="play-history-btn mark-completed-btn list-mark-completed-btn"
+                (click)="handleMarkCompletedClick($event, game.id)"
+              >
+                <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
+                <span class="play-history-btn__label">Mark as completed</span>
+              </button>
             </div>
           </ion-item>
         </ng-template>
@@ -523,7 +552,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       logOutOutline, gridOutline, listOutline,
       starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
       closeOutline, imageOutline, chevronForwardOutline, heartOutline, ellipseOutline,
-      personCircleOutline
+      personCircleOutline, pauseCircleOutline
     });
   }
 
@@ -751,6 +780,16 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.cycleStatus(game.id);
   }
 
+  handleMarkCompletedClick(event: Event, gameId: string): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.markCompleted(gameId);
+  }
+
+  showMarkCompleted(game: Game): boolean {
+    return game.status === 'playing' || game.status === 'paused';
+  }
+
   cycleStatus(gameId: string): void {
     const game =
       this.games.find((g) => g.id === gameId) ??
@@ -760,6 +799,27 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       return;
     }
 
+    const nextStatus = game ? GAME_STATUS_CYCLE[game.status] : undefined;
+    if (
+      game &&
+      nextStatus &&
+      statusChangeClearsPlayHistory(game.status, nextStatus)
+    ) {
+      void this.confirmAndCycleStatus(gameId);
+      return;
+    }
+
+    this.performCycleStatus(gameId);
+  }
+
+  private async confirmAndCycleStatus(gameId: string): Promise<void> {
+    const confirmed = await confirmResetPlayHistory(this.alertController);
+    if (confirmed) {
+      this.performCycleStatus(gameId);
+    }
+  }
+
+  private performCycleStatus(gameId: string): void {
     this.gameService.cycleStatus(gameId).subscribe({
       next: () => {
         this.syncLibraryFilter();
@@ -768,6 +828,18 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       error: () => {
         this.showToast('Failed to update game', 'danger');
       }
+    });
+  }
+
+  markCompleted(gameId: string): void {
+    this.gameService.setStatus(gameId, 'completed').subscribe({
+      next: () => {
+        this.syncLibraryFilter();
+        this.showToast('Game marked as completed', 'success');
+      },
+      error: () => {
+        this.showToast('Failed to update game', 'danger');
+      },
     });
   }
 
@@ -787,6 +859,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     const icons: Record<GamePlayStatus, string> = {
       not_started: 'ellipse-outline',
       playing: 'time-outline',
+      paused: 'pause-circle-outline',
       completed: 'checkmark-circle-outline',
       wishlist: 'heart-outline',
     };
@@ -797,6 +870,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     const colors: Record<GamePlayStatus, string> = {
       not_started: 'medium',
       playing: 'primary',
+      paused: 'warning',
       completed: 'success',
       wishlist: 'tertiary',
     };
@@ -834,6 +908,8 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
         return this.libraryGames.filter((game) => game.status === 'not_started');
       case 'playing':
         return this.libraryGames.filter((game) => game.status === 'playing');
+      case 'paused':
+        return this.libraryGames.filter((game) => game.status === 'paused');
       case 'completed':
         return this.libraryGames.filter((game) => game.status === 'completed');
       case 'with_playtime':
@@ -863,6 +939,8 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
         return this.notStartedCount > 0;
       case 'playing':
         return this.playingCount > 0;
+      case 'paused':
+        return this.pausedCount > 0;
       case 'completed':
         return this.completedCount > 0;
       case 'with_playtime':
@@ -891,6 +969,8 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
         return 'not started';
       case 'playing':
         return 'playing';
+      case 'paused':
+        return 'paused';
       case 'completed':
         return 'completed';
       case 'with_playtime':
@@ -906,6 +986,8 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
         return 'No not started games in your library.';
       case 'playing':
         return 'No games currently playing.';
+      case 'paused':
+        return 'No paused games in your library.';
       case 'completed':
         return 'No completed games in your library.';
       case 'with_playtime':
@@ -986,6 +1068,10 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
 
   get playingCount(): number {
     return this.libraryGames.filter((g) => g.status === 'playing').length;
+  }
+
+  get pausedCount(): number {
+    return this.libraryGames.filter((g) => g.status === 'paused').length;
   }
 
   get notStartedCount(): number {

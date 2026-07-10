@@ -6,13 +6,17 @@ import {
   IonContent, IonHeader, IonToolbar, IonBackButton,
   IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
   IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-  IonTextarea, IonToggle, IonToast, IonChip, IonSegment, IonSegmentButton
+  IonTextarea, IonToggle, IonToast, IonChip, IonSegment, IonSegmentButton, AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline, saveOutline, imageOutline } from 'ionicons/icons';
 import { PLATFORMS, GENRES, Game, Platform, GamePlayStatus, GAME_STATUS_LABELS } from '../../models/game.model';
 import { GameService } from '../../services/game.service';
 import { PlatformService } from '../../services/platform.service';
+import {
+  confirmResetPlayHistory,
+  statusChangeClearsPlayHistory,
+} from '../../shared/utils/game-status.utils';
 
 @Component({
   selector: 'app-game-form',
@@ -239,6 +243,9 @@ import { PlatformService } from '../../services/platform.service';
                     <ion-segment-button value="playing">
                       <ion-label>{{ statusLabels.playing }}</ion-label>
                     </ion-segment-button>
+                    <ion-segment-button value="paused">
+                      <ion-label>{{ statusLabels.paused }}</ion-label>
+                    </ion-segment-button>
                     <ion-segment-button value="completed">
                       <ion-label>{{ statusLabels.completed }}</ion-label>
                     </ion-segment-button>
@@ -329,12 +336,14 @@ export class GameFormPage implements OnInit {
   isSubmitting = false;
   submitted = false;
   toastMessage = '';
+  private originalStatus: GamePlayStatus = 'not_started';
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private gameService: GameService,
-    private platformService: PlatformService
+    private platformService: PlatformService,
+    private alertController: AlertController
   ) {
     addIcons({ arrowBackOutline, saveOutline, imageOutline });
   }
@@ -481,6 +490,7 @@ export class GameFormPage implements OnInit {
       next: (game) => {
         if (game) {
           this.game = { ...game };
+          this.originalStatus = game.status;
           this.developerName = game.developer?.name || '';
           this.selectedPlatformId = game.platformId || game.platform?.id || '';
           this.game.playtime = game.playtimeHours ?? game.playtime;
@@ -511,12 +521,26 @@ export class GameFormPage implements OnInit {
     }
   }
 
-  onSubmit(form: NgForm): void {
+  async onSubmit(form: NgForm): Promise<void> {
     this.submitted = true;
     form.control.markAllAsTouched();
 
     if (!this.canSubmit(form)) {
       return;
+    }
+
+    const nextStatus = this.isWishlistMode
+      ? 'wishlist'
+      : (this.game.status || 'not_started');
+
+    if (
+      this.isEdit &&
+      statusChangeClearsPlayHistory(this.originalStatus, nextStatus)
+    ) {
+      const confirmed = await confirmResetPlayHistory(this.alertController);
+      if (!confirmed) {
+        return;
+      }
     }
 
     this.isSubmitting = true;
@@ -534,7 +558,7 @@ export class GameFormPage implements OnInit {
       rating: this.game.rating != null ? Number(this.game.rating) : undefined,
       playtimeHours:
         this.game.playtime != null ? Number(this.game.playtime) : undefined,
-      status: this.isWishlistMode ? 'wishlist' : (this.game.status || 'not_started'),
+      status: nextStatus,
       notes: this.game.notes
     };
 

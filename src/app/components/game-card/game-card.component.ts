@@ -8,7 +8,7 @@ import {
 import { addIcons } from 'ionicons';
 import { 
   starOutline, timeOutline, checkmarkCircleOutline, 
-  ellipseOutline, trashOutline, createOutline, heartOutline
+  ellipseOutline, trashOutline, createOutline, heartOutline, pauseCircleOutline
 } from 'ionicons/icons';
 import { Game, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
 import { formatReleaseCountdown, canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
@@ -108,16 +108,26 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
       <div
         class="card-footer"
         [class.card-footer--locked]="isWishlistLocked"
-        (click)="handleFooterClick($event)"
       >
         <ion-button 
           fill="outline"
           size="small"
           [class]="'status-btn status-btn--' + game.status"
-          [class.status-btn--disabled]="isWishlistLocked">
+          [class.status-btn--disabled]="isWishlistLocked"
+          (click)="handleStatusClick($event)">
           <ion-icon [name]="getStatusIcon()" slot="start"></ion-icon>
           {{ getStatusLabel() }}
         </ion-button>
+
+        <button
+          *ngIf="showMarkCompleted()"
+          type="button"
+          class="play-history-btn mark-completed-btn"
+          (click)="handleMarkCompletedClick($event)"
+        >
+          <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
+          <span class="play-history-btn__label">Mark as completed</span>
+        </button>
       </div>
     </ion-card>
   `,
@@ -368,13 +378,15 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
       padding: 0.75rem 1.125rem 1.125rem;
       border-top: 1px solid rgba(148, 163, 184, 0.1);
       margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
     }
 
     .card-footer--locked {
       cursor: not-allowed;
     }
 
-    .complete-btn,
     .status-btn {
       --background: transparent;
       --background-hover: rgba(168, 85, 247, 0.12);
@@ -403,6 +415,12 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
       --background: rgba(59, 130, 246, 0.12);
       --border-color: rgba(59, 130, 246, 0.35);
       --color: #93c5fd;
+    }
+
+    .status-btn--paused {
+      --background: rgba(245, 158, 11, 0.12);
+      --border-color: rgba(245, 158, 11, 0.35);
+      --color: #fcd34d;
     }
 
     .status-btn--completed {
@@ -451,6 +469,11 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
 
     .status-badge--playing {
       background: rgba(59, 130, 246, 0.85);
+      color: #fff;
+    }
+
+    .status-badge--paused {
+      background: rgba(245, 158, 11, 0.88);
       color: #fff;
     }
 
@@ -505,12 +528,13 @@ export class GameCardComponent {
   @Input() coverImage?: string;
   @Input() countdownTick = 0;
   @Output() onToggleCompleted = new EventEmitter<string>();
+  @Output() onMarkCompleted = new EventEmitter<string>();
   @Output() onDelete = new EventEmitter<string>();
 
   constructor() {
     addIcons({
       starOutline, timeOutline, checkmarkCircleOutline,
-      ellipseOutline, trashOutline, createOutline, heartOutline
+      ellipseOutline, trashOutline, createOutline, heartOutline, pauseCircleOutline
     });
   }
 
@@ -524,7 +548,7 @@ export class GameCardComponent {
     return this.game.status === 'wishlist' && !canAddWishlistToLibrary(this.game);
   }
 
-  handleFooterClick(event: Event): void {
+  handleStatusClick(event: Event): void {
     event.stopPropagation();
     event.preventDefault();
 
@@ -533,6 +557,20 @@ export class GameCardComponent {
     }
 
     this.onToggleCompleted.emit(this.game.id);
+  }
+
+  handleMarkCompletedClick(event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.onMarkCompleted.emit(this.game.id);
+  }
+
+  showMarkCompleted(): boolean {
+    return this.game.status === 'playing' || this.game.status === 'paused';
+  }
+
+  handleFooterClick(event: Event): void {
+    this.handleStatusClick(event);
   }
 
   toggleCompleted(event: Event): void {
@@ -554,6 +592,7 @@ export class GameCardComponent {
     const icons: Record<GamePlayStatus, string> = {
       not_started: 'ellipse-outline',
       playing: 'time-outline',
+      paused: 'pause-circle-outline',
       completed: 'checkmark-circle-outline',
       wishlist: 'heart-outline',
     };
