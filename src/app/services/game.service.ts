@@ -332,7 +332,7 @@ export class GameService {
       id: g.id,
       title: g.title,
       description: g.description,
-      coverImage: g.cover_image,
+      coverImage: normalizeCoverImage(g.cover_image) ?? undefined,
       platformId: g.platform_id,
       platform: platform
         ? {
@@ -693,9 +693,14 @@ export class GameService {
 
         return of(updatedGame);
       }),
-      tap((updatedGame) => {
+      map((updatedGame) =>
+        game.coverImage === null
+          ? { ...updatedGame, coverImage: undefined }
+          : updatedGame,
+      ),
+      tap((normalizedGame) => {
         const games = this.gamesSubject.value.map((game) =>
-          game.id === updatedGame.id ? updatedGame : game,
+          game.id === normalizedGame.id ? normalizedGame : game,
         );
         this.gamesSubject.next(games);
         this.filteredGames.set(

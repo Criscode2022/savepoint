@@ -74,8 +74,8 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
       <section class="hero-section">
         <div
           class="hero-background"
-          [class.hero-background--placeholder]="!game.coverImage"
-          [style.background-image]="game.coverImage ? 'url(' + game.coverImage + ')' : null"
+          [class.hero-background--placeholder]="!hasCoverImage()"
+          [style.background-image]="getHeroBackgroundImage()"
         ></div>
         <div class="hero-overlay"></div>
 
@@ -91,7 +91,7 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
                   <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
                 </a>
                 <button
-                  *ngIf="game.coverImage"
+                  *ngIf="hasCoverImage()"
                   type="button"
                   class="cover-media-action cover-media-action--remove"
                   aria-label="Remove cover image"
@@ -102,7 +102,7 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
               </div>
               <app-game-cover
                 [title]="game.title"
-                [coverImage]="game.coverImage"
+                [coverImage]="heroCoverImage"
                 variant="hero"
               />
             </div>
@@ -388,6 +388,19 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
   toastColor: 'success' | 'danger' = 'success';
   ratingSaving = false;
   ratingPreview: number | null = null;
+
+  get heroCoverImage(): string | null {
+    const cover = this.game?.coverImage?.trim();
+    return cover || null;
+  }
+
+  hasCoverImage(): boolean {
+    return !!this.heroCoverImage;
+  }
+
+  getHeroBackgroundImage(): string {
+    return this.heroCoverImage ? `url("${this.heroCoverImage}")` : 'none';
+  }
 
   constructor(
     private route: ActivatedRoute,
@@ -724,12 +737,19 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
       return;
     }
 
-    this.gameService.updateGame(this.game.id, { coverImage: null }).subscribe({
+    const gameId = this.game.id;
+    const previousCover = this.game.coverImage;
+    const currentGame = this.game;
+
+    this.game = { ...currentGame, coverImage: undefined };
+
+    this.gameService.updateGame(gameId, { coverImage: null }).subscribe({
       next: (updatedGame) => {
-        this.game = updatedGame;
+        this.game = { ...updatedGame, coverImage: undefined };
         this.showToast('Cover image removed', 'success');
       },
       error: () => {
+        this.game = { ...currentGame, coverImage: previousCover };
         this.showToast('Failed to remove cover image', 'danger');
       },
     });

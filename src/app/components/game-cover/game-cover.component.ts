@@ -13,14 +13,24 @@ interface PlaceholderMetrics {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="game-cover" [class]="'game-cover--' + variant">
+    <div
+      class="game-cover"
+      [class]="'game-cover--' + variant"
+      [class.game-cover--landscape]="isLandscape"
+    >
+      <div
+        *ngIf="showImage && isLandscape"
+        class="cover-backdrop"
+        [style.background-image]="'url(' + coverImage + ')'"
+        aria-hidden="true"
+      ></div>
       <img
         *ngIf="showImage"
         [src]="coverImage!"
         [alt]="title"
         class="cover-image"
         loading="lazy"
-        [attr.key]="coverImage"
+        (load)="onImageLoad($event)"
         (error)="onImageError()"
       />
       <div *ngIf="!showImage" class="cover-placeholder" aria-hidden="true">
@@ -52,8 +62,31 @@ interface PlaceholderMetrics {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      object-position: center;
       display: block;
       transition: transform 0.45s ease;
+    }
+
+    .game-cover--landscape .cover-image {
+      position: relative;
+      z-index: 1;
+      object-fit: contain;
+    }
+
+    .cover-backdrop {
+      position: absolute;
+      inset: -10%;
+      background-size: cover;
+      background-position: center;
+      filter: blur(16px) saturate(1.12);
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .game-cover--landscape {
+      background:
+        radial-gradient(circle at 30% 20%, rgba(168, 85, 247, 0.16) 0%, transparent 45%),
+        linear-gradient(145deg, #171728 0%, #10101c 100%);
     }
 
     .cover-placeholder {
@@ -123,22 +156,32 @@ export class GameCoverComponent implements OnChanges {
   @Input() variant: CoverVariant = 'card';
 
   showImage = false;
+  isLandscape = false;
   placeholderMetrics: PlaceholderMetrics = { fontSize: '1.25rem', lineClamp: 4 };
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['coverImage']) {
-      this.showImage = false;
+      this.isLandscape = false;
+      const next = changes['coverImage'].currentValue as string | null | undefined;
+      this.showImage = this.hasCoverImage(next);
+    } else {
+      this.showImage = this.hasCoverImage(this.coverImage);
     }
 
-    this.showImage = this.hasCoverImage(this.coverImage);
     this.placeholderMetrics = this.getPlaceholderMetrics(
       this.variant,
       (this.title ?? '').trim().length,
     );
   }
 
+  onImageLoad(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    this.isLandscape = img.naturalWidth > img.naturalHeight * 1.02;
+  }
+
   onImageError(): void {
     this.showImage = false;
+    this.isLandscape = false;
   }
 
   private hasCoverImage(url?: string | null): boolean {
