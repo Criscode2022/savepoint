@@ -220,14 +220,16 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
                   <ng-template #noDescription>
                     <p class="description empty">No description added yet.</p>
                   </ng-template>
+                </ion-card-content>
+              </ion-card>
 
-                  <div class="genres-section" *ngIf="game.genre?.length">
-                    <h3 class="subsection-title">Genres</h3>
-                    <div class="genre-chips">
-                      <ion-chip *ngFor="let genre of game.genre" class="genre-chip">
-                        {{ genre }}
-                      </ion-chip>
-                    </div>
+              <ion-card class="genres-card" *ngIf="game.genre?.length">
+                <ion-card-content>
+                  <h2 class="section-title">Genres</h2>
+                  <div class="genre-chips">
+                    <ion-chip *ngFor="let genre of game.genre" class="genre-chip">
+                      {{ genre }}
+                    </ion-chip>
                   </div>
                 </ion-card-content>
               </ion-card>

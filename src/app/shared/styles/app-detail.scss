@@ -350,12 +350,20 @@
   color: var(--ink-secondary);
   line-height: 1.7;
   font-size: 0.9375rem;
-  margin: 0 0 1.5rem;
+  margin: 0;
 }
 
 .description.empty {
   color: var(--ink-muted);
   font-style: italic;
+}
+
+.genres-card {
+  margin: 0;
+}
+
+.genres-card .section-title {
+  margin-bottom: 1rem;
 }
 
 .genre-chip {
@@ -374,10 +382,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-}
-
-.genres-section {
-  margin-top: 0.25rem;
 }
 
 .timeline-list {

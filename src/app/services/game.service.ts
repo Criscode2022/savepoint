@@ -34,6 +34,10 @@ import {
   clampRating,
   isValidRating,
 } from "../shared/utils/rating.utils";
+import {
+  collectUniqueGenres,
+  normalizeGenres,
+} from "../shared/utils/genre.utils";
 
 // Database row types
 interface DbGame {
@@ -46,7 +50,7 @@ interface DbGame {
   director_id?: string;
   release_year?: number;
   release_date?: string;
-  genre?: string;
+  genre?: string[] | null;
   rating?: number | null;
   rated_at?: string;
   playtime_hours?: number;
@@ -351,7 +355,7 @@ export class GameService {
       director: director?.name,
       releaseYear: g.release_year,
       releaseDate: g.release_date,
-      genre: g.genre ? [g.genre] : [],
+      genre: normalizeGenres(g.genre),
       rating: g.rating != null ? Number(g.rating) : undefined,
       ratedAt: g.rated_at,
       playtimeHours: g.playtime_hours,
@@ -478,7 +482,7 @@ export class GameService {
       director_id: game.directorId || null,
       release_year: game.releaseYear || null,
       release_date: game.releaseDate || null,
-      genre: game.genre?.[0] || null,
+      genre: normalizeGenres(game.genre),
       rating: null,
       playtime_hours: game.playtimeHours ?? 0,
       status,
@@ -593,7 +597,9 @@ export class GameService {
     if (game.directorId !== undefined) data["director_id"] = game.directorId;
     if (game.releaseYear !== undefined) data["release_year"] = game.releaseYear;
     if (game.releaseDate !== undefined) data["release_date"] = game.releaseDate;
-    if (game.genre !== undefined) data["genre"] = game.genre?.[0] || null;
+    if (game.genre !== undefined) {
+      data["genre"] = normalizeGenres(game.genre);
+    }
     const existing =
       this.gamesSubject.value.find((g) => g.id === id) ??
       this.filteredGames().find((g) => g.id === id);
@@ -1020,9 +1026,7 @@ export class GameService {
             bio: d.bio,
             createdAt: d.created_at,
           })),
-          genres: [
-            ...new Set(gamesWithGenre.map((g) => g.genre).filter(Boolean)),
-          ] as string[],
+          genres: collectUniqueGenres(gamesWithGenre),
           years: [
             ...new Set(
               gamesWithYear.map((g) => g.release_year).filter(Boolean),
@@ -1064,13 +1068,10 @@ export class GameService {
     return this.db
       .select<DbGame>("games", {
         select: "genre",
-        filters: { user_id: userId, genre: "not.is.null" },
+        filters: { user_id: userId },
       })
       .pipe(
-        map(
-          (games) =>
-            [...new Set(games.map((g) => g.genre).filter(Boolean))] as string[],
-        ),
+        map((games) => collectUniqueGenres(games)),
         catchError((error) =>
           this.handleError(error, "Failed to fetch genres"),
         ),
