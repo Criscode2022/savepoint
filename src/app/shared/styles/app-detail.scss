@@ -278,7 +278,8 @@
 .stats-card,
 .notes-card,
 .history-card,
-.timeline-card {
+.timeline-card,
+.rating-card {
   background: rgba(21, 21, 32, 0.92);
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-subtle);
@@ -290,8 +291,39 @@
 .timeline-card ion-card-content,
 .stats-card ion-card-content,
 .notes-card ion-card-content,
-.history-card ion-card-content {
+.history-card ion-card-content,
+.rating-card ion-card-content {
   padding: 1.25rem;
+}
+
+.rating-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.rating-card__header .section-title {
+  margin: 0;
+}
+
+.rating-card__score {
+  color: #fde68a;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.rating-card__score--empty {
+  color: var(--ink-muted);
+}
+
+.rating-card__meta {
+  margin: 0.75rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
 }
 
 .detail-page .section-title {

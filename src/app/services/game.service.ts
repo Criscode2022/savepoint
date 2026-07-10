@@ -29,6 +29,7 @@ import { DirectorService } from "./director.service";
 import { PlatformService } from "./platform.service";
 import { canAddWishlistToLibrary } from "../shared/utils/release-countdown";
 import { statusChangeClearsPlayHistory } from "../shared/utils/game-status.utils";
+import { clampRating, isValidRating } from "../shared/utils/rating.utils";
 
 // Database row types
 interface DbGame {
@@ -42,7 +43,8 @@ interface DbGame {
   release_year?: number;
   release_date?: string;
   genre?: string;
-  rating?: number;
+  rating?: number | null;
+  rated_at?: string;
   playtime_hours?: number;
   completed: boolean;
   status?: GamePlayStatus;
@@ -346,7 +348,8 @@ export class GameService {
       releaseYear: g.release_year,
       releaseDate: g.release_date,
       genre: g.genre ? [g.genre] : [],
-      rating: g.rating,
+      rating: g.rating != null ? Number(g.rating) : undefined,
+      ratedAt: g.rated_at,
       playtimeHours: g.playtime_hours,
       playtime: g.playtime_hours,
       status,
@@ -481,6 +484,11 @@ export class GameService {
       user_id: currentUser.id,
     };
 
+    if (game.rating != null && isValidRating(game.rating)) {
+      data["rating"] = clampRating(game.rating);
+      data["rated_at"] = now;
+    }
+
     if (status === "playing") {
       data["started_at"] = now;
       data["last_played_at"] = now;
@@ -578,7 +586,21 @@ export class GameService {
     if (game.releaseYear !== undefined) data["release_year"] = game.releaseYear;
     if (game.releaseDate !== undefined) data["release_date"] = game.releaseDate;
     if (game.genre !== undefined) data["genre"] = game.genre?.[0] || null;
-    if (game.rating !== undefined) data["rating"] = game.rating;
+    if (game.rating !== undefined) {
+      if (game.rating == null) {
+        data["rating"] = null;
+        data["rated_at"] = null;
+      } else {
+        data["rating"] = clampRating(game.rating);
+        if (game.ratedAt !== undefined) {
+          data["rated_at"] = game.ratedAt;
+        } else {
+          data["rated_at"] = new Date().toISOString();
+        }
+      }
+    } else if (game.ratedAt !== undefined) {
+      data["rated_at"] = game.ratedAt;
+    }
     if (game.playtimeHours !== undefined)
       data["playtime_hours"] = game.playtimeHours;
     if (game.status !== undefined) {
@@ -766,6 +788,24 @@ export class GameService {
 
   setCompleted(id: string, completed: boolean): Observable<Game> {
     return this.setStatus(id, completed ? "completed" : "not_started");
+  }
+
+  setRating(id: string, rating: number | null, sourceGame?: Game): Observable<Game> {
+    const normalized =
+      rating == null ? null : isValidRating(rating) ? clampRating(rating) : null;
+
+    const update: UpdateGameRequest = {
+      rating: normalized,
+      ratedAt: normalized != null ? new Date().toISOString() : null,
+    };
+
+    return this.updateGame(id, update).pipe(
+      tap((updatedGame) => {
+        if (sourceGame) {
+          Object.assign(sourceGame, updatedGame);
+        }
+      }),
+    );
   }
 
   getPlaySessions(gameId: string): Observable<PlaySession[]> {

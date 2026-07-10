@@ -288,10 +288,18 @@ export class ProfilePage implements OnInit {
   }
 
   get averageRating(): string {
-    const ratedGames = this.games.filter(g => g.rating);
-    if (ratedGames.length === 0) return '0.0';
-    const avg = ratedGames.reduce((sum, g) => sum + (g.rating || 0), 0) / ratedGames.length;
+    const ratedGames = this.games.filter((g) => g.rating != null);
+    if (ratedGames.length === 0) {
+      return '—';
+    }
+
+    const avg =
+      ratedGames.reduce((sum, g) => sum + (g.rating || 0), 0) / ratedGames.length;
     return avg.toFixed(1);
+  }
+
+  get ratedGamesCount(): number {
+    return this.games.filter((g) => g.rating != null).length;
   }
 
   get completionRate(): number {

@@ -27,14 +27,15 @@ import { GameService } from '../../services/game.service';
 import { AuthService } from '../../services/auth.service';
 import { GameCardComponent } from '../../components/game-card/game-card.component';
 import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
+import { GameRatingComponent } from '../../components/game-rating/game-rating.component';
 
-type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'completed' | 'with_playtime';
+type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'completed' | 'rated' | 'with_playtime';
 
 @Component({
   selector: 'app-home',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, RouterLink, GameCardComponent, GameCoverComponent,
+    CommonModule, FormsModule, RouterLink, GameCardComponent, GameCoverComponent, GameRatingComponent,
     IonContent, IonHeader, IonToolbar, IonButton,
     IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
     IonBadge, IonList, IonItem, IonThumbnail, IonLabel,
@@ -208,6 +209,19 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
             >
               <ion-icon name="checkmark-circle-outline"></ion-icon>
               <span>{{ completedCount }} completed</span>
+            </button>
+            <button
+              type="button"
+              class="stat-item"
+              [class.stat-item--clickable]="ratedCount > 0"
+              [class.stat-item--active]="isLibraryFilterActive('rated')"
+              [disabled]="ratedCount === 0"
+              (click)="setLibraryFilter('rated')"
+              [attr.aria-pressed]="isLibraryFilterActive('rated')"
+              [attr.aria-label]="ratedCount > 0 ? 'Filter by rated games' : null"
+            >
+              <ion-icon name="star-outline"></ion-icon>
+              <span>{{ ratedCount }} rated</span>
             </button>
             <button
               type="button"
@@ -423,9 +437,13 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
               <div class="game-meta-row">
                 <span *ngIf="game.platform.name" class="platform-tag">{{ game.platform.name }}</span>
                 <span *ngIf="game.releaseYear" class="game-year">{{ game.releaseYear }}</span>
-                <span *ngIf="game.rating" class="rating-tag">
-                  <ion-icon name="star-outline" class="star-icon" aria-hidden="true"></ion-icon>
-                  {{ game.rating }}
+                <span *ngIf="game.rating != null" class="rating-tag">
+                  <app-game-rating
+                    [rating]="game.rating"
+                    [readonly]="true"
+                    size="sm"
+                    [showValue]="false"
+                  />
                 </span>
               </div>
 
@@ -911,6 +929,8 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
         return this.libraryGames.filter((game) => game.status === 'paused');
       case 'completed':
         return this.libraryGames.filter((game) => game.status === 'completed');
+      case 'rated':
+        return this.libraryGames.filter((game) => game.rating != null);
       case 'with_playtime':
         return this.libraryGames.filter((game) => (game.playtime || 0) > 0);
       default:
@@ -942,6 +962,8 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
         return this.pausedCount > 0;
       case 'completed':
         return this.completedCount > 0;
+      case 'rated':
+        return this.ratedCount > 0;
       case 'with_playtime':
         return this.playtimeGamesCount > 0;
     }
@@ -972,6 +994,8 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
         return 'paused';
       case 'completed':
         return 'completed';
+      case 'rated':
+        return 'rated';
       case 'with_playtime':
         return 'played';
       default:
@@ -989,6 +1013,8 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
         return 'No paused games in your library.';
       case 'completed':
         return 'No completed games in your library.';
+      case 'rated':
+        return 'No rated games in your library.';
       case 'with_playtime':
         return 'No games with recorded playtime.';
       default:
@@ -1071,6 +1097,10 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
 
   get pausedCount(): number {
     return this.libraryGames.filter((g) => g.status === 'paused').length;
+  }
+
+  get ratedCount(): number {
+    return this.libraryGames.filter((g) => g.rating != null).length;
   }
 
   get notStartedCount(): number {

@@ -518,15 +518,13 @@
   }
 }
 
-.game-list-item .rating-tag {
-  display: flex;
+.rating-tag {
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  color: #fbbf24;
 }
 
-.game-list-item .star-icon {
-  font-size: 14px;
+.rating-tag app-game-rating {
+  display: inline-flex;
 }
 
 .game-list-item .game-thumbnail {

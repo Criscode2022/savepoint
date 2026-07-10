@@ -86,7 +86,8 @@ export interface Game {
   releaseYear?: number;
   releaseDate?: string;
   genre?: string[];
-  rating?: number;
+  rating?: number | null;
+  ratedAt?: string;
   playtimeHours?: number;
   playtime?: number;
   status: GamePlayStatus;
@@ -142,7 +143,7 @@ export interface CreateGameRequest {
   releaseYear?: number;
   releaseDate?: string;
   genre?: string[];
-  rating?: number;
+  rating?: number | null;
   playtimeHours?: number;
   status?: GamePlayStatus;
   completed?: boolean;
@@ -154,6 +155,7 @@ export interface UpdateGameRequest extends Partial<CreateGameRequest> {
   startedAt?: string | null;
   completedAt?: string | null;
   lastPlayedAt?: string | null;
+  ratedAt?: string | null;
 }
 
 export interface GameFormPayload {
@@ -166,7 +168,7 @@ export interface GameFormPayload {
   developerName: string;
   directorName?: string;
   genre?: string[];
-  rating?: number;
+  rating?: number | null;
   playtimeHours?: number;
   status?: GamePlayStatus;
   completed?: boolean;

@@ -6,17 +6,19 @@ import {
   IonContent, IonHeader, IonToolbar, IonBackButton,
   IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
   IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-  IonTextarea, IonToggle, IonToast, IonChip, IonSegment, IonSegmentButton, AlertController
+  IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton, AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline, saveOutline, imageOutline } from 'ionicons/icons';
 import { PLATFORMS, GENRES, Game, Platform, GamePlayStatus, GAME_STATUS_LABELS } from '../../models/game.model';
 import { GameService } from '../../services/game.service';
 import { PlatformService } from '../../services/platform.service';
+import { GameRatingComponent } from '../../components/game-rating/game-rating.component';
 import {
   confirmResetPlayHistory,
   statusChangeClearsPlayHistory,
 } from '../../shared/utils/game-status.utils';
+import { formatRatingLabel } from '../../shared/utils/rating.utils';
 
 @Component({
   selector: 'app-game-form',
@@ -26,7 +28,8 @@ import {
     IonContent, IonHeader, IonToolbar, IonBackButton,
     IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
     IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-    IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton
+    IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton,
+    GameRatingComponent,
   ],
   template: `
     <ion-header class="ion-no-border">
@@ -201,20 +204,22 @@ import {
                 <h3 class="section-title">Your Stats</h3>
 
                 <div class="field-group">
-                  <label class="field-label" for="game-rating">Your Rating (0-10)</label>
-                  <ion-item class="form-item" lines="none" [class.field-invalid]="isInvalid(ratingModel)">
-                    <ion-input
-                      id="game-rating"
-                      [(ngModel)]="game.rating"
-                      #ratingModel="ngModel"
-                      name="rating"
-                      type="number"
-                      min="0"
-                      max="10"
-                      step="0.1"
-                      placeholder="8.5"></ion-input>
-                  </ion-item>
-                  <span class="field-error" *ngIf="fieldError(ratingModel) as err">{{ err }}</span>
+                  <div class="rating-field__header">
+                    <label class="field-label">Your Rating</label>
+                    <span
+                      class="rating-field__score"
+                      [class.rating-field__score--empty]="game.rating == null"
+                    >
+                      {{ getRatingDisplay() }}
+                    </span>
+                  </div>
+                  <app-game-rating
+                    [rating]="game.rating ?? null"
+                    (ratingChange)="onRatingChange($event)"
+                    size="lg"
+                    [showClear]="true"
+                    [showValue]="false"
+                  />
                 </div>
 
                 <div class="field-group">
@@ -507,6 +512,14 @@ export class GameFormPage implements OnInit {
 
   isGenreSelected(genre: string): boolean {
     return this.game.genre?.includes(genre) || false;
+  }
+
+  onRatingChange(rating: number | null): void {
+    this.game.rating = rating ?? undefined;
+  }
+
+  getRatingDisplay(): string {
+    return formatRatingLabel(this.game.rating);
   }
 
   toggleGenre(genre: string): void {

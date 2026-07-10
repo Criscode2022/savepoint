@@ -13,12 +13,13 @@ import {
 import { Game, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
 import { formatReleaseCountdown, canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
 import { GameCoverComponent } from '../game-cover/game-cover.component';
+import { GameRatingComponent } from '../game-rating/game-rating.component';
 
 @Component({
   selector: 'app-game-card',
   standalone: true,
   imports: [
-    CommonModule, RouterLink, GameCoverComponent,
+    CommonModule, RouterLink, GameCoverComponent, GameRatingComponent,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
     IonIcon, IonButton, IonChip
   ],
@@ -86,10 +87,14 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
           {{ game.description | slice:0:100 }}{{ game.description.length > 100 ? '...' : '' }}
         </p>
         
-        <div class="game-stats" *ngIf="game.rating || getPlaytime()">
-          <div class="stat" *ngIf="game.rating">
-            <ion-icon name="star-outline" class="stat-icon rating-icon"></ion-icon>
-            <span>{{ game.rating }}</span>
+        <div class="game-stats" *ngIf="game.rating != null || getPlaytime()">
+          <div class="stat stat--rating" *ngIf="game.rating != null">
+            <app-game-rating
+              [rating]="game.rating"
+              [readonly]="true"
+              size="sm"
+              [showValue]="false"
+            />
           </div>
           
           <div class="stat" *ngIf="getPlaytime()">
@@ -348,8 +353,10 @@ import { GameCoverComponent } from '../game-cover/game-cover.component';
       font-size: 0.95rem;
     }
 
-    .rating-icon {
-      color: #fbbf24;
+    .stat--rating {
+      padding: 0.35rem 0.5rem;
+      background: rgba(251, 191, 36, 0.08);
+      border-color: rgba(251, 191, 36, 0.18);
     }
 
     .time-icon {

@@ -16,17 +16,19 @@ import {
 import { Game, GAME_STATUS_LABELS, GamePlayStatus, PlaySession } from '../../models/game.model';
 import { GameService } from '../../services/game.service';
 import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
+import { GameRatingComponent } from '../../components/game-rating/game-rating.component';
 import { canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
 import {
   confirmResetPlayHistory,
   statusChangeClearsPlayHistory,
 } from '../../shared/utils/game-status.utils';
+import { formatRatingLabel } from '../../shared/utils/rating.utils';
 
 @Component({
   selector: 'app-game-detail',
   standalone: true,
   imports: [
-    CommonModule, RouterLink, GameCoverComponent,
+    CommonModule, RouterLink, GameCoverComponent, GameRatingComponent,
     IonContent, IonHeader, IonToolbar, IonBackButton,
     IonIcon, IonButton, IonCard, IonCardContent,
     IonChip, IonToast, IonSelect, IonSelectOption
@@ -184,6 +186,31 @@ import {
                 </article>
               </section>
 
+              <ion-card class="rating-card">
+                <ion-card-content>
+                  <div class="rating-card__header">
+                    <h2 class="section-title">Your rating</h2>
+                    <span
+                      class="rating-card__score"
+                      [class.rating-card__score--empty]="game.rating == null"
+                    >
+                      {{ getRatingDisplay() }}
+                    </span>
+                  </div>
+                  <app-game-rating
+                    [rating]="game.rating"
+                    (ratingChange)="onRatingChange($event)"
+                    size="lg"
+                    [showClear]="true"
+                    [showValue]="false"
+                    [disabled]="ratingSaving"
+                  />
+                  <p class="rating-card__meta" *ngIf="game.ratedAt">
+                    Rated on {{ game.ratedAt | date:'mediumDate' }}
+                  </p>
+                </ion-card-content>
+              </ion-card>
+
               <ion-card class="info-card">
                 <ion-card-content>
                   <h2 class="section-title">About</h2>
@@ -336,6 +363,7 @@ export class GameDetailPage implements OnInit {
   };
   toastMessage = '';
   toastColor: 'success' | 'danger' = 'success';
+  ratingSaving = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -528,7 +556,29 @@ export class GameDetailPage implements OnInit {
   }
 
   getRatingDisplay(): string {
-    return this.game?.rating != null ? `${this.game.rating}/10` : '—';
+    return formatRatingLabel(this.game?.rating);
+  }
+
+  onRatingChange(rating: number | null): void {
+    if (!this.game) {
+      return;
+    }
+
+    this.ratingSaving = true;
+    this.gameService.setRating(this.game.id, rating, this.game).subscribe({
+      next: (updatedGame) => {
+        this.game = updatedGame;
+        this.ratingSaving = false;
+        this.showToast(
+          rating != null ? 'Rating saved' : 'Rating cleared',
+          'success',
+        );
+      },
+      error: () => {
+        this.ratingSaving = false;
+        this.showToast('Failed to save rating', 'danger');
+      },
+    });
   }
 
   getPlaytimeDisplay(): string {
@@ -589,6 +639,14 @@ export class GameDetailPage implements OnInit {
         label: 'Completed',
         date: this.game.completedAt,
         icon: 'checkmark-circle-outline',
+      });
+    }
+
+    if (this.game.ratedAt) {
+      events.push({
+        label: 'Rated',
+        date: this.game.ratedAt,
+        icon: 'star-outline',
       });
     }
 
