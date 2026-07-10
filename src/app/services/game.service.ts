@@ -38,6 +38,7 @@ import {
   collectUniqueGenres,
   normalizeGenres,
 } from "../shared/utils/genre.utils";
+import { normalizeCoverImage, processCoverImageFile } from "../shared/utils/image.utils";
 
 // Database row types
 interface DbGame {
@@ -386,6 +387,13 @@ export class GameService {
     };
   }
 
+  getCachedGameById(id: string): Game | undefined {
+    return (
+      this.gamesSubject.value.find((game) => game.id === id) ??
+      this.filteredGames().find((game) => game.id === id)
+    );
+  }
+
   getGameById(id: string): Observable<Game> {
     const select = "*";
 
@@ -476,7 +484,7 @@ export class GameService {
     const data: Record<string, unknown> = {
       title: game.title,
       description: game.description || null,
-      cover_image: game.coverImage || null,
+      cover_image: normalizeCoverImage(game.coverImage) ?? null,
       platform_id: game.platformId || null,
       developer_id: game.developerId || null,
       director_id: game.directorId || null,
@@ -591,7 +599,9 @@ export class GameService {
     const data: Record<string, any> = {};
     if (game.title !== undefined) data["title"] = game.title;
     if (game.description !== undefined) data["description"] = game.description;
-    if (game.coverImage !== undefined) data["cover_image"] = game.coverImage;
+    if (game.coverImage !== undefined) {
+      data["cover_image"] = normalizeCoverImage(game.coverImage);
+    }
     if (game.platformId !== undefined) data["platform_id"] = game.platformId;
     if (game.developerId !== undefined) data["developer_id"] = game.developerId;
     if (game.directorId !== undefined) data["director_id"] = game.directorId;
@@ -1041,16 +1051,14 @@ export class GameService {
   }
 
   uploadCoverImage(file: File): Observable<string> {
-    return from(
-      new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      }),
-    ).pipe(
+    return from(processCoverImageFile(file)).pipe(
       catchError((error) =>
-        throwError(() => new Error("Failed to process image")),
+        throwError(
+          () =>
+            new Error(
+              error instanceof Error ? error.message : "Failed to process image",
+            ),
+        ),
       ),
     );
   }

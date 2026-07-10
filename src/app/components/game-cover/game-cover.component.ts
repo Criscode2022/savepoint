@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 type CoverVariant = 'card' | 'hero' | 'thumbnail';
@@ -20,6 +20,7 @@ interface PlaceholderMetrics {
         [alt]="title"
         class="cover-image"
         loading="lazy"
+        [attr.key]="coverImage"
         (error)="onImageError()"
       />
       <div *ngIf="!showImage" class="cover-placeholder" aria-hidden="true">
@@ -124,7 +125,11 @@ export class GameCoverComponent implements OnChanges {
   showImage = false;
   placeholderMetrics: PlaceholderMetrics = { fontSize: '1.25rem', lineClamp: 4 };
 
-  ngOnChanges(): void {
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['coverImage']) {
+      this.showImage = false;
+    }
+
     this.showImage = this.hasCoverImage(this.coverImage);
     this.placeholderMetrics = this.getPlaceholderMetrics(
       this.variant,

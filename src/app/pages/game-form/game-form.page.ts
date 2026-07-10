@@ -14,6 +14,7 @@ import { PLATFORMS, GENRES, Game, Platform, GamePlayStatus, GAME_STATUS_LABELS }
 import { GameService } from '../../services/game.service';
 import { PlatformService } from '../../services/platform.service';
 import { GameRatingComponent } from '../../components/game-rating/game-rating.component';
+import { GameCoverUploadComponent } from '../../components/game-cover-upload/game-cover-upload.component';
 import {
   confirmResetPlayHistory,
   statusChangeClearsPlayHistory,
@@ -29,7 +30,7 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
     IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
     IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
     IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton,
-    GameRatingComponent,
+    GameRatingComponent, GameCoverUploadComponent,
   ],
   template: `
     <ion-header class="ion-no-border">
@@ -88,15 +89,12 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
                 </div>
 
                 <div class="field-group">
-                  <label class="field-label" for="game-cover">Cover Image URL</label>
-                  <ion-item class="form-item" lines="none">
-                    <ion-input
-                      id="game-cover"
-                      [(ngModel)]="game.coverImage"
-                      name="coverImage"
-                      type="url"
-                      placeholder="https://..."></ion-input>
-                  </ion-item>
+                  <label class="field-label">Cover Image</label>
+                  <app-game-cover-upload
+                    [title]="game.title || 'Game cover'"
+                    [coverImage]="game.coverImage"
+                    (coverImageChange)="onCoverImageChange($event)"
+                  ></app-game-cover-upload>
                 </div>
               </div>
 
@@ -517,6 +515,10 @@ export class GameFormPage implements OnInit {
     return this.game.genre?.includes(genre) || false;
   }
 
+  onCoverImageChange(coverImage: string | null): void {
+    this.game.coverImage = coverImage ?? undefined;
+  }
+
   canShowRating(): boolean {
     return !this.isWishlistMode && canRateGame(this.game.status);
   }
@@ -598,10 +600,13 @@ export class GameFormPage implements OnInit {
         : this.gameService.saveGameFromForm(payload);
 
     request$.subscribe({
-      next: () => {
-        this.router.navigate(
-          this.isEdit ? ['/game', this.gameId] : ['/home']
-        );
+      next: (savedGame) => {
+        if (this.isEdit && savedGame?.id) {
+          this.router.navigate(['/game', savedGame.id]);
+          return;
+        }
+
+        this.router.navigate(['/home']);
       },
       error: (error) => {
         this.showToast(

@@ -76,7 +76,7 @@ export interface Game {
   id: string;
   title: string;
   description?: string;
-  coverImage?: string;
+  coverImage?: string | null;
   platformId?: string;
   platform: Platform;
   developerId?: string;
@@ -136,7 +136,7 @@ export interface GameFilters {
 export interface CreateGameRequest {
   title: string;
   description?: string;
-  coverImage?: string;
+  coverImage?: string | null;
   platformId?: string;
   developerId?: string;
   directorId?: string;
@@ -161,7 +161,7 @@ export interface UpdateGameRequest extends Partial<CreateGameRequest> {
 export interface GameFormPayload {
   title: string;
   description?: string;
-  coverImage?: string;
+  coverImage?: string | null;
   platformId?: string;
   releaseYear?: number;
   releaseDate?: string;

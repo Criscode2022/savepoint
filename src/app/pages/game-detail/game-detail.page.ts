@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ViewWillEnter } from '@ionic/angular';
 import { 
     IonContent, IonHeader, IonToolbar, IonBackButton,
     IonIcon, IonButton, IonCard, IonCardContent,
@@ -81,6 +82,24 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
         <div class="hero-inner">
           <div class="hero-content">
             <div class="hero-image">
+              <div class="cover-media-actions">
+                <a
+                  [routerLink]="['/edit', game.id]"
+                  class="cover-media-action cover-media-action--edit"
+                  aria-label="Edit cover image"
+                >
+                  <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
+                </a>
+                <button
+                  *ngIf="game.coverImage"
+                  type="button"
+                  class="cover-media-action cover-media-action--remove"
+                  aria-label="Remove cover image"
+                  (click)="removeCoverImage()"
+                >
+                  <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+                </button>
+              </div>
               <app-game-cover
                 [title]="game.title"
                 [coverImage]="game.coverImage"
@@ -356,7 +375,7 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
     </ion-content>
   `,
 })
-export class GameDetailPage implements OnInit {
+export class GameDetailPage implements OnInit, ViewWillEnter {
   @ViewChild('statusSelect') statusSelect?: IonSelect;
 
   game: Game | null = null;
@@ -391,7 +410,19 @@ export class GameDetailPage implements OnInit {
     }
   }
 
+  ionViewWillEnter(): void {
+    const gameId = this.route.snapshot.paramMap.get('id');
+    if (gameId) {
+      this.loadGame(gameId);
+    }
+  }
+
   loadGame(id: string): void {
+    const cached = this.gameService.getCachedGameById(id);
+    if (cached) {
+      this.game = { ...cached };
+    }
+
     this.gameService.getGameById(id).subscribe({
       next: (game) => {
         if (game) {
@@ -663,6 +694,45 @@ export class GameDetailPage implements OnInit {
     return events.sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
+  }
+
+  async removeCoverImage(): Promise<void> {
+    if (!this.game) {
+      return;
+    }
+
+    const alert = await this.alertController.create({
+      header: 'Remove cover image?',
+      message: 'The cover will be removed from this game.',
+      cssClass: 'app-alert',
+      buttons: [
+        { text: 'Cancel', role: 'cancel', cssClass: 'app-alert-btn-cancel' },
+        {
+          text: 'Remove',
+          role: 'destructive',
+          cssClass: 'app-alert-btn-delete',
+          handler: () => this.performRemoveCoverImage(),
+        },
+      ],
+    });
+
+    await alert.present();
+  }
+
+  private performRemoveCoverImage(): void {
+    if (!this.game) {
+      return;
+    }
+
+    this.gameService.updateGame(this.game.id, { coverImage: null }).subscribe({
+      next: (updatedGame) => {
+        this.game = updatedGame;
+        this.showToast('Cover image removed', 'success');
+      },
+      error: () => {
+        this.showToast('Failed to remove cover image', 'danger');
+      },
+    });
   }
 
   async deleteGame(): Promise<void> {
