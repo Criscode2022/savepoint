@@ -649,13 +649,32 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
       return [];
     }
 
-    const events: Array<{ label: string; date: string; icon: string }> = [
-      {
+    const events: Array<{ label: string; date: string; icon: string }> = [];
+
+    if (this.game.status === 'wishlist') {
+      events.push({
+        label: 'Added to wishlist',
+        date: this.game.createdAt,
+        icon: 'heart-outline',
+      });
+    } else if (this.game.libraryAddedAt) {
+      events.push({
+        label: 'Added to wishlist',
+        date: this.game.createdAt,
+        icon: 'heart-outline',
+      });
+      events.push({
+        label: 'Added to library',
+        date: this.game.libraryAddedAt,
+        icon: 'game-controller-outline',
+      });
+    } else {
+      events.push({
         label: 'Added to library',
         date: this.game.createdAt,
         icon: 'game-controller-outline',
-      },
-    ];
+      });
+    }
 
     if (this.game.startedAt) {
       events.push({

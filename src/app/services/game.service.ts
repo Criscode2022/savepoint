@@ -65,6 +65,7 @@ interface DbGame {
   user_id: string;
   created_at: string;
   updated_at: string;
+  library_added_at?: string;
 }
 
 interface DbPlatform {
@@ -371,6 +372,7 @@ export class GameService {
       userId: g.user_id,
       createdAt: g.created_at,
       updatedAt: g.updated_at,
+      libraryAddedAt: g.library_added_at,
     };
   }
 
@@ -639,6 +641,14 @@ export class GameService {
       data["status"] = game.status;
       data["completed"] = game.status === "completed";
       this.applyStatusTimestamps(id, game.status, game, data);
+
+      if (
+        existing?.status === "wishlist" &&
+        game.status !== "wishlist" &&
+        !existing.libraryAddedAt
+      ) {
+        data["library_added_at"] = new Date().toISOString();
+      }
     } else if (game.completed !== undefined) {
       data["completed"] = game.completed;
       data["status"] = game.completed ? "completed" : "not_started";
@@ -650,6 +660,9 @@ export class GameService {
     if (game.purchaseDate !== undefined)
       data["purchase_date"] = game.purchaseDate;
     if (game.notes !== undefined) data["notes"] = game.notes;
+    if (game.libraryAddedAt !== undefined) {
+      data["library_added_at"] = game.libraryAddedAt;
+    }
 
     if (Object.keys(data).length === 0) {
       return throwError(() => new Error("No fields to update"));

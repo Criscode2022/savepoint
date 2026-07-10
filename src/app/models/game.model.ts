@@ -100,6 +100,7 @@ export interface Game {
   userId: string;
   createdAt: string;
   updatedAt: string;
+  libraryAddedAt?: string;
 }
 
 export interface User {
@@ -156,6 +157,7 @@ export interface UpdateGameRequest extends Partial<CreateGameRequest> {
   completedAt?: string | null;
   lastPlayedAt?: string | null;
   ratedAt?: string | null;
+  libraryAddedAt?: string | null;
 }
 
 export interface GameFormPayload {
