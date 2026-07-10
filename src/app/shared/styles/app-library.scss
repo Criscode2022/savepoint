@@ -93,8 +93,7 @@
 
 .nav-row-btn,
 .play-history-btn,
-.wishlist-nav-btn,
-.profile-nav-btn {
+.wishlist-nav-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.625rem;
@@ -114,16 +113,14 @@
 
 .nav-row-btn ion-icon:first-child,
 .play-history-btn ion-icon:first-child,
-.wishlist-nav-btn ion-icon:first-child,
-.profile-nav-btn ion-icon:first-child {
+.wishlist-nav-btn ion-icon:first-child {
   font-size: 1.125rem;
   flex-shrink: 0;
 }
 
 .nav-row-btn__label,
 .play-history-btn__label,
-.wishlist-nav-btn__label,
-.profile-nav-btn__label {
+.wishlist-nav-btn__label {
   flex: 1;
   text-align: left;
   min-width: 0;
@@ -131,8 +128,7 @@
 
 .nav-row-btn__count,
 .play-history-btn__count,
-.wishlist-nav-btn__count,
-.profile-nav-btn__count {
+.wishlist-nav-btn__count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -147,8 +143,7 @@
 
 .nav-row-btn__chevron,
 .play-history-btn__chevron,
-.wishlist-nav-btn__chevron,
-.profile-nav-btn__chevron {
+.wishlist-nav-btn__chevron {
   font-size: 1rem;
   flex-shrink: 0;
 }
@@ -210,31 +205,6 @@
   background: rgba(244, 114, 182, 0.16);
   border-color: rgba(244, 114, 182, 0.48);
   color: #fce7f3;
-  transform: translateY(-1px);
-  outline: none;
-}
-
-.profile-nav-btn {
-  border: 1px solid rgba(168, 85, 247, 0.32);
-  background: rgba(168, 85, 247, 0.1);
-  color: #e9d5ff;
-}
-
-.profile-nav-btn__count {
-  background: rgba(168, 85, 247, 0.18);
-  border: 1px solid rgba(168, 85, 247, 0.35);
-  color: #d8b4fe;
-}
-
-.profile-nav-btn__chevron {
-  color: #c084fc;
-}
-
-.profile-nav-btn:hover,
-.profile-nav-btn:focus-visible {
-  background: rgba(168, 85, 247, 0.16);
-  border-color: rgba(168, 85, 247, 0.48);
-  color: #f3e8ff;
   transform: translateY(-1px);
   outline: none;
 }
@@ -733,8 +703,7 @@
   }
 
   .play-history-btn,
-  .wishlist-nav-btn,
-  .profile-nav-btn {
+  .wishlist-nav-btn {
     margin-bottom: 0.625rem;
     padding-inline: 0.75rem;
     font-size: 0.875rem;

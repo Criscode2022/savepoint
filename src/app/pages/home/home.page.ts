@@ -67,6 +67,16 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
             </ion-button>
 
             <ion-button
+              routerLink="/profile"
+              class="header-icon-btn profile-btn"
+              fill="clear"
+              title="Profile"
+              aria-label="Profile"
+            >
+              <ion-icon name="person-circle-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+
+            <ion-button
               (click)="logout()"
               class="header-icon-btn logout-btn"
               fill="clear"
@@ -131,13 +141,6 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
             <span class="wishlist-nav-btn__count">{{ wishlistGames.length }}</span>
             <ion-icon name="chevron-forward-outline" class="wishlist-nav-btn__chevron" aria-hidden="true"></ion-icon>
           </button>
-
-          <a routerLink="/profile" class="profile-nav-btn">
-            <ion-icon name="person-circle-outline" aria-hidden="true"></ion-icon>
-            <span class="profile-nav-btn__label">Profile</span>
-            <span class="profile-nav-btn__count">{{ totalCollectionCount }}</span>
-            <ion-icon name="chevron-forward-outline" class="profile-nav-btn__chevron" aria-hidden="true"></ion-icon>
-          </a>
 
           <!-- Library filters -->
           <div class="stats-bar" role="group" aria-label="Library filters">
@@ -896,10 +899,6 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
 
   get libraryGamesCount(): number {
     return this.libraryGames.length;
-  }
-
-  get totalCollectionCount(): number {
-    return this.libraryGamesCount + this.wishlistGames.length;
   }
 
   get displayGames(): Game[] {
