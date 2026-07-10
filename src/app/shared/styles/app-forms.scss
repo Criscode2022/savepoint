@@ -18,6 +18,18 @@
   padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
 }
 
+.form-loading {
+  display: flex;
+  justify-content: center;
+  padding: 4rem 0 5rem;
+}
+
+.form-loading ion-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--neon-purple);
+}
+
 .content-wrapper {
   max-width: 1600px;
   padding: 1.25rem 1rem 5rem;

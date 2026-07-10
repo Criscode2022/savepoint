@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm, NgModel } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -6,7 +6,7 @@ import {
   IonContent, IonHeader, IonToolbar, IonBackButton,
   IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
   IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-  IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton, AlertController
+  IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton, IonSpinner, AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline, saveOutline, imageOutline } from 'ionicons/icons';
@@ -29,7 +29,7 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
     IonContent, IonHeader, IonToolbar, IonBackButton,
     IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
     IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-    IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton,
+    IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton, IonSpinner,
     GameRatingComponent, GameCoverUploadComponent,
   ],
   template: `
@@ -49,8 +49,12 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="form-content" *ngIf="!isEdit || game">
-      <div class="form-container">
+    <ion-content class="form-content">
+      <div class="form-loading" *ngIf="isEdit && isLoadingGame">
+        <ion-spinner name="crescent" aria-label="Loading game"></ion-spinner>
+      </div>
+
+      <div class="form-container" *ngIf="!isEdit || !isLoadingGame">
         <ion-card class="form-card">
           <ion-card-header>
             <ion-card-title>{{ formCardTitle }}</ion-card-title>
@@ -279,8 +283,7 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
         </ion-card>
       </div>
 
-      <!-- Fixed action buttons -->
-      <div class="fixed-actions">
+      <div class="fixed-actions" *ngIf="!isEdit || !isLoadingGame">
         <div class="actions-content">
           <ion-button
             fill="clear"
@@ -290,8 +293,8 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
           </ion-button>
 
           <ion-button
-            (click)="onSubmit(gameForm)"
-            [disabled]="isSubmitting || !canSubmit(gameForm)"
+            (click)="submitForm()"
+            [disabled]="isSubmitting || !canSubmitForm()"
             class="submit-btn">
             <ion-icon name="save-outline" slot="start"></ion-icon>
             <span *ngIf="!isSubmitting">{{ submitLabel }}</span>
@@ -313,6 +316,8 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
   styles: [],
 })
 export class GameFormPage implements OnInit {
+  @ViewChild('gameForm') gameFormRef?: NgForm;
+
   platforms: Platform[] = [];
   genres = GENRES;
   statusLabels = GAME_STATUS_LABELS;
@@ -320,6 +325,7 @@ export class GameFormPage implements OnInit {
   
   isEdit = false;
   isWishlistMode = false;
+  isLoadingGame = false;
   gameId: string | null = null;
   selectedPlatformId = '';
   
@@ -367,6 +373,7 @@ export class GameFormPage implements OnInit {
     }
     
     if (this.isEdit && this.gameId) {
+      this.isLoadingGame = true;
       this.loadGame(this.gameId);
     }
   }
@@ -494,6 +501,7 @@ export class GameFormPage implements OnInit {
   loadGame(id: string): void {
     this.gameService.getGameById(id).subscribe({
       next: (game) => {
+        this.isLoadingGame = false;
         if (game) {
           this.game = { ...game };
           this.originalStatus = game.status;
@@ -506,6 +514,7 @@ export class GameFormPage implements OnInit {
         }
       },
       error: () => {
+        this.isLoadingGame = false;
         this.router.navigate(['/home']);
       }
     });
@@ -545,6 +554,16 @@ export class GameFormPage implements OnInit {
       this.game.genre.splice(index, 1);
     } else {
       this.game.genre.push(genre);
+    }
+  }
+
+  canSubmitForm(): boolean {
+    return !!this.gameFormRef && this.canSubmit(this.gameFormRef);
+  }
+
+  submitForm(): void {
+    if (this.gameFormRef) {
+      void this.onSubmit(this.gameFormRef);
     }
   }
 
