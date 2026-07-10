@@ -770,8 +770,9 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
 
     this.gameService.deleteGame(this.game.id).subscribe({
       next: () => {
-        this.showToast('Game deleted', 'success');
-        this.router.navigate(['/home']);
+        this.router.navigate(['/home'], {
+          state: { showDeletedGameToast: true },
+        });
       },
       error: () => {
         this.showToast('Failed to delete game', 'danger');

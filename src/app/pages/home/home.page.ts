@@ -591,6 +591,17 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
 
   ionViewWillEnter(): void {
     this.refreshFilterOptions();
+    this.consumeNavigationToast();
+  }
+
+  private consumeNavigationToast(): void {
+    const state = history.state as { showDeletedGameToast?: boolean } | null;
+    if (!state?.showDeletedGameToast) {
+      return;
+    }
+
+    this.showToast('Game deleted successfully', 'success');
+    history.replaceState({ ...state, showDeletedGameToast: false }, '');
   }
 
   ngOnDestroy(): void {
@@ -1057,7 +1068,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       next: () => {
         this.syncLibraryFilter();
         this.refreshFilterOptions();
-        this.showToast('Game deleted', 'success');
+        this.showToast('Game deleted successfully', 'success');
       },
       error: () => {
         this.showToast('Failed to delete game', 'danger');
