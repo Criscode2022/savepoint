@@ -6,7 +6,7 @@ import { Subject, takeUntil, debounceTime, distinctUntilChanged, forkJoin, take 
 import { 
   IonContent, IonHeader, IonToolbar, IonButton,
   IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
-  IonBadge, IonList, IonItem, IonThumbnail, IonLabel,
+  IonList, IonItem, IonThumbnail, IonLabel,
   IonSelect, IonSelectOption, IonToast, IonSpinner, AlertController, ViewWillEnter
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -38,7 +38,7 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
     CommonModule, FormsModule, RouterLink, GameCardComponent, GameCoverComponent, GameRatingComponent,
     IonContent, IonHeader, IonToolbar, IonButton,
     IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
-    IonBadge, IonList, IonItem, IonThumbnail, IonLabel,
+    IonList, IonItem, IonThumbnail, IonLabel,
     IonSelect, IonSelectOption, IonToast, IonSpinner
   ],
   template: `
@@ -462,16 +462,17 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
                 </p>
               </ion-label>
 
-              <div class="game-status">
-                <ion-badge
-                  [color]="getStatusColor(game.status)"
-                  class="status-badge"
+              <div class="game-status" (click)="$event.stopPropagation()">
+                <button
+                  type="button"
+                  [class]="'status-badge status-badge--' + game.status"
                   [class.status-badge--disabled]="isWishlistLocked(game)"
+                  [attr.aria-disabled]="isWishlistLocked(game) ? true : null"
                   (click)="handleStatusClick($event, game)"
                 >
                   <ion-icon [name]="getStatusIcon(game.status)"></ion-icon>
                   {{ getStatusLabel(game.status) }}
-                </ion-badge>
+                </button>
 
                 <button
                   *ngIf="showMarkCompleted(game)"
@@ -556,7 +557,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
 
   // Toast
   toastMessage = '';
-  toastColor = 'success';
+  toastColor: 'success' | 'danger' | 'warning' = 'success';
   countdownTick = 0;
 
   private destroy$ = new Subject<void>();
@@ -819,6 +820,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       this.filteredGames().find((g) => g.id === gameId);
 
     if (game && this.isWishlistLocked(game)) {
+      this.showWishlistLockedToast();
       return;
     }
 
@@ -887,17 +889,6 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       wishlist: 'heart-outline',
     };
     return icons[status];
-  }
-
-  getStatusColor(status: GamePlayStatus): string {
-    const colors: Record<GamePlayStatus, string> = {
-      not_started: 'medium',
-      playing: 'primary',
-      paused: 'warning',
-      completed: 'success',
-      wishlist: 'tertiary',
-    };
-    return colors[status];
   }
 
   getCountdownLabel(game: Game): string {
@@ -1079,7 +1070,17 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.router.navigate(['/login']);
   }
 
-  private showToast(message: string, color: 'success' | 'danger'): void {
+  private showWishlistLockedToast(): void {
+    this.showToast(
+      "You can't add a game to your library before its release date.",
+      'warning',
+    );
+  }
+
+  private showToast(
+    message: string,
+    color: 'success' | 'danger' | 'warning' = 'success',
+  ): void {
     this.toastMessage = message;
     this.toastColor = color;
   }

@@ -258,7 +258,7 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
                     <ion-segment-button value="completed">
                       <ion-label>{{ statusLabels.completed }}</ion-label>
                     </ion-segment-button>
-                    <ion-segment-button value="wishlist">
+                    <ion-segment-button value="wishlist" *ngIf="canSelectWishlistStatus()">
                       <ion-label>{{ statusLabels.wishlist }}</ion-label>
                     </ion-segment-button>
                   </ion-segment>
@@ -399,6 +399,10 @@ export class GameFormPage implements OnInit {
 
   requiresReleaseDate(): boolean {
     return this.isWishlistMode || this.game.status === 'wishlist';
+  }
+
+  canSelectWishlistStatus(): boolean {
+    return this.isEdit && this.originalStatus === 'wishlist';
   }
 
   releaseDateYearMismatch(): boolean {

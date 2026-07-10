@@ -777,6 +777,12 @@ export class GameService {
   }
 
   private applyStatusChange(game: Game, status: GamePlayStatus): Observable<Game> {
+    if (game.status !== "wishlist" && status === "wishlist") {
+      return throwError(
+        () => new Error("Library games cannot be moved to wishlist"),
+      );
+    }
+
     const previousStatus = game.status;
     const now = new Date().toISOString();
     const update: UpdateGameRequest = {

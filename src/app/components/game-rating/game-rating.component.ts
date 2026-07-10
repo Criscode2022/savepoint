@@ -98,8 +98,12 @@ import {
       transition: transform var(--transition-fast, 150ms ease), color var(--transition-fast, 150ms ease);
     }
 
+    .game-rating--readonly {
+      pointer-events: none;
+    }
+
     .game-rating--readonly .game-rating__star {
-      cursor: default;
+      cursor: inherit;
     }
 
     .game-rating__star:disabled {
@@ -195,12 +199,12 @@ export class GameRatingComponent {
   }
 
   onStarClick(value: number, event: Event): void {
-    event.stopPropagation();
-    event.preventDefault();
-
     if (this.readonly || this.disabled) {
       return;
     }
+
+    event.stopPropagation();
+    event.preventDefault();
 
     const next = this.rating === value ? null : clampRating(value);
     this.ratingChange.emit(next);

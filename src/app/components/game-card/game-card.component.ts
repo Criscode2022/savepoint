@@ -117,6 +117,7 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
       <div
         class="card-footer"
         [class.card-footer--locked]="isWishlistLocked"
+        (click)="$event.stopPropagation()"
       >
         <ion-button 
           fill="outline"
@@ -455,7 +456,6 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
 
     .status-btn--disabled {
       opacity: 0.45;
-      pointer-events: none;
     }
 
     .status-btn--disabled::part(native) {
@@ -569,11 +569,6 @@ export class GameCardComponent {
   handleStatusClick(event: Event): void {
     event.stopPropagation();
     event.preventDefault();
-
-    if (this.isWishlistLocked) {
-      return;
-    }
-
     this.onToggleCompleted.emit(this.game.id);
   }
 

@@ -117,12 +117,12 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
 
                 <span class="year">{{ game.releaseYear }}</span>
 
-                <div class="status-picker">
+                <div class="status-picker" [class.status-picker--locked]="isWishlistLocked()">
                   <button
                     type="button"
                     [class]="'status-badge status-badge--' + game.status"
                     [class.status-badge--disabled]="isWishlistLocked()"
-                    [disabled]="isWishlistLocked()"
+                    [attr.aria-disabled]="isWishlistLocked() ? true : null"
                     (click)="openStatusSelect($event, statusSelect)"
                     aria-haspopup="listbox"
                     [attr.aria-label]="
@@ -163,7 +163,11 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
         <section class="content-section">
           <div class="content-layout">
             <div class="main-column">
-              <section class="detail-stats" aria-label="Game overview">
+              <section
+                class="detail-stats"
+                *ngIf="game.status !== 'wishlist'"
+                aria-label="Game overview"
+              >
                 <article class="detail-stat-card" *ngIf="canShowRating()">
                   <div class="detail-stat-card__icon detail-stat-card__icon--rating">
                     <ion-icon name="star-outline" aria-hidden="true"></ion-icon>
@@ -527,26 +531,7 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
       return ['not_started', 'playing', 'paused', 'completed'];
     }
 
-    const options: GamePlayStatus[] = ['not_started', 'playing', 'paused', 'completed', 'wishlist'];
-    if (this.hasBeenPlayed()) {
-      return options.filter((status) => status !== 'wishlist');
-    }
-    return options;
-  }
-
-  hasBeenPlayed(): boolean {
-    if (!this.game) return false;
-
-    return (
-      this.game.status === 'playing' ||
-      this.game.status === 'paused' ||
-      this.game.status === 'completed' ||
-      !!this.game.startedAt ||
-      !!this.game.lastPlayedAt ||
-      !!this.game.completedAt ||
-      (this.getPlaytime() ?? 0) > 0 ||
-      this.playSessions.length > 0
-    );
+    return ['not_started', 'playing', 'paused', 'completed'];
   }
 
   setStatus(status: GamePlayStatus): void {
