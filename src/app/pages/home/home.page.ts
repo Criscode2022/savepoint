@@ -15,7 +15,7 @@ import {
   logOutOutline, gridOutline, listOutline,
   starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
   closeOutline, imageOutline, chevronForwardOutline, heartOutline, ellipseOutline,
-  personCircleOutline, pauseCircleOutline
+  personCircleOutline, pauseCircleOutline, downloadOutline
 } from 'ionicons/icons';
 import { Game, GameFilters, PLATFORMS, GAME_STATUS_LABELS, GamePlayStatus, GAME_STATUS_CYCLE } from '../../models/game.model';
 import { formatReleaseCountdown, canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
@@ -28,6 +28,10 @@ import { AuthService } from '../../services/auth.service';
 import { GameCardComponent } from '../../components/game-card/game-card.component';
 import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
 import { GameRatingComponent } from '../../components/game-rating/game-rating.component';
+import {
+  exportLibrary,
+  LibraryExportFormat,
+} from '../../shared/utils/library-export.utils';
 
 type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'completed' | 'rated' | 'with_playtime';
 
@@ -65,6 +69,16 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
               [attr.aria-label]="isListView ? 'Switch to grid view' : 'Switch to list view'"
             >
               <ion-icon [name]="isListView ? 'grid-outline' : 'list-outline'" slot="icon-only"></ion-icon>
+            </ion-button>
+
+            <ion-button
+              (click)="openExportDialog()"
+              class="header-icon-btn download-btn"
+              fill="clear"
+              title="Download library"
+              aria-label="Download library"
+            >
+              <ion-icon name="download-outline" slot="icon-only"></ion-icon>
             </ion-button>
 
             <ion-button
@@ -523,6 +537,56 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
     <button type="button" class="custom-add-button" routerLink="/add" aria-label="Add Game">
       <ion-icon name="add-outline"></ion-icon>
     </button>
+
+    <div
+      *ngIf="showExportDialog"
+      class="export-dialog-backdrop"
+      (click)="closeExportDialog()"
+      role="presentation"
+    >
+      <div
+        class="export-dialog"
+        role="dialog"
+        aria-labelledby="export-dialog-title"
+        aria-modal="true"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="export-dialog__head">
+          <h2 id="export-dialog-title">Download library</h2>
+          <p>Choose a format for your export.</p>
+        </div>
+
+        <div class="export-dialog__actions">
+          <button
+            type="button"
+            class="export-dialog__btn export-dialog__btn--export"
+            (click)="exportAndClose('json')"
+          >
+            JSON
+          </button>
+          <button
+            type="button"
+            class="export-dialog__btn export-dialog__btn--export"
+            (click)="exportAndClose('xlsx')"
+          >
+            Excel (.xlsx)
+          </button>
+        </div>
+
+        <label class="export-dialog__checkbox">
+          <input type="checkbox" [(ngModel)]="includeWishlistInExport" />
+          <span>Include wishlist</span>
+        </label>
+
+        <button
+          type="button"
+          class="export-dialog__btn export-dialog__btn--cancel export-dialog__btn--cancel-block"
+          (click)="closeExportDialog()"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
   `,
 })
 export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
@@ -560,6 +624,9 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   toastColor: 'success' | 'danger' | 'warning' = 'success';
   countdownTick = 0;
 
+  showExportDialog = false;
+  includeWishlistInExport = true;
+
   private destroy$ = new Subject<void>();
   private countdownInterval?: ReturnType<typeof setInterval>;
 
@@ -576,7 +643,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       logOutOutline, gridOutline, listOutline,
       starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
       closeOutline, imageOutline, chevronForwardOutline, heartOutline, ellipseOutline,
-      personCircleOutline, pauseCircleOutline
+      personCircleOutline, pauseCircleOutline, downloadOutline
     });
   }
 
@@ -1079,6 +1146,37 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  openExportDialog(): void {
+    if (this.games.length === 0) {
+      this.showToast('No games to export', 'warning');
+      return;
+    }
+
+    this.includeWishlistInExport = true;
+    this.showExportDialog = true;
+  }
+
+  closeExportDialog(): void {
+    this.showExportDialog = false;
+  }
+
+  exportAndClose(format: LibraryExportFormat): void {
+    this.exportLibrary(format, this.includeWishlistInExport);
+    this.closeExportDialog();
+  }
+
+  private exportLibrary(
+    format: LibraryExportFormat,
+    includeWishlist = true,
+  ): void {
+    try {
+      exportLibrary(this.games, format, { includeWishlist });
+      this.showToast('Library downloaded successfully', 'success');
+    } catch {
+      this.showToast('No games to export with the selected options', 'warning');
+    }
   }
 
   private showWishlistLockedToast(): void {

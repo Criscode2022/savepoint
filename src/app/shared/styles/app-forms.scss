@@ -709,6 +709,22 @@ ion-toggle {
   background: rgba(168, 85, 247, 0.45);
 }
 
+.header-icon-btn.download-btn {
+  --color: #67e8f9;
+}
+
+.header-icon-btn.download-btn:hover,
+.header-icon-btn.download-btn:focus-visible {
+  --color: #a5f3fc;
+  --background: rgba(6, 182, 212, 0.14);
+  --background-hover: rgba(6, 182, 212, 0.14);
+}
+
+.header-icon-btn.download-btn:hover::part(native),
+.header-icon-btn.download-btn:focus-visible::part(native) {
+  box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.28);
+}
+
 .header-icon-btn.profile-btn {
   --color: #e9d5ff;
 }

@@ -86,4 +86,138 @@ ion-alert.app-alert {
       box-shadow: 0 4px 18px rgba(239, 68, 68, 0.28);
     }
   }
+
+  .app-alert-btn-export {
+    color: #ddd6fe !important;
+    background: rgba(168, 85, 247, 0.16);
+    border: 1px solid rgba(168, 85, 247, 0.38);
+
+    &:hover,
+    &:focus-visible {
+      background: rgba(168, 85, 247, 0.28) !important;
+      color: #fff !important;
+      box-shadow: 0 4px 18px rgba(168, 85, 247, 0.28);
+    }
+  }
+}
+
+/* ─── Export dialog (home library download) ─────────────────────── */
+
+.export-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.export-dialog {
+  width: min(360px, calc(100vw - 2rem));
+  background: linear-gradient(180deg, #22223a 0%, #18182c 100%);
+  border: 1px solid rgba(168, 85, 247, 0.38);
+  border-radius: 18px;
+  box-shadow:
+    0 28px 56px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 48px rgba(168, 85, 247, 0.18);
+  padding: 1.375rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.export-dialog__head {
+  padding: 0 0.375rem 1rem;
+
+  h2 {
+    margin: 0 0 0.5rem;
+    color: #f8fafc;
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    margin: 0;
+    color: #cbd5e1;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+  }
+}
+
+.export-dialog__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.export-dialog__btn {
+  width: 100%;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-1px);
+  }
+}
+
+.export-dialog__btn--export {
+  color: #ddd6fe;
+  background: rgba(168, 85, 247, 0.16);
+  border: 1px solid rgba(168, 85, 247, 0.38);
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(168, 85, 247, 0.28);
+    color: #fff;
+    box-shadow: 0 4px 18px rgba(168, 85, 247, 0.28);
+  }
+}
+
+.export-dialog__btn--cancel {
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(148, 163, 184, 0.2);
+    color: #f1f5f9;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  }
+}
+
+.export-dialog__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin: 0.75rem 0.375rem 0.5rem;
+  color: #e2e8f0;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  user-select: none;
+
+  input[type='checkbox'] {
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    accent-color: #a855f7;
+    cursor: pointer;
+  }
+}
+
+.export-dialog__btn--cancel-block {
+  margin-top: 0.25rem;
 }
