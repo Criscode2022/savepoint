@@ -29,7 +29,11 @@ import { DirectorService } from "./director.service";
 import { PlatformService } from "./platform.service";
 import { canAddWishlistToLibrary } from "../shared/utils/release-countdown";
 import { statusChangeClearsPlayHistory } from "../shared/utils/game-status.utils";
-import { clampRating, isValidRating } from "../shared/utils/rating.utils";
+import {
+  canRateGame,
+  clampRating,
+  isValidRating,
+} from "../shared/utils/rating.utils";
 
 // Database row types
 interface DbGame {
@@ -475,7 +479,7 @@ export class GameService {
       release_year: game.releaseYear || null,
       release_date: game.releaseDate || null,
       genre: game.genre?.[0] || null,
-      rating: game.rating ?? null,
+      rating: null,
       playtime_hours: game.playtimeHours ?? 0,
       status,
       completed: status === "completed",
@@ -484,7 +488,11 @@ export class GameService {
       user_id: currentUser.id,
     };
 
-    if (game.rating != null && isValidRating(game.rating)) {
+    if (
+      canRateGame(status) &&
+      game.rating != null &&
+      isValidRating(game.rating)
+    ) {
       data["rating"] = clampRating(game.rating);
       data["rated_at"] = now;
     }
@@ -586,7 +594,15 @@ export class GameService {
     if (game.releaseYear !== undefined) data["release_year"] = game.releaseYear;
     if (game.releaseDate !== undefined) data["release_date"] = game.releaseDate;
     if (game.genre !== undefined) data["genre"] = game.genre?.[0] || null;
-    if (game.rating !== undefined) {
+    const existing =
+      this.gamesSubject.value.find((g) => g.id === id) ??
+      this.filteredGames().find((g) => g.id === id);
+    const nextStatus = game.status ?? existing?.status;
+
+    if (!canRateGame(nextStatus)) {
+      data["rating"] = null;
+      data["rated_at"] = null;
+    } else if (game.rating !== undefined) {
       if (game.rating == null) {
         data["rating"] = null;
         data["rated_at"] = null;
@@ -623,9 +639,6 @@ export class GameService {
       return throwError(() => new Error("No fields to update"));
     }
 
-    const existing =
-      this.gamesSubject.value.find((g) => g.id === id) ??
-      this.filteredGames().find((g) => g.id === id);
     const shouldClearPlayHistory =
       game.status === "not_started" &&
       existing != null &&
@@ -764,6 +777,8 @@ export class GameService {
       }
     } else if (status === "wishlist") {
       update.completedAt = null;
+      update.rating = null;
+      update.ratedAt = null;
     } else if (statusChangeClearsPlayHistory(previousStatus, status)) {
       update.completedAt = null;
       update.startedAt = null;
@@ -791,6 +806,15 @@ export class GameService {
   }
 
   setRating(id: string, rating: number | null, sourceGame?: Game): Observable<Game> {
+    const game =
+      sourceGame ??
+      this.gamesSubject.value.find((g) => g.id === id) ??
+      this.filteredGames().find((g) => g.id === id);
+
+    if (game && !canRateGame(game.status)) {
+      return throwError(() => new Error("Wishlist games cannot be rated"));
+    }
+
     const normalized =
       rating == null ? null : isValidRating(rating) ? clampRating(rating) : null;
 

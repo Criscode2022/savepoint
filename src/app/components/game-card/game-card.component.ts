@@ -53,8 +53,12 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
         </div>
         
         <!-- Platform Badge -->
-        <span class="platform-chip" [style.--platform-color]="getPlatformColor()">
-          {{ game.platform.name }}
+        <span
+          class="platform-chip"
+          [style.--platform-color]="getPlatformColor()"
+          [attr.title]="game.platform.name"
+        >
+          <span class="platform-chip__text">{{ game.platform.name }}</span>
         </span>
         
         <!-- Status Badge -->
@@ -87,8 +91,8 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
           {{ game.description | slice:0:100 }}{{ game.description.length > 100 ? '...' : '' }}
         </p>
         
-        <div class="game-stats" *ngIf="game.rating != null || getPlaytime()">
-          <div class="stat stat--rating" *ngIf="game.rating != null">
+        <div class="game-stats" *ngIf="(game.rating != null && game.status !== 'wishlist') || getPlaytime()">
+          <div class="stat stat--rating" *ngIf="game.rating != null && game.status !== 'wishlist'">
             <app-game-rating
               [rating]="game.rating"
               [readonly]="true"
@@ -227,6 +231,7 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
       left: 12px;
       display: inline-flex;
       align-items: center;
+      min-width: 0;
       max-width: calc(100% - 24px);
       padding: 0.45rem 0.75rem;
       border-radius: 999px;
@@ -239,15 +244,21 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
       text-transform: uppercase;
       line-height: 1.2;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .platform-chip__text {
+      display: block;
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .game-card--wishlist .platform-chip {
       left: auto;
       right: 12px;
-      max-width: calc(50% - 18px);
+      max-width: min(9rem, calc(100% - 7.5rem));
     }
 
     .game-card--wishlist .countdown-badge {

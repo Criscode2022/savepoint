@@ -288,7 +288,9 @@ export class ProfilePage implements OnInit {
   }
 
   get averageRating(): string {
-    const ratedGames = this.games.filter((g) => g.rating != null);
+    const ratedGames = this.games.filter(
+      (g) => g.rating != null && g.status !== 'wishlist',
+    );
     if (ratedGames.length === 0) {
       return '—';
     }
@@ -299,7 +301,9 @@ export class ProfilePage implements OnInit {
   }
 
   get ratedGamesCount(): number {
-    return this.games.filter((g) => g.rating != null).length;
+    return this.games.filter(
+      (g) => g.rating != null && g.status !== 'wishlist',
+    ).length;
   }
 
   get completionRate(): number {

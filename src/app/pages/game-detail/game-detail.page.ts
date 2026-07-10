@@ -22,7 +22,7 @@ import {
   confirmResetPlayHistory,
   statusChangeClearsPlayHistory,
 } from '../../shared/utils/game-status.utils';
-import { formatRatingLabel } from '../../shared/utils/rating.utils';
+import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils';
 
 @Component({
   selector: 'app-game-detail',
@@ -145,7 +145,7 @@ import { formatRatingLabel } from '../../shared/utils/rating.utils';
           <div class="content-layout">
             <div class="main-column">
               <section class="detail-stats" aria-label="Game overview">
-                <article class="detail-stat-card">
+                <article class="detail-stat-card" *ngIf="canShowRating()">
                   <div class="detail-stat-card__icon detail-stat-card__icon--rating">
                     <ion-icon name="star-outline" aria-hidden="true"></ion-icon>
                   </div>
@@ -186,13 +186,14 @@ import { formatRatingLabel } from '../../shared/utils/rating.utils';
                 </article>
               </section>
 
-              <ion-card class="rating-card">
+              <ion-card class="rating-card" *ngIf="canShowRating()">
                 <ion-card-content>
                   <div class="rating-card__header">
                     <h2 class="section-title">Your rating</h2>
                     <span
                       class="rating-card__score"
-                      [class.rating-card__score--empty]="game.rating == null"
+                      [class.rating-card__score--preview]="ratingPreview != null"
+                      [class.rating-card__score--empty]="game.rating == null && ratingPreview == null"
                     >
                       {{ getRatingDisplay() }}
                     </span>
@@ -200,6 +201,7 @@ import { formatRatingLabel } from '../../shared/utils/rating.utils';
                   <app-game-rating
                     [rating]="game.rating"
                     (ratingChange)="onRatingChange($event)"
+                    (previewChange)="ratingPreview = $event"
                     size="lg"
                     [showClear]="true"
                     [showValue]="false"
@@ -287,7 +289,7 @@ import { formatRatingLabel } from '../../shared/utils/rating.utils';
                     </div>
                   </div>
 
-                  <div class="detail-item" *ngIf="game.rating">
+                  <div class="detail-item" *ngIf="canShowRating() && game.rating">
                     <ion-icon name="star-outline"></ion-icon>
                     <div class="detail-info">
                       <label>Your Rating</label>
@@ -364,6 +366,7 @@ export class GameDetailPage implements OnInit {
   toastMessage = '';
   toastColor: 'success' | 'danger' = 'success';
   ratingSaving = false;
+  ratingPreview: number | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -555,15 +558,20 @@ export class GameDetailPage implements OnInit {
     return hours != null && hours > 0 ? hours : null;
   }
 
+  canShowRating(): boolean {
+    return canRateGame(this.game?.status);
+  }
+
   getRatingDisplay(): string {
-    return formatRatingLabel(this.game?.rating);
+    return formatRatingLabel(this.ratingPreview ?? this.game?.rating);
   }
 
   onRatingChange(rating: number | null): void {
-    if (!this.game) {
+    if (!this.game || !this.canShowRating()) {
       return;
     }
 
+    this.ratingPreview = null;
     this.ratingSaving = true;
     this.gameService.setRating(this.game.id, rating, this.game).subscribe({
       next: (updatedGame) => {
@@ -642,7 +650,7 @@ export class GameDetailPage implements OnInit {
       });
     }
 
-    if (this.game.ratedAt) {
+    if (this.canShowRating() && this.game.ratedAt) {
       events.push({
         label: 'Rated',
         date: this.game.ratedAt,

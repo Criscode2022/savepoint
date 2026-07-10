@@ -18,7 +18,7 @@ import {
   confirmResetPlayHistory,
   statusChangeClearsPlayHistory,
 } from '../../shared/utils/game-status.utils';
-import { formatRatingLabel } from '../../shared/utils/rating.utils';
+import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils';
 
 @Component({
   selector: 'app-game-form',
@@ -203,12 +203,13 @@ import { formatRatingLabel } from '../../shared/utils/rating.utils';
               <div class="form-section" *ngIf="!isWishlistMode">
                 <h3 class="section-title">Your Stats</h3>
 
-                <div class="field-group">
+                <div class="field-group" *ngIf="canShowRating()">
                   <div class="rating-field__header">
                     <label class="field-label">Your Rating</label>
                     <span
                       class="rating-field__score"
-                      [class.rating-field__score--empty]="game.rating == null"
+                      [class.rating-field__score--preview]="ratingPreview != null"
+                      [class.rating-field__score--empty]="game.rating == null && ratingPreview == null"
                     >
                       {{ getRatingDisplay() }}
                     </span>
@@ -216,6 +217,7 @@ import { formatRatingLabel } from '../../shared/utils/rating.utils';
                   <app-game-rating
                     [rating]="game.rating ?? null"
                     (ratingChange)="onRatingChange($event)"
+                    (previewChange)="ratingPreview = $event"
                     size="lg"
                     [showClear]="true"
                     [showValue]="false"
@@ -342,6 +344,7 @@ export class GameFormPage implements OnInit {
   submitted = false;
   toastMessage = '';
   private originalStatus: GamePlayStatus = 'not_started';
+  ratingPreview: number | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -514,12 +517,21 @@ export class GameFormPage implements OnInit {
     return this.game.genre?.includes(genre) || false;
   }
 
+  canShowRating(): boolean {
+    return !this.isWishlistMode && canRateGame(this.game.status);
+  }
+
   onRatingChange(rating: number | null): void {
+    if (!this.canShowRating()) {
+      return;
+    }
+
+    this.ratingPreview = null;
     this.game.rating = rating ?? undefined;
   }
 
   getRatingDisplay(): string {
-    return formatRatingLabel(this.game.rating);
+    return formatRatingLabel(this.ratingPreview ?? this.game.rating);
   }
 
   toggleGenre(genre: string): void {
@@ -568,7 +580,12 @@ export class GameFormPage implements OnInit {
       developerName: this.developerName.trim(),
       directorName: this.game.director?.trim() || undefined,
       genre: this.game.genre || [],
-      rating: this.game.rating != null ? Number(this.game.rating) : undefined,
+      rating:
+        nextStatus === 'wishlist' || !canRateGame(nextStatus)
+          ? undefined
+          : this.game.rating != null
+            ? Number(this.game.rating)
+            : undefined,
       playtimeHours:
         this.game.playtime != null ? Number(this.game.playtime) : undefined,
       status: nextStatus,

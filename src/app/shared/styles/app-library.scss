@@ -577,6 +577,8 @@
 .game-list-item .platform-tag {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
+  min-width: 0;
   margin: 0;
   background: rgba(168, 85, 247, 0.16);
   color: #d8b4fe;
@@ -585,6 +587,9 @@
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .wishlist-countdown {

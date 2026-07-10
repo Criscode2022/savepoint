@@ -1,6 +1,12 @@
+import type { GamePlayStatus } from '../../models/game.model';
+
 export const RATING_MIN = 0;
 export const RATING_MAX = 10;
 export const RATING_STEP = 0.5;
+
+export function canRateGame(status: GamePlayStatus | undefined): boolean {
+  return status !== 'wishlist';
+}
 
 export function clampRating(value: number): number {
   const stepped = Math.round(value / RATING_STEP) * RATING_STEP;

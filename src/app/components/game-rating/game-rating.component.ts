@@ -28,10 +28,11 @@ import {
           role="slider"
           [attr.aria-valuemin]="0"
           [attr.aria-valuemax]="10"
-          [attr.aria-valuenow]="rating ?? 0"
+          [attr.aria-valuenow]="displayRating ?? 0"
           [attr.aria-label]="readonly ? 'Rating ' + formatRatingLabel(rating) : 'Rate this game from 1 to 10'"
           [attr.tabindex]="readonly ? -1 : 0"
           (keydown)="onKeydown($event)"
+          (mouseleave)="onStarsLeave()"
         >
           <button
             *ngFor="let filled of starStates; let index = index"
@@ -42,9 +43,8 @@ import {
             [attr.aria-label]="'Rate ' + (index + 1) + ' out of 10'"
             (click)="onStarClick(index + 1, $event)"
             (mouseenter)="onStarHover(index + 1)"
-            (mouseleave)="onStarLeave()"
           >
-            <ion-icon [name]="filled || previewRating === index + 1 ? 'star' : 'star-outline'"></ion-icon>
+            <ion-icon [name]="filled ? 'star' : 'star-outline'"></ion-icon>
           </button>
         </div>
 
@@ -175,6 +175,7 @@ export class GameRatingComponent {
   @Input() showClear = false;
 
   @Output() ratingChange = new EventEmitter<number | null>();
+  @Output() previewChange = new EventEmitter<number | null>();
 
   previewRating: number | null = null;
 
@@ -203,14 +204,14 @@ export class GameRatingComponent {
 
     const next = this.rating === value ? null : clampRating(value);
     this.ratingChange.emit(next);
-    this.previewRating = null;
+    this.setPreview(null);
   }
 
   clearRating(event: Event): void {
     event.stopPropagation();
     event.preventDefault();
     this.ratingChange.emit(null);
-    this.previewRating = null;
+    this.setPreview(null);
   }
 
   onStarHover(value: number): void {
@@ -218,11 +219,16 @@ export class GameRatingComponent {
       return;
     }
 
-    this.previewRating = value;
+    this.setPreview(value);
   }
 
-  onStarLeave(): void {
-    this.previewRating = null;
+  onStarsLeave(): void {
+    this.setPreview(null);
+  }
+
+  private setPreview(value: number | null): void {
+    this.previewRating = value;
+    this.previewChange.emit(value);
   }
 
   onKeydown(event: KeyboardEvent): void {
