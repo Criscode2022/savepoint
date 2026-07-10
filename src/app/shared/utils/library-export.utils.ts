@@ -6,6 +6,7 @@ export type LibraryExportFormat = 'json' | 'xlsx';
 
 export interface LibraryExportOptions {
   includeWishlist?: boolean;
+  scope?: 'library' | 'filtered';
 }
 
 interface LibraryExportRow {
@@ -96,9 +97,13 @@ function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-function buildFilename(format: LibraryExportFormat): string {
+function buildFilename(
+  format: LibraryExportFormat,
+  scope: 'library' | 'filtered' = 'library',
+): string {
   const stamp = new Date().toISOString().slice(0, 10);
-  return `gamevault-library-${stamp}.${format === 'json' ? 'json' : 'xlsx'}`;
+  const prefix = scope === 'filtered' ? 'gamevault-filtered' : 'gamevault-library';
+  return `${prefix}-${stamp}.${format === 'json' ? 'json' : 'xlsx'}`;
 }
 
 export function exportLibrary(
@@ -107,6 +112,7 @@ export function exportLibrary(
   options: LibraryExportOptions = {},
 ): void {
   const includeWishlist = options.includeWishlist ?? true;
+  const scope = options.scope ?? 'library';
   const gamesToExport = includeWishlist
     ? games
     : games.filter((game) => game.status !== 'wishlist');
@@ -120,12 +126,13 @@ export function exportLibrary(
       exportedAt: new Date().toISOString(),
       gameCount: gamesToExport.length,
       includeWishlist,
+      filtered: scope === 'filtered',
       games: gamesToExport.map(mapGameToExportObject),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], {
       type: 'application/json;charset=utf-8',
     });
-    downloadBlob(blob, buildFilename('json'));
+    downloadBlob(blob, buildFilename('json', scope));
     return;
   }
 
@@ -133,5 +140,5 @@ export function exportLibrary(
   const worksheet = XLSX.utils.json_to_sheet(rows);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Games');
-  XLSX.writeFile(workbook, buildFilename('xlsx'));
+  XLSX.writeFile(workbook, buildFilename('xlsx', scope));
 }

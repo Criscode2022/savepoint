@@ -75,8 +75,8 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
               (click)="openExportDialog()"
               class="header-icon-btn download-btn"
               fill="clear"
-              title="Download library"
-              aria-label="Download library"
+              title="Download whole library"
+              aria-label="Download whole library"
             >
               <ion-icon name="download-outline" slot="icon-only"></ion-icon>
             </ion-button>
@@ -351,6 +351,24 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
           </div>
         </div>
 
+        <div class="filter-results-bar" *ngIf="hasActiveFilters() && !gamesLoading()">
+          <p class="filter-results-bar__count">
+            <strong>{{ filteredResultsCount }}</strong>
+            {{ filteredResultsCount === 1 ? 'game' : 'games' }} found
+          </p>
+          <button
+            type="button"
+            class="filter-results-bar__download"
+            (click)="openFilteredExportDialog()"
+            [disabled]="filteredResultsCount === 0"
+            title="Download filtered games"
+            aria-label="Download filtered games"
+          >
+            <ion-icon name="download-outline" aria-hidden="true"></ion-icon>
+            <span>Download</span>
+          </button>
+        </div>
+
         <div class="games-loading" *ngIf="gamesLoading()">
           <ion-spinner name="crescent"></ion-spinner>
         </div>
@@ -363,7 +381,21 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
         >
           <div class="section-header" *ngIf="showStatusSections">
             <h2 class="section-title">Your Library</h2>
-            <span class="section-count">{{ librarySectionCountLabel }}</span>
+            <div class="section-header__actions">
+              <span class="section-count">{{ librarySectionCountLabel }}</span>
+              <button
+                *ngIf="libraryStatusFilter !== 'all'"
+                type="button"
+                class="section-download-btn"
+                (click)="openFilteredExportDialog()"
+                [disabled]="filteredResultsCount === 0"
+                title="Download filtered games"
+                aria-label="Download filtered games"
+              >
+                <ion-icon name="download-outline" aria-hidden="true"></ion-icon>
+                <span>Download</span>
+              </button>
+            </div>
           </div>
 
           <p class="section-empty" *ngIf="showStatusSections && libraryGamesCount === 0">
@@ -552,8 +584,8 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
         (click)="$event.stopPropagation()"
       >
         <div class="export-dialog__head">
-          <h2 id="export-dialog-title">Download library</h2>
-          <p>Choose a format for your export.</p>
+          <h2 id="export-dialog-title">{{ exportDialogTitle }}</h2>
+          <p>{{ exportDialogMessage }}</p>
         </div>
 
         <div class="export-dialog__actions">
@@ -626,6 +658,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
 
   showExportDialog = false;
   includeWishlistInExport = true;
+  exportScope: 'library' | 'filtered' = 'library';
 
   private destroy$ = new Subject<void>();
   private countdownInterval?: ReturnType<typeof setInterval>;
@@ -1148,12 +1181,48 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.router.navigate(['/login']);
   }
 
+  get filteredExportGames(): Game[] {
+    return [...this.displayGames, ...this.wishlistGames];
+  }
+
+  get filteredResultsCount(): number {
+    return this.filteredExportGames.length;
+  }
+
+  get exportDialogTitle(): string {
+    return this.exportScope === 'filtered'
+      ? 'Download filtered games'
+      : 'Download library';
+  }
+
+  get exportDialogMessage(): string {
+    if (this.exportScope === 'filtered') {
+      const count = this.filteredResultsCount;
+      const label = count === 1 ? 'game' : 'games';
+      return `Export ${count} filtered ${label} in your chosen format.`;
+    }
+
+    return 'Choose a format for your export.';
+  }
+
   openExportDialog(): void {
     if (this.games.length === 0) {
       this.showToast('No games to export', 'warning');
       return;
     }
 
+    this.exportScope = 'library';
+    this.includeWishlistInExport = true;
+    this.showExportDialog = true;
+  }
+
+  openFilteredExportDialog(): void {
+    if (this.filteredExportGames.length === 0) {
+      this.showToast('No games to export', 'warning');
+      return;
+    }
+
+    this.exportScope = 'filtered';
     this.includeWishlistInExport = true;
     this.showExportDialog = true;
   }
@@ -1171,9 +1240,20 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     format: LibraryExportFormat,
     includeWishlist = true,
   ): void {
+    const games =
+      this.exportScope === 'filtered' ? this.filteredExportGames : this.games;
+
     try {
-      exportLibrary(this.games, format, { includeWishlist });
-      this.showToast('Library downloaded successfully', 'success');
+      exportLibrary(games, format, {
+        includeWishlist,
+        scope: this.exportScope,
+      });
+      this.showToast(
+        this.exportScope === 'filtered'
+          ? 'Filtered games downloaded successfully'
+          : 'Library downloaded successfully',
+        'success',
+      );
     } catch {
       this.showToast('No games to export with the selected options', 'warning');
     }
