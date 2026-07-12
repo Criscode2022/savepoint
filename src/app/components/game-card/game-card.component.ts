@@ -143,12 +143,11 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
   `,
   styles: [`
     .game-card {
-      background: linear-gradient(180deg, rgba(24, 24, 42, 0.98) 0%, rgba(15, 15, 28, 0.98) 100%);
-      border-radius: 18px;
+      background: var(--vault-elevated);
+      border-radius: var(--radius-lg);
       overflow: hidden;
       border: 1px solid rgba(148, 163, 184, 0.14);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+      transition: transform var(--transition-normal), border-color var(--transition-normal), background var(--transition-normal);
       cursor: pointer;
       display: flex;
       flex-direction: column;
@@ -158,10 +157,8 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
 
     .game-card:hover {
       transform: translateY(-4px);
-      box-shadow:
-        0 20px 40px rgba(0, 0, 0, 0.45),
-        0 0 0 1px rgba(168, 85, 247, 0.25);
       border-color: rgba(168, 85, 247, 0.35);
+      background: #191925;
     }
 
     .game-card.completed {
@@ -244,7 +241,6 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
       letter-spacing: 0.06em;
       text-transform: uppercase;
       line-height: 1.2;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
       overflow: hidden;
     }
 
@@ -277,7 +273,6 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 14px rgba(34, 197, 94, 0.45);
       border: 2px solid rgba(255, 255, 255, 0.15);
     }
 
@@ -355,7 +350,6 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
       padding: 0.35rem 0.625rem;
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(148, 163, 184, 0.12);
       color: #e2e8f0;
       font-size: 0.8125rem;
       font-weight: 600;

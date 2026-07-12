@@ -14,7 +14,7 @@ import {
   gameControllerOutline, addOutline, searchOutline, filterOutline,
   logOutOutline, gridOutline, listOutline,
   starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
-  closeOutline, imageOutline, chevronForwardOutline, heartOutline, ellipseOutline,
+  closeOutline, imageOutline, heartOutline, ellipseOutline,
   personCircleOutline, pauseCircleOutline, downloadOutline
 } from 'ionicons/icons';
 import { Game, GameFilters, PLATFORMS, GAME_STATUS_LABELS, GamePlayStatus, GAME_STATUS_CYCLE } from '../../models/game.model';
@@ -143,22 +143,9 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
             </div>
           </div>
 
-          <a routerLink="/play-history" class="play-history-btn">
-            <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
-            <span class="play-history-btn__label">Play History</span>
-            <span class="play-history-btn__count">{{ completedCount }}</span>
-            <ion-icon name="chevron-forward-outline" class="play-history-btn__chevron" aria-hidden="true"></ion-icon>
-          </a>
-
-          <button type="button" class="wishlist-nav-btn" (click)="scrollToWishlist()">
-            <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
-            <span class="wishlist-nav-btn__label">Wishlist</span>
-            <span class="wishlist-nav-btn__count">{{ wishlistGames.length }}</span>
-            <ion-icon name="chevron-forward-outline" class="wishlist-nav-btn__chevron" aria-hidden="true"></ion-icon>
-          </button>
-
-          <!-- Library filters -->
-          <div class="stats-bar" role="group" aria-label="Library filters">
+          <div class="library-tools-row">
+            <!-- Library filters -->
+            <div class="stats-bar" role="group" aria-label="Library filters">
             <button
               type="button"
               class="stat-item"
@@ -250,6 +237,21 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
               <ion-icon name="time-outline"></ion-icon>
               <span>{{ totalPlaytime }}h played</span>
             </button>
+            </div>
+
+            <nav class="library-shortcuts" aria-label="Library shortcuts">
+              <a routerLink="/play-history" class="library-shortcut">
+                <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
+                <span>History</span>
+                <span class="library-shortcut__count">{{ completedCount }}</span>
+              </a>
+
+              <button type="button" class="library-shortcut" (click)="scrollToWishlist()">
+                <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
+                <span>Wishlist</span>
+                <span class="library-shortcut__count">{{ wishlistGames.length }}</span>
+              </button>
+            </nav>
           </div>
         </div>
 
@@ -675,7 +677,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       gameControllerOutline, addOutline, searchOutline, filterOutline,
       logOutOutline, gridOutline, listOutline,
       starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
-      closeOutline, imageOutline, chevronForwardOutline, heartOutline, ellipseOutline,
+      closeOutline, imageOutline, heartOutline, ellipseOutline,
       personCircleOutline, pauseCircleOutline, downloadOutline
     });
   }
