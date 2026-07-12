@@ -41,7 +41,23 @@
   font: inherit;
   font-weight: 600;
   cursor: pointer;
-  transition: transform var(--transition-fast), background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  transition: transform var(--transition-fast), background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.filter-toggle-btn:hover,
+.filter-toggle-btn:focus-visible {
+  color: var(--ink-primary);
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.38);
+  transform: translateY(-1px);
+  outline: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.filter-toggle-btn.active {
+  background: rgba(168, 85, 247, 0.18);
+  color: #e9d5ff;
+  border-color: rgba(168, 85, 247, 0.45);
 }
 
 .filter-toggle-icon {
@@ -53,21 +69,6 @@
   display: none;
   font-size: 0.875rem;
   pointer-events: none;
-}
-
-.filter-toggle-btn:hover,
-.filter-toggle-btn:focus-visible {
-  color: var(--ink-primary);
-  background: rgba(168, 85, 247, 0.12);
-  border-color: rgba(168, 85, 247, 0.35);
-  transform: translateY(-1px);
-  outline: none;
-}
-
-.filter-toggle-btn.active {
-  background: rgba(168, 85, 247, 0.16);
-  color: #e9d5ff;
-  border-color: rgba(168, 85, 247, 0.4);
 }
 
 .filter-badge {
@@ -198,12 +199,18 @@
 
 .stat-item--clickable {
   cursor: pointer;
-  transition: color var(--transition-fast), background var(--transition-fast), transform 0.15s var(--ease-out);
+  transition: color var(--transition-fast), background var(--transition-fast), transform 140ms var(--ease-spring);
+  border-radius: 10px;
+}
+
+.stat-item--clickable:hover:not(.stat-item--active) {
+  transform: translateY(-1px);
 }
 
 .stat-item--active {
-  background: rgba(168, 85, 247, 0.16);
+  background: rgba(168, 85, 247, 0.18);
   color: #e9d5ff;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset;
 }
 
 .stat-item--active ion-icon {
@@ -253,12 +260,13 @@
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background var(--transition-fast), border-color var(--transition-fast), transform 0.15s var(--ease-out);
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform 140ms var(--ease-spring);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset;
 }
 
 @media (hover: hover) {
   .active-filter-chip:hover {
-    background: rgba(168, 85, 247, 0.3);
+    background: rgba(168, 85, 247, 0.32);
     border-color: rgba(192, 132, 252, 0.65);
     transform: translateY(-1px);
   }
@@ -409,6 +417,38 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
   gap: var(--spacing-md);
+}
+
+/* Thoughtful staggered entrance for cards — premium density feel */
+.game-card-wrapper {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: card-enter 420ms var(--ease-spring) forwards;
+}
+
+@keyframes card-enter {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.games-grid .game-card-wrapper:nth-child(1) { animation-delay: 20ms; }
+.games-grid .game-card-wrapper:nth-child(2) { animation-delay: 65ms; }
+.games-grid .game-card-wrapper:nth-child(3) { animation-delay: 105ms; }
+.games-grid .game-card-wrapper:nth-child(4) { animation-delay: 140ms; }
+.games-grid .game-card-wrapper:nth-child(5) { animation-delay: 175ms; }
+.games-grid .game-card-wrapper:nth-child(6) { animation-delay: 205ms; }
+.games-grid .game-card-wrapper:nth-child(7) { animation-delay: 235ms; }
+.games-grid .game-card-wrapper:nth-child(8) { animation-delay: 260ms; }
+.games-grid .game-card-wrapper:nth-child(n+9) { animation-delay: 280ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .game-card-wrapper {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .games-list {
@@ -656,6 +696,65 @@
   color: var(--neon-purple);
 }
 
+/* Premium vault skeleton cards — modern & on-brand */
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.skeleton-card {
+  background: var(--vault-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+  height: 100%;
+}
+
+.skeleton-cover {
+  aspect-ratio: 3/4;
+  background: linear-gradient(145deg, #1f1f2b 0%, #171721 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255,255,255,0.045) 50%,
+    transparent 80%
+  );
+  animation: skeleton-shimmer 1.6s infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-cover::after { animation: none; }
+}
+
+.skeleton-body {
+  padding: 1rem 1.125rem 1.125rem;
+}
+
+.skeleton-line {
+  height: 12px;
+  background: rgba(148, 163, 184, 0.12);
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
+
+.skeleton-line.short { width: 52%; }
+.skeleton-line.medium { width: 78%; }
+.skeleton-line.tall { height: 15px; margin-bottom: 14px; width: 100%; }
+
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
@@ -702,26 +801,27 @@
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
   background: var(--neon-purple);
-  border: none;
-  box-shadow: var(--shadow-card);
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.4), 0 0 0 1px rgba(168,85,247,0.25) inset;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 100;
-  transition: transform var(--transition-normal), box-shadow var(--transition-normal), background var(--transition-normal);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), background var(--transition-normal), filter 140ms ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 @media (hover: hover) {
   .custom-add-button:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px) scale(1.01);
     background: var(--neon-purple-deep);
-    box-shadow: var(--shadow-neon);
+    box-shadow: var(--shadow-neon), 0 14px 34px rgba(0,0,0,0.45);
+    filter: brightness(1.02);
   }
 }
 
@@ -730,7 +830,7 @@
 }
 
 .custom-add-button ion-icon {
-  font-size: 28px;
+  font-size: 29px;
   color: #fff;
   pointer-events: none;
 }

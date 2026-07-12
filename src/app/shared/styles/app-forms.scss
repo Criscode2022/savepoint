@@ -42,11 +42,22 @@
 .recent-games-card,
 .actions-card,
 .stat-card {
-  background: rgba(21, 21, 32, 0.92);
+  background: rgba(21, 21, 32, 0.94);
   border-radius: 20px;
   border: 1px solid var(--border-neon);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-elevated);
   margin: 0 0 1.25rem;
+  position: relative;
+}
+
+.form-card::before,
+.actions-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.028);
+  pointer-events: none;
 }
 
 .form-card ion-card-header {
@@ -94,10 +105,10 @@
   padding: 0.875rem 1rem;
   margin-top: 0.75rem;
   margin-bottom: 1rem;
-  background: rgba(18, 18, 32, 0.92);
+  background: rgba(18, 18, 32, 0.94);
   border-radius: 16px;
-  border: 1px solid rgba(168, 85, 247, 0.18);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(168, 85, 247, 0.22);
+  box-shadow: var(--shadow-card);
 }
 
 .filters-grid {
@@ -424,23 +435,31 @@ ion-toggle {
   padding: 0 14px;
   box-sizing: border-box;
   background: rgba(15, 15, 28, 0.95);
-  border: 1px solid rgba(148, 163, 184, 0.16);
+  border: 1px solid var(--border-subtle);
   border-radius: 14px;
   transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast);
 }
 
 .search-field:focus-within {
-  border-color: rgba(168, 85, 247, 0.55);
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.6);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.13);
+  background: rgba(17, 17, 26, 0.98);
 }
 
 .search-field__icon {
-  color: #a855f7;
+  color: var(--neon-purple);
   font-size: 1.15rem;
   flex-shrink: 0;
   pointer-events: none;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.search-field:focus-within .search-field__icon {
+  color: #c084fc;
+  transform: scale(1.04);
 }
 
 .search-field ion-input.search-field__input,
@@ -767,14 +786,27 @@ ion-toggle {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.22) 0%, rgba(6, 182, 212, 0.12) 100%);
-  border: 1px solid rgba(168, 85, 247, 0.32);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.26) 0%, rgba(6, 182, 212, 0.14) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.38);
+  box-shadow: 
+    0 8px 20px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  position: relative;
+}
+
+.brand-mark::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), transparent 60%);
+  pointer-events: none;
 }
 
 .brand-mark ion-icon {
-  font-size: 1.3rem;
+  font-size: 1.32rem;
   color: #d8b4fe;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
 }
 
 .brand-copy {

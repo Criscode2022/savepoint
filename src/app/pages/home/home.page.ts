@@ -7,7 +7,7 @@ import {
   IonContent, IonHeader, IonToolbar, IonButton,
   IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
   IonList, IonItem, IonThumbnail, IonLabel,
-  IonSelect, IonSelectOption, IonToast, IonSpinner, AlertController, ViewWillEnter
+  IonSelect, IonSelectOption, IonToast, AlertController, ViewWillEnter
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -43,7 +43,7 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
     IonContent, IonHeader, IonToolbar, IonButton,
     IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
     IonList, IonItem, IonThumbnail, IonLabel,
-    IonSelect, IonSelectOption, IonToast, IonSpinner
+    IonSelect, IonSelectOption, IonToast
   ],
   template: `
     <ion-header class="ion-no-border home-header">
@@ -372,7 +372,16 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
         </div>
 
         <div class="games-loading" *ngIf="gamesLoading()">
-          <ion-spinner name="crescent"></ion-spinner>
+          <div class="skeleton-grid" aria-hidden="true">
+            <div class="skeleton-card" *ngFor="let _ of skeletonItems; let i = index; trackBy: trackByIndex">
+              <div class="skeleton-cover"></div>
+              <div class="skeleton-body">
+                <div class="skeleton-line tall"></div>
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line short"></div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Library -->
@@ -661,6 +670,9 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   showExportDialog = false;
   includeWishlistInExport = true;
   exportScope: 'library' | 'filtered' = 'library';
+
+  // Skeleton placeholders (modern loading state)
+  readonly skeletonItems = Array.from({ length: 8 });
 
   private destroy$ = new Subject<void>();
   private countdownInterval?: ReturnType<typeof setInterval>;
@@ -1278,6 +1290,10 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
 
   trackByGameId(index: number, game: Game): string {
     return game.id;
+  }
+
+  trackByIndex(index: number): number {
+    return index;
   }
 
   // Stats

@@ -56,6 +56,8 @@ interface PlaceholderMetrics {
       overflow: hidden;
       container-type: size;
       background: linear-gradient(145deg, #1a1a30 0%, #12121f 55%, #0f0f1c 100%);
+      /* Subtle vignette for premium image presentation */
+      box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.45);
     }
 
     .cover-image {
@@ -64,7 +66,9 @@ interface PlaceholderMetrics {
       object-fit: cover;
       object-position: center;
       display: block;
-      transition: transform 0.45s ease;
+      transition: transform 520ms var(--ease-spring, cubic-bezier(0.25, 0.9, 0.3, 1));
+      /* Subtle premium framing */
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4);
     }
 
     .game-cover--landscape .cover-image {

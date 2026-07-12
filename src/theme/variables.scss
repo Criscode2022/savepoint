@@ -35,12 +35,20 @@
   --semantic-error: #ef4444;
   --semantic-warning: #f59e0b;
 
-  /* Borders & shadows */
+  /* Borders & shadows — layered depth for premium vault feel */
   --border-neon: rgba(168, 85, 247, 0.2);
   --border-subtle: rgba(148, 163, 184, 0.14);
-  --shadow-card: 0 12px 32px rgba(0, 0, 0, 0.35);
-  --shadow-card-hover: 0 20px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(168, 85, 247, 0.25);
-  --shadow-neon: 0 0 20px var(--neon-purple-glow);
+  --border-strong: rgba(148, 163, 184, 0.22);
+
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.38), 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-card-hover: 0 22px 48px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(168, 85, 247, 0.28), 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-neon: 0 0 0 1px rgba(168, 85, 247, 0.35), 0 0 24px rgba(168, 85, 247, 0.32);
+  --shadow-elevated: 0 16px 44px rgba(0, 0, 0, 0.42);
+
+  /* Subtle vault texture (applied via .vault-surface or body) */
+  --vault-texture: 
+    radial-gradient(circle at 25% 15%, rgba(255,255,255,0.012) 0%, transparent 50%),
+    radial-gradient(circle at 78% 82%, rgba(168,85,247,0.018) 0%, transparent 55%);
 
   /* Radius & spacing */
   --radius-sm: 6px;
@@ -54,10 +62,13 @@
   --spacing-lg: 24px;
   --spacing-xl: 32px;
 
-  /* Motion */
+  /* Motion — premium, purposeful (respect reduced-motion in base) */
   --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-spring: cubic-bezier(0.25, 0.9, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --transition-fast: 150ms var(--ease-out);
-  --transition-normal: 250ms var(--ease-out);
+  --transition-normal: 260ms var(--ease-spring);
+  --transition-slow: 380ms var(--ease-smooth);
 
   /* Responsive tiers: mobile ≤639px, tablet 640–1023px, laptop ≥1024px */
   --bp-mobile-max: 639px;
@@ -128,12 +139,14 @@ body {
   padding: 0;
   font-family: "Inter", system-ui, -apple-system, sans-serif;
   background-color: var(--vault-bg);
+  background-image: var(--vault-texture);
   color: var(--ink-primary);
   line-height: 1.55;
   min-height: 100vh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "tnum" 1, "cv02" 1, "cv03" 1;
 }
 
 /* Orbitron: brand wordmark + auth hero only */
@@ -147,11 +160,6 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-}
-
-*:focus-visible {
-  outline: 2px solid var(--neon-purple);
-  outline-offset: 2px;
 }
 
 ::selection {

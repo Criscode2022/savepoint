@@ -146,19 +146,41 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
       background: var(--vault-elevated);
       border-radius: var(--radius-lg);
       overflow: hidden;
-      border: 1px solid rgba(148, 163, 184, 0.14);
-      transition: transform var(--transition-normal), border-color var(--transition-normal), background var(--transition-normal);
+      border: 1px solid var(--border-subtle);
+      transition: 
+        transform var(--transition-normal), 
+        border-color var(--transition-normal), 
+        box-shadow var(--transition-normal),
+        background var(--transition-normal);
       cursor: pointer;
       display: flex;
       flex-direction: column;
       height: 100%;
       margin: 0;
+      position: relative;
     }
 
     .game-card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(168, 85, 247, 0.35);
-      background: #191925;
+      transform: translateY(-5px);
+      border-color: rgba(168, 85, 247, 0.38);
+      box-shadow: var(--shadow-card-hover);
+      background: #1a1a26;
+    }
+
+    /* Subtle inner rim for depth */
+    .game-card::after {
+      content: '';
+      position: absolute;
+      inset: 1px;
+      border-radius: calc(var(--radius-lg) - 1px);
+      border: 1px solid rgba(255,255,255,0.035);
+      pointer-events: none;
+      transition: border-color var(--transition-normal);
+      z-index: 1;
+    }
+
+    .game-card:hover::after {
+      border-color: rgba(168, 85, 247, 0.12);
     }
 
     .game-card.completed {
@@ -169,10 +191,32 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
       position: relative;
       aspect-ratio: 3/4;
       overflow: hidden;
+      background: #111118;
     }
 
     .game-card:hover .cover-image {
-      transform: scale(1.04);
+      transform: scale(1.055);
+    }
+
+    /* Premium light sweep on hover (high-craft, not wallpaper) */
+    .card-image-wrapper::before {
+      content: '';
+      position: absolute;
+      inset: -100% 0;
+      background: linear-gradient(
+        115deg,
+        transparent 20%,
+        rgba(255,255,255,0.16) 48%,
+        transparent 76%
+      );
+      transform: translateX(-120%);
+      transition: transform 620ms var(--ease-smooth);
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .game-card:hover .card-image-wrapper::before {
+      transform: translateX(220%);
     }
 
     .image-overlay {
@@ -180,17 +224,18 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
       inset: 0;
       background: linear-gradient(
         to bottom,
-        rgba(0, 0, 0, 0.35) 0%,
-        rgba(0, 0, 0, 0.05) 45%,
-        rgba(0, 0, 0, 0.55) 100%
+        rgba(0, 0, 0, 0.38) 0%,
+        rgba(0, 0, 0, 0.04) 42%,
+        rgba(0, 0, 0, 0.58) 100%
       );
       opacity: 0;
-      transition: opacity 0.25s ease;
+      transition: opacity 220ms var(--ease-out);
       display: flex;
       align-items: flex-start;
       justify-content: flex-end;
       padding: 0.875rem;
       pointer-events: none;
+      z-index: 3;
     }
 
     .game-card:hover .image-overlay {
@@ -212,15 +257,19 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
       width: 38px;
       height: 38px;
       margin: 0;
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: transform 140ms var(--ease-out), box-shadow 140ms ease;
     }
 
     .action-btn:hover {
-      --background: rgba(168, 85, 247, 0.85);
+      --background: rgba(168, 85, 247, 0.92);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35);
     }
 
     .action-btn.delete:hover {
-      --background: rgba(239, 68, 68, 0.85);
+      --background: rgba(239, 68, 68, 0.92);
     }
 
     .platform-chip {
@@ -231,17 +280,19 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
       align-items: center;
       min-width: 0;
       max-width: calc(100% - 24px);
-      padding: 0.45rem 0.75rem;
+      padding: 0.42rem 0.72rem;
       border-radius: 999px;
-      background: color-mix(in srgb, var(--platform-color, #a855f7) 88%, black);
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: color-mix(in srgb, var(--platform-color, #a855f7) 86%, black);
+      border: 1px solid rgba(255, 255, 255, 0.22);
       color: #ffffff;
       font-size: 0.6875rem;
       font-weight: 700;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.065em;
       text-transform: uppercase;
-      line-height: 1.2;
+      line-height: 1.15;
       overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      z-index: 4;
     }
 
     .platform-chip__text {
@@ -376,15 +427,20 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
     }
 
     .genre-chip {
-      --background: rgba(168, 85, 247, 0.16);
+      --background: rgba(168, 85, 247, 0.17);
       --color: #e9d5ff;
       margin: 0;
-      min-height: 30px;
-      padding-inline: 12px;
+      min-height: 28px;
+      padding-inline: 11px;
       font-size: 0.75rem;
       font-weight: 600;
-      border: 1px solid rgba(168, 85, 247, 0.28);
+      border: 1px solid rgba(168, 85, 247, 0.3);
       border-radius: 999px;
+      transition: background 120ms ease, border-color 120ms ease, transform 120ms var(--ease-out);
+    }
+
+    .game-card:hover .genre-chip {
+      border-color: rgba(168, 85, 247, 0.42);
     }
 
     .card-footer {
@@ -416,8 +472,13 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
       margin: 0;
       font-size: 0.8125rem;
       font-weight: 700;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.015em;
       text-transform: none;
+      transition: transform 120ms var(--ease-out), box-shadow 120ms ease;
+    }
+
+    .status-btn::part(native):hover {
+      transform: translateY(-1px);
     }
 
     .status-btn::part(native) {
