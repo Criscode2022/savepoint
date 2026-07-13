@@ -1,0 +1,516 @@
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import {
+  IonContent,
+  IonHeader,
+  IonToolbar,
+  IonBackButton,
+  IonIcon,
+  IonSpinner,
+} from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import {
+  arrowBackOutline,
+  checkmarkCircleOutline,
+  flameOutline,
+  gameControllerOutline,
+  heartOutline,
+  starOutline,
+  statsChartOutline,
+  timeOutline,
+  trophyOutline,
+} from 'ionicons/icons';
+import { Subject, takeUntil } from 'rxjs';
+import { GameService } from '../../services/game.service';
+import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
+import {
+  computeLibraryInsights,
+  LibraryInsights,
+} from '../../shared/utils/insights.utils';
+
+@Component({
+  selector: 'app-insights',
+  standalone: true,
+  imports: [
+    CommonModule,
+    RouterLink,
+    GameCoverComponent,
+    IonContent,
+    IonHeader,
+    IonToolbar,
+    IonBackButton,
+    IonIcon,
+    IonSpinner,
+  ],
+  template: `
+    <ion-header class="ion-no-border">
+      <ion-toolbar class="header-toolbar">
+        <div class="header-inner">
+          <div class="header-brand">
+            <ion-back-button
+              class="header-back-btn"
+              defaultHref="/home"
+              text=""
+              icon="arrow-back-outline"
+            ></ion-back-button>
+            <h1 class="header-title">Insights</h1>
+          </div>
+        </div>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="insights-content">
+      <div class="insights-wrap" *ngIf="!loading && insights; else loadingTpl">
+        <header class="insights-hero">
+          <div class="insights-hero__icon" aria-hidden="true">
+            <ion-icon name="stats-chart-outline"></ion-icon>
+          </div>
+          <div>
+            <h2 class="insights-hero__title">Play rituals</h2>
+            <p class="insights-hero__sub">
+              How your vault is actually used — streaks, completion, and taste.
+            </p>
+          </div>
+        </header>
+
+        <section class="insights-stats" aria-label="Overview">
+          <article class="insights-stat">
+            <ion-icon name="flame-outline" class="insights-stat__icon insights-stat__icon--streak"></ion-icon>
+            <div>
+              <strong>{{ insights.currentStreakDays }}</strong>
+              <span>Day streak</span>
+              <small>Best {{ insights.longestStreakDays }}d</small>
+            </div>
+          </article>
+          <article class="insights-stat">
+            <ion-icon name="time-outline" class="insights-stat__icon insights-stat__icon--hours"></ion-icon>
+            <div>
+              <strong>{{ insights.totalHours }}h</strong>
+              <span>Total playtime</span>
+            </div>
+          </article>
+          <article class="insights-stat">
+            <ion-icon name="trophy-outline" class="insights-stat__icon insights-stat__icon--done"></ion-icon>
+            <div>
+              <strong>{{ insights.completionRate }}%</strong>
+              <span>Completion rate</span>
+              <small>{{ insights.completedCount }}/{{ insights.libraryCount }}</small>
+            </div>
+          </article>
+          <article class="insights-stat">
+            <ion-icon name="star-outline" class="insights-stat__icon insights-stat__icon--rating"></ion-icon>
+            <div>
+              <strong>{{ insights.averageRating != null ? insights.averageRating : '—' }}</strong>
+              <span>Avg rating</span>
+              <small *ngIf="insights.ratedCount">{{ insights.ratedCount }} rated</small>
+            </div>
+          </article>
+        </section>
+
+        <section class="insights-panel">
+          <h3 class="insights-panel__title">Collection pulse</h3>
+          <div class="insights-bars">
+            <div class="insights-bar-row">
+              <span>Playing</span>
+              <div class="insights-bar"><i [style.width.%]="pct(insights.playingCount)"></i></div>
+              <strong>{{ insights.playingCount }}</strong>
+            </div>
+            <div class="insights-bar-row">
+              <span>Paused</span>
+              <div class="insights-bar"><i [style.width.%]="pct(insights.pausedCount)"></i></div>
+              <strong>{{ insights.pausedCount }}</strong>
+            </div>
+            <div class="insights-bar-row">
+              <span>Backlog</span>
+              <div class="insights-bar"><i [style.width.%]="pct(insights.notStartedCount)"></i></div>
+              <strong>{{ insights.notStartedCount }}</strong>
+            </div>
+            <div class="insights-bar-row">
+              <span>Completed</span>
+              <div class="insights-bar"><i [style.width.%]="pct(insights.completedCount)"></i></div>
+              <strong>{{ insights.completedCount }}</strong>
+            </div>
+            <div class="insights-bar-row">
+              <span>Wishlist</span>
+              <div class="insights-bar"><i [style.width.%]="pct(insights.wishlistCount)"></i></div>
+              <strong>{{ insights.wishlistCount }}</strong>
+            </div>
+          </div>
+        </section>
+
+        <div class="insights-grid">
+          <section class="insights-panel">
+            <h3 class="insights-panel__title">By platform</h3>
+            <ul class="insights-list" *ngIf="insights.byPlatform.length; else emptyBuckets">
+              <li *ngFor="let b of insights.byPlatform">
+                <span>{{ b.label }}</span>
+                <span class="insights-list__meta">{{ b.count }} · {{ b.hours }}h</span>
+              </li>
+            </ul>
+          </section>
+
+          <section class="insights-panel">
+            <h3 class="insights-panel__title">By genre</h3>
+            <ul class="insights-list" *ngIf="insights.byGenre.length; else emptyBuckets">
+              <li *ngFor="let b of insights.byGenre">
+                <span>{{ b.label }}</span>
+                <span class="insights-list__meta">{{ b.count }} · {{ b.hours }}h</span>
+              </li>
+            </ul>
+          </section>
+        </div>
+
+        <section class="insights-panel" *ngIf="insights.recentActivity.length">
+          <h3 class="insights-panel__title">Recent activity</h3>
+          <div class="insights-activity">
+            <a
+              *ngFor="let game of insights.recentActivity"
+              class="insights-activity__item"
+              [routerLink]="['/game', game.id]"
+            >
+              <div class="insights-activity__cover">
+                <app-game-cover
+                  [title]="game.title"
+                  [coverImage]="game.coverImage"
+                  variant="thumbnail"
+                />
+              </div>
+              <div class="insights-activity__copy">
+                <strong>{{ game.title }}</strong>
+                <span>{{ game.platform?.name }} · {{ statusLabel(game.status) }}</span>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <div class="insights-empty" *ngIf="insights.libraryCount === 0">
+          <ion-icon name="game-controller-outline"></ion-icon>
+          <h3>No library data yet</h3>
+          <p>Add games and log play status to unlock streaks and insights.</p>
+          <a routerLink="/add" class="insights-cta">Add game</a>
+        </div>
+      </div>
+
+      <ng-template #loadingTpl>
+        <div class="insights-loading">
+          <ion-spinner name="crescent"></ion-spinner>
+        </div>
+      </ng-template>
+
+      <ng-template #emptyBuckets>
+        <p class="insights-muted">Nothing to chart yet.</p>
+      </ng-template>
+    </ion-content>
+  `,
+  styles: [
+    `
+      .insights-content {
+        --background: var(--vault-bg);
+      }
+
+      .insights-wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 1rem 1.25rem 2.5rem;
+      }
+
+      .insights-hero {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 1.5rem;
+      }
+
+      .insights-hero__icon {
+        display: grid;
+        place-items: center;
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        background: rgba(168, 85, 247, 0.16);
+        border: 1px solid rgba(168, 85, 247, 0.3);
+        color: #e9d5ff;
+        font-size: 1.5rem;
+      }
+
+      .insights-hero__title {
+        margin: 0;
+        font-size: 1.35rem;
+        font-weight: 750;
+      }
+
+      .insights-hero__sub {
+        margin: 0.25rem 0 0;
+        color: var(--ink-muted);
+        font-size: 0.875rem;
+      }
+
+      .insights-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+      }
+
+      @media (min-width: 768px) {
+        .insights-stats {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+      }
+
+      .insights-stat {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+        padding: 1rem;
+        border-radius: 14px;
+        background: var(--vault-elevated);
+        border: 1px solid var(--border-subtle);
+      }
+
+      .insights-stat strong {
+        display: block;
+        font-size: 1.35rem;
+        font-weight: 750;
+        line-height: 1.15;
+      }
+
+      .insights-stat span {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 650;
+        color: var(--ink-secondary);
+        margin-top: 0.15rem;
+      }
+
+      .insights-stat small {
+        display: block;
+        font-size: 0.6875rem;
+        color: var(--ink-muted);
+        margin-top: 0.15rem;
+      }
+
+      .insights-stat__icon {
+        font-size: 1.25rem;
+        margin-top: 0.15rem;
+      }
+
+      .insights-stat__icon--streak { color: #fb923c; }
+      .insights-stat__icon--hours { color: var(--neon-cyan); }
+      .insights-stat__icon--done { color: var(--status-completed); }
+      .insights-stat__icon--rating { color: #fbbf24; }
+
+      .insights-panel {
+        padding: 1.1rem 1.15rem;
+        border-radius: 14px;
+        background: var(--vault-elevated);
+        border: 1px solid var(--border-subtle);
+        margin-bottom: 1rem;
+      }
+
+      .insights-panel__title {
+        margin: 0 0 0.85rem;
+        font-size: 0.9375rem;
+        font-weight: 750;
+      }
+
+      .insights-bar-row {
+        display: grid;
+        grid-template-columns: 5.5rem 1fr 2rem;
+        gap: 0.65rem;
+        align-items: center;
+        margin-bottom: 0.55rem;
+        font-size: 0.8125rem;
+        color: var(--ink-secondary);
+      }
+
+      .insights-bar {
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        overflow: hidden;
+      }
+
+      .insights-bar i {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #7c3aed, #a855f7);
+        min-width: 0;
+      }
+
+      .insights-bar-row strong {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        color: var(--ink-primary);
+      }
+
+      .insights-grid {
+        display: grid;
+        gap: 1rem;
+      }
+
+      @media (min-width: 768px) {
+        .insights-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .insights-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .insights-list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.45rem 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        font-size: 0.875rem;
+      }
+
+      .insights-list li:last-child {
+        border-bottom: 0;
+      }
+
+      .insights-list__meta {
+        color: var(--ink-muted);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .insights-activity {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .insights-activity__item {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0.45rem;
+        border-radius: 12px;
+        text-decoration: none;
+        color: inherit;
+        transition: background 150ms ease;
+      }
+
+      .insights-activity__item:hover {
+        background: rgba(168, 85, 247, 0.1);
+      }
+
+      .insights-activity__cover {
+        width: 44px;
+        height: 58px;
+        border-radius: 8px;
+        overflow: hidden;
+        flex-shrink: 0;
+        border: 1px solid var(--border-subtle);
+      }
+
+      .insights-activity__copy {
+        min-width: 0;
+      }
+
+      .insights-activity__copy strong {
+        display: block;
+        font-size: 0.9rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .insights-activity__copy span {
+        font-size: 0.75rem;
+        color: var(--ink-muted);
+      }
+
+      .insights-muted {
+        margin: 0;
+        color: var(--ink-muted);
+        font-size: 0.875rem;
+      }
+
+      .insights-loading {
+        display: grid;
+        place-items: center;
+        min-height: 40vh;
+      }
+
+      .insights-empty {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: var(--ink-secondary);
+      }
+
+      .insights-empty ion-icon {
+        font-size: 2.5rem;
+        color: var(--ink-muted);
+      }
+
+      .insights-cta {
+        display: inline-flex;
+        margin-top: 1rem;
+        padding: 0.65rem 1.1rem;
+        border-radius: 12px;
+        background: var(--neon-purple);
+        color: #fff;
+        text-decoration: none;
+        font-weight: 650;
+      }
+    `,
+  ],
+})
+export class InsightsPage implements OnInit, OnDestroy {
+  loading = true;
+  insights: LibraryInsights | null = null;
+
+  private readonly destroy$ = new Subject<void>();
+
+  constructor(private readonly gameService: GameService) {
+    addIcons({
+      arrowBackOutline,
+      checkmarkCircleOutline,
+      flameOutline,
+      gameControllerOutline,
+      heartOutline,
+      starOutline,
+      statsChartOutline,
+      timeOutline,
+      trophyOutline,
+    });
+  }
+
+  ngOnInit(): void {
+    this.gameService.games$.pipe(takeUntil(this.destroy$)).subscribe((games) => {
+      this.insights = computeLibraryInsights(games);
+      this.loading = false;
+    });
+
+    this.gameService.getGames().pipe(takeUntil(this.destroy$)).subscribe({
+      error: () => {
+        this.loading = false;
+      },
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  pct(count: number): number {
+    if (!this.insights || this.insights.total === 0) {
+      return 0;
+    }
+    return Math.min(100, Math.round((count / this.insights.total) * 100));
+  }
+
+  statusLabel(status: string): string {
+    return status.replace(/_/g, ' ');
+  }
+}

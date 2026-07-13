@@ -20,6 +20,7 @@ import {
   GAME_STATUS_CYCLE,
   GamesResponse,
   PlaySession,
+  PLATFORMS,
   UpdateGameRequest,
 } from "../models/game.model";
 import { AuthService } from "./auth.service";
@@ -38,7 +39,9 @@ import {
   collectUniqueGenres,
   normalizeGenres,
 } from "../shared/utils/genre.utils";
+import { normalizeTags } from "../shared/utils/tag.utils";
 import { normalizeCoverImage, processCoverImageFile } from "../shared/utils/image.utils";
+import type { ImportGameDraft } from "../shared/utils/library-import.utils";
 
 // Database row types
 interface DbGame {
@@ -52,6 +55,7 @@ interface DbGame {
   release_year?: number;
   release_date?: string;
   genre?: string[] | null;
+  tags?: string[] | null;
   rating?: number | null;
   rated_at?: string;
   playtime_hours?: number;
@@ -213,6 +217,7 @@ export class GameService {
       updatedAt: "updated_at",
       releaseYear: "release_year",
       playtimeHours: "playtime_hours",
+      lastPlayedAt: "last_played_at",
       title: "title",
       rating: "rating",
     };
@@ -279,6 +284,7 @@ export class GameService {
       updatedAt: "updated_at",
       releaseYear: "release_year",
       playtimeHours: "playtime_hours",
+      lastPlayedAt: "last_played_at",
       title: "title",
       rating: "rating",
     };
@@ -317,6 +323,14 @@ export class GameService {
         filtered = filtered.filter(
           (g) => g.developer && filters.developers!.includes(g.developer.name),
         );
+      }
+
+      if (filters?.tags?.length) {
+        const wanted = filters.tags.map((t) => t.toLowerCase());
+        filtered = filtered.filter((g) => {
+          const tags = normalizeTags(g.tags);
+          return tags.some((t) => wanted.includes(t.toLowerCase()));
+        });
       }
 
       return filtered.map((g) => this.mapGameFromDb(g));
@@ -358,6 +372,7 @@ export class GameService {
       releaseYear: g.release_year,
       releaseDate: g.release_date,
       genre: normalizeGenres(g.genre),
+      tags: normalizeTags(g.tags),
       rating: g.rating != null ? Number(g.rating) : undefined,
       ratedAt: g.rated_at,
       playtimeHours: g.playtime_hours,
@@ -502,6 +517,8 @@ export class GameService {
       user_id: currentUser.id,
     };
 
+    data["tags"] = normalizeTags(game.tags);
+
     if (
       canRateGame(status) &&
       game.rating != null &&
@@ -578,6 +595,7 @@ export class GameService {
                     releaseYear: payload.releaseYear,
                     releaseDate: payload.releaseDate,
                     genre: payload.genre,
+                    tags: payload.tags,
                     rating: payload.rating,
                     playtimeHours: payload.playtimeHours,
                     status,
@@ -611,6 +629,9 @@ export class GameService {
     if (game.releaseDate !== undefined) data["release_date"] = game.releaseDate;
     if (game.genre !== undefined) {
       data["genre"] = normalizeGenres(game.genre);
+    }
+    if (game.tags !== undefined) {
+      data["tags"] = normalizeTags(game.tags);
     }
     const existing =
       this.gamesSubject.value.find((g) => g.id === id) ??
@@ -1251,7 +1272,114 @@ export class GameService {
       }
     }
 
+    if (filters.tags?.length) {
+      const tags = (game.tags ?? []).map((t) => t.toLowerCase());
+      if (!filters.tags.some((tag) => tags.includes(tag.toLowerCase()))) {
+        return false;
+      }
+    }
+
     return true;
+  }
+
+  /**
+   * Add playtime hours and refresh last played (ritual quick-log).
+   */
+  logPlaytime(gameId: string, hours: number): Observable<Game> {
+    const game =
+      this.gamesSubject.value.find((g) => g.id === gameId) ??
+      this.filteredGames().find((g) => g.id === gameId);
+
+    if (!game) {
+      return throwError(() => new Error("Game not found"));
+    }
+
+    if (game.status === "wishlist") {
+      return throwError(() => new Error("Cannot log playtime on wishlist games"));
+    }
+
+    const add = Math.max(0, Number(hours) || 0);
+    if (add <= 0) {
+      return throwError(() => new Error("Playtime must be greater than 0"));
+    }
+
+    const current = game.playtimeHours ?? game.playtime ?? 0;
+    const nextStatus =
+      game.status === "not_started" || game.status === "paused"
+        ? "playing"
+        : game.status;
+
+    return this.updateGame(gameId, {
+      playtimeHours: Math.round((current + add) * 10) / 10,
+      status: nextStatus,
+      lastPlayedAt: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Import games from parsed JSON drafts (sequential to reduce API race risk).
+   */
+  importGames(drafts: ImportGameDraft[]): Observable<{ created: number; failed: number }> {
+    if (!drafts.length) {
+      return of({ created: 0, failed: 0 });
+    }
+
+    return from(this.runImport(drafts));
+  }
+
+  private async runImport(
+    drafts: ImportGameDraft[],
+  ): Promise<{ created: number; failed: number }> {
+    let created = 0;
+    let failed = 0;
+
+    for (const draft of drafts) {
+      try {
+        const platformId = await firstValueFrom(
+          this.platformService.resolvePlatformId(
+            this.matchPlatformId(draft.platformName),
+          ),
+        );
+        await firstValueFrom(
+          this.saveGameFromForm({
+            title: draft.title,
+            description: draft.description,
+            coverImage: draft.coverImage,
+            platformId: platformId || undefined,
+            developerName: draft.developerName || "Unknown",
+            directorName: draft.directorName,
+            releaseYear: draft.releaseYear,
+            releaseDate: draft.releaseDate,
+            genre: draft.genre,
+            tags: draft.tags,
+            rating: draft.rating,
+            playtimeHours: draft.playtimeHours,
+            status: draft.status || "not_started",
+            notes: draft.notes,
+          }),
+        );
+        created += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    await firstValueFrom(this.getGames(this.lastFilters));
+    return { created, failed };
+  }
+
+  private matchPlatformId(name?: string): string | undefined {
+    if (!name?.trim()) {
+      return undefined;
+    }
+    const q = name.trim().toLowerCase();
+    const hit = PLATFORMS.find(
+      (p) =>
+        p.name.toLowerCase() === q ||
+        p.name.toLowerCase().includes(q) ||
+        q.includes(p.name.toLowerCase()),
+    );
+    return hit?.id;
   }
 
   private mergeGameIntoList(games: Game[], createdGame: Game): Game[] {

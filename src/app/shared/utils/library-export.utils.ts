@@ -18,6 +18,7 @@ interface LibraryExportRow {
   'Release year': number | string;
   'Release date': string;
   Genres: string;
+  Tags: string;
   Rating: number | string;
   'Playtime (hours)': number | string;
   Description: string;
@@ -57,6 +58,7 @@ function mapGameToExportRow(game: Game): LibraryExportRow {
     'Release year': game.releaseYear ?? '',
     'Release date': game.releaseDate ?? '',
     Genres: (game.genre ?? []).join(', '),
+    Tags: (game.tags ?? []).join(', '),
     Rating: game.rating ?? '',
     'Playtime (hours)': game.playtimeHours ?? game.playtime ?? '',
     Description: game.description ?? '',
@@ -78,6 +80,7 @@ function mapGameToExportObject(game: Game): Record<string, unknown> {
     releaseYear: game.releaseYear ?? null,
     releaseDate: game.releaseDate ?? null,
     genres: game.genre ?? [],
+    tags: game.tags ?? [],
     rating: game.rating ?? null,
     playtimeHours: game.playtimeHours ?? game.playtime ?? null,
     description: game.description ?? null,

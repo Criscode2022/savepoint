@@ -86,6 +86,7 @@ export interface Game {
   releaseYear?: number;
   releaseDate?: string;
   genre?: string[];
+  tags?: string[];
   rating?: number | null;
   ratedAt?: string;
   playtimeHours?: number;
@@ -120,7 +121,7 @@ export interface GameFilter {
   genre?: string;
   status?: GamePlayStatus;
   completed?: boolean;
-  sortBy?: 'title' | 'releaseYear' | 'rating' | 'createdAt';
+  sortBy?: 'title' | 'releaseYear' | 'rating' | 'createdAt' | 'lastPlayedAt' | 'playtimeHours';
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -130,7 +131,8 @@ export interface GameFilters {
   years?: number[];
   developers?: string[];
   genres?: string[];
-  sortBy?: 'title' | 'releaseYear' | 'rating' | 'createdAt';
+  tags?: string[];
+  sortBy?: 'title' | 'releaseYear' | 'rating' | 'createdAt' | 'lastPlayedAt' | 'playtimeHours';
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -144,6 +146,7 @@ export interface CreateGameRequest {
   releaseYear?: number;
   releaseDate?: string;
   genre?: string[];
+  tags?: string[];
   rating?: number | null;
   playtimeHours?: number;
   status?: GamePlayStatus;
@@ -170,6 +173,7 @@ export interface GameFormPayload {
   developerName: string;
   directorName?: string;
   genre?: string[];
+  tags?: string[];
   rating?: number | null;
   playtimeHours?: number;
   status?: GamePlayStatus;

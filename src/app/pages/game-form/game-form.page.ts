@@ -9,8 +9,9 @@ import {
   IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton, IonSpinner, AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { arrowBackOutline, saveOutline, imageOutline } from 'ionicons/icons';
+import { arrowBackOutline, saveOutline, imageOutline, closeOutline } from 'ionicons/icons';
 import { PLATFORMS, GENRES, Game, Platform, GamePlayStatus, GAME_STATUS_LABELS } from '../../models/game.model';
+import { normalizeTags } from '../../shared/utils/tag.utils';
 import { GameService } from '../../services/game.service';
 import { PlatformService } from '../../services/platform.service';
 import { GameRatingComponent } from '../../components/game-rating/game-rating.component';
@@ -266,6 +267,32 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
               </div>
 
               <div class="form-section">
+                <h3 class="section-title">Tags</h3>
+                <p class="field-help">Personal labels like “coop”, “vr”, “platinum-hunt”.</p>
+                <div class="field-group tag-entry">
+                  <ion-item class="form-item" lines="none">
+                    <ion-input
+                      [(ngModel)]="tagDraft"
+                      name="tagDraft"
+                      placeholder="Add a tag and press Enter"
+                      (keyup.enter)="addTagFromDraft(); $event.preventDefault()"
+                    ></ion-input>
+                  </ion-item>
+                  <button type="button" class="tag-add-btn" (click)="addTagFromDraft()">Add</button>
+                </div>
+                <div class="genre-chips tag-chips" *ngIf="game.tags?.length">
+                  <ion-chip
+                    *ngFor="let tag of game.tags"
+                    class="genre-chip selected"
+                    (click)="removeTag(tag)"
+                  >
+                    {{ tag }}
+                    <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+                  </ion-chip>
+                </div>
+              </div>
+
+              <div class="form-section">
                 <h3 class="section-title">Notes</h3>
 
                 <div class="field-group">
@@ -337,11 +364,14 @@ export class GameFormPage implements OnInit {
     releaseDate: '',
     director: '',
     genre: [],
+    tags: [],
     rating: undefined,
     playtime: undefined,
     status: 'not_started' as GamePlayStatus,
     notes: ''
   };
+
+  tagDraft = '';
   
   developerName = '';
   isSubmitting = false;
@@ -357,7 +387,7 @@ export class GameFormPage implements OnInit {
     private platformService: PlatformService,
     private alertController: AlertController
   ) {
-    addIcons({ arrowBackOutline, saveOutline, imageOutline });
+    addIcons({ arrowBackOutline, saveOutline, imageOutline, closeOutline });
   }
 
   ngOnInit(): void {
@@ -513,6 +543,7 @@ export class GameFormPage implements OnInit {
           this.selectedPlatformId = game.platformId || game.platform?.id || '';
           this.game.playtime = game.playtimeHours ?? game.playtime;
           this.game.director = game.director || '';
+          this.game.tags = game.tags ?? [];
         } else {
           this.router.navigate(['/home']);
         }
@@ -561,6 +592,16 @@ export class GameFormPage implements OnInit {
     }
   }
 
+  addTagFromDraft(): void {
+    const next = normalizeTags([...(this.game.tags ?? []), this.tagDraft]);
+    this.game.tags = next;
+    this.tagDraft = '';
+  }
+
+  removeTag(tag: string): void {
+    this.game.tags = (this.game.tags ?? []).filter((t) => t !== tag);
+  }
+
   canSubmitForm(): boolean {
     return !!this.gameFormRef && this.canSubmit(this.gameFormRef);
   }
@@ -605,6 +646,7 @@ export class GameFormPage implements OnInit {
       developerName: this.developerName.trim(),
       directorName: this.game.director?.trim() || undefined,
       genre: this.game.genre || [],
+      tags: normalizeTags(this.game.tags),
       rating:
         nextStatus === 'wishlist' || !canRateGame(nextStatus)
           ? undefined

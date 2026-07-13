@@ -16,6 +16,60 @@
 
 .form-container {
   padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
+  max-width: 720px;
+}
+
+.field-help {
+  margin: -0.25rem 0 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}
+
+.tag-entry {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.tag-entry .form-item {
+  flex: 1;
+}
+
+.tag-add-btn {
+  flex-shrink: 0;
+  min-width: 4.5rem;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  border-radius: 12px;
+  background: rgba(168, 85, 247, 0.14);
+  color: #e9d5ff;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.tag-add-btn:hover {
+  background: rgba(168, 85, 247, 0.24);
+}
+
+.tag-chips ion-chip {
+  cursor: pointer;
+}
+
+.form-card {
+  border-radius: 16px !important;
+  border: 1px solid var(--border-subtle) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35) !important;
+  background: var(--vault-elevated) !important;
+}
+
+.form-section .section-title {
+  font-size: 0.8125rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0 0 0.85rem;
 }
 
 .form-loading {

@@ -101,9 +101,9 @@ components:
 
 ## Overview
 
-**Creative North Star: "The Neon Vault"**
+**Creative North Star: "The Refined Vault"**
 
-GameVault is a power-user game library tool dressed in cyberpunk atmosphere. The interface behaves like Steam or GOG — dense metadata, fast filters, scannable grids — while the dark vault framing (purple/cyan/pink accents, subtle glow, Orbitron brand moments) signals ownership of a personal collection. Design serves the task: users are cataloging, searching, and updating play state, not admiring chrome.
+GameVault is a power-user game library **Command Center**: app shell with smart collections, Continue Playing, multi-view (grid/list/shelf), and ⌘K command palette — dressed in cyberpunk atmosphere with Apple-level craft. Density from Steam/GOG; motion and materials from Linear/Apple Music restraint. Neon is earned on brand, selection, and hover — never wallpaper.
 
 The system explicitly rejects over-neon RGB gamer cliché, mobile F2P UI energy, spreadsheet ugliness, and generic SaaS dashboards. Neon is earned on brand marks, primary actions, and hover feedback — never as wallpaper.
 

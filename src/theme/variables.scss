@@ -40,6 +40,14 @@
   --border-subtle: rgba(148, 163, 184, 0.14);
   --border-strong: rgba(148, 163, 184, 0.22);
 
+  /* Z-index scale: dropdown → sticky → modal → toast → palette */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal-backdrop: 500;
+  --z-modal: 600;
+  --z-toast: 700;
+  --z-palette: 10000;
+
   --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.38), 0 2px 8px rgba(0, 0, 0, 0.2);
   --shadow-card-hover: 0 22px 48px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(168, 85, 247, 0.28), 0 4px 12px rgba(0, 0, 0, 0.25);
   --shadow-neon: 0 0 0 1px rgba(168, 85, 247, 0.35), 0 0 24px rgba(168, 85, 247, 0.32);

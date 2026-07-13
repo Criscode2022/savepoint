@@ -1,11 +1,12 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ViewWillEnter } from '@ionic/angular';
 import { 
     IonContent, IonHeader, IonToolbar, IonBackButton,
     IonIcon, IonButton, IonCard, IonCardContent,
-  IonChip, IonToast, IonSelect, IonSelectOption, AlertController
+  IonChip, IonToast, IonSelect, IonSelectOption, IonInput, AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -29,10 +30,10 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
   selector: 'app-game-detail',
   standalone: true,
   imports: [
-    CommonModule, RouterLink, GameCoverComponent, GameRatingComponent,
+    CommonModule, FormsModule, RouterLink, GameCoverComponent, GameRatingComponent,
     IonContent, IonHeader, IonToolbar, IonBackButton,
     IonIcon, IonButton, IonCard, IonCardContent,
-    IonChip, IonToast, IonSelect, IonSelectOption
+    IonChip, IonToast, IonSelect, IonSelectOption, IonInput
   ],
   template: `
     <ion-header class="ion-no-border">
@@ -257,6 +258,42 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
                 </ion-card-content>
               </ion-card>
 
+              <ion-card class="genres-card" *ngIf="game.tags?.length">
+                <ion-card-content>
+                  <h2 class="section-title">Tags</h2>
+                  <div class="genre-chips">
+                    <ion-chip *ngFor="let tag of game.tags" class="genre-chip tag-chip">
+                      #{{ tag }}
+                    </ion-chip>
+                  </div>
+                </ion-card-content>
+              </ion-card>
+
+              <ion-card class="ritual-card" *ngIf="game.status !== 'wishlist'">
+                <ion-card-content>
+                  <h2 class="section-title">Log playtime</h2>
+                  <p class="ritual-card__help">Quick ritual — add hours and mark last played.</p>
+                  <div class="ritual-log">
+                    <ion-input
+                      type="number"
+                      min="0.1"
+                      step="0.5"
+                      [(ngModel)]="logHours"
+                      placeholder="Hours"
+                      class="ritual-log__input"
+                    ></ion-input>
+                    <button
+                      type="button"
+                      class="ritual-log__btn"
+                      [disabled]="loggingPlaytime || !canLogHours()"
+                      (click)="logPlaytime()"
+                    >
+                      {{ loggingPlaytime ? 'Saving…' : 'Log session' }}
+                    </button>
+                  </div>
+                </ion-card-content>
+              </ion-card>
+
               <ion-card class="timeline-card">
                 <ion-card-content>
                   <h2 class="section-title">Library timeline</h2>
@@ -389,9 +426,11 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     cssClass: 'app-status-sheet',
   };
   toastMessage = '';
-  toastColor: 'success' | 'danger' = 'success';
+  toastColor: 'success' | 'danger' | 'warning' = 'success';
   ratingSaving = false;
   ratingPreview: number | null = null;
+  logHours: number | null = 1;
+  loggingPlaytime = false;
 
   get heroCoverImage(): string | null {
     const cover = this.game?.coverImage?.trim();
@@ -473,6 +512,31 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
 
   isWishlistLocked(): boolean {
     return !!this.game && this.game.status === 'wishlist' && !canAddWishlistToLibrary(this.game);
+  }
+
+  canLogHours(): boolean {
+    const n = Number(this.logHours);
+    return Number.isFinite(n) && n > 0;
+  }
+
+  logPlaytime(): void {
+    if (!this.game || !this.canLogHours() || this.loggingPlaytime) {
+      return;
+    }
+    this.loggingPlaytime = true;
+    this.gameService.logPlaytime(this.game.id, Number(this.logHours)).subscribe({
+      next: (updated) => {
+        this.game = updated;
+        this.loggingPlaytime = false;
+        this.logHours = 1;
+        this.loadPlaySessions(updated.id);
+        this.showToast('Playtime logged', 'success');
+      },
+      error: (err) => {
+        this.loggingPlaytime = false;
+        this.showToast(err?.message || 'Failed to log playtime', 'danger');
+      },
+    });
   }
 
   async onStatusSelect(event: CustomEvent): Promise<void> {

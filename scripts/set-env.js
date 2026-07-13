@@ -11,6 +11,7 @@ if (!fs.existsSync(envDir)) {
 const neonAuthUrl = process.env.NEON_AUTH_URL || "";
 const databaseUrl = process.env.DATABASE_URL || "";
 const databaseSchema = process.env.DATABASE_SCHEMA || "public";
+const rawgApiKey = process.env.RAWG_API_KEY || "";
 
 // Convert PostgreSQL URL to Neon REST API URL
 // From: postgresql://user:pass@host-pooler.region.aws.neon.tech/dbname?...
@@ -41,7 +42,8 @@ export const environment = {
   production: false,
   neonAuthUrl: '${neonAuthUrl}',
   databaseUrl: '${restApiUrl}',
-  databaseSchema: '${databaseSchema}'
+  databaseSchema: '${databaseSchema}',
+  rawgApiKey: '${rawgApiKey}'
 };
 `;
 
@@ -50,7 +52,8 @@ export const environment = {
   production: true,
   neonAuthUrl: '${neonAuthUrl}',
   databaseUrl: '${restApiUrl}',
-  databaseSchema: '${databaseSchema}'
+  databaseSchema: '${databaseSchema}',
+  rawgApiKey: '${rawgApiKey}'
 };
 `;
 
@@ -62,3 +65,4 @@ fs.writeFileSync(
 
 console.log("Environment files generated successfully");
 console.log("REST API URL:", restApiUrl);
+console.log("RAWG API key:", rawgApiKey ? "configured" : "missing (recommendations need RAWG_API_KEY)");

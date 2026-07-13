@@ -1,21 +1,22 @@
 import { Component, OnInit, OnDestroy, Signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged, forkJoin, take } from 'rxjs';
-import { 
-  IonContent, IonHeader, IonToolbar, IonButton,
+import {
+  IonContent, IonButton,
   IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
   IonList, IonItem, IonThumbnail, IonLabel,
   IonSelect, IonSelectOption, IonToast, AlertController, ViewWillEnter
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { 
+import {
   gameControllerOutline, addOutline, searchOutline, filterOutline,
-  logOutOutline, gridOutline, listOutline,
+  gridOutline, listOutline, albumsOutline,
   starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
   closeOutline, imageOutline, heartOutline, ellipseOutline,
-  personCircleOutline, pauseCircleOutline, downloadOutline
+  pauseCircleOutline, downloadOutline, playOutline, chevronForwardOutline,
+  cloudUploadOutline, bookmarkOutline
 } from 'ionicons/icons';
 import { Game, GameFilters, PLATFORMS, GAME_STATUS_LABELS, GamePlayStatus, GAME_STATUS_CYCLE } from '../../models/game.model';
 import { formatReleaseCountdown, canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
@@ -24,7 +25,6 @@ import {
   statusChangeClearsPlayHistory,
 } from '../../shared/utils/game-status.utils';
 import { GameService } from '../../services/game.service';
-import { AuthService } from '../../services/auth.service';
 import { GameCardComponent } from '../../components/game-card/game-card.component';
 import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
 import { GameRatingComponent } from '../../components/game-rating/game-rating.component';
@@ -32,90 +32,75 @@ import {
   exportLibrary,
   LibraryExportFormat,
 } from '../../shared/utils/library-export.utils';
+import { parseLibraryImportJson } from '../../shared/utils/library-import.utils';
+import { collectUniqueTags } from '../../shared/utils/tag.utils';
+import { LibraryPrefsService, LibraryViewMode } from '../../services/library-prefs.service';
+import { CollectionsService, SavedCollection } from '../../services/collections.service';
 
-type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'completed' | 'rated' | 'with_playtime';
+type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'completed' | 'rated' | 'with_playtime' | 'wishlist';
 
 @Component({
   selector: 'app-home',
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterLink, GameCardComponent, GameCoverComponent, GameRatingComponent,
-    IonContent, IonHeader, IonToolbar, IonButton,
+    IonContent, IonButton,
     IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
     IonList, IonItem, IonThumbnail, IonLabel,
     IonSelect, IonSelectOption, IonToast
   ],
   template: `
-    <ion-header class="ion-no-border home-header">
-      <ion-toolbar class="header-toolbar">
-        <div class="header-inner">
-          <div class="header-brand">
-            <div class="brand-mark" aria-hidden="true">
-              <ion-icon name="game-controller-outline"></ion-icon>
-            </div>
-            <div class="brand-copy">
-              <span class="brand-name gaming-font">Game<span class="text-gradient">Vault</span></span>
-              <span class="brand-tagline">Your collection</span>
-            </div>
-          </div>
-
-          <div class="header-actions">
-            <ion-button
-              (click)="toggleViewMode()"
-              [class.active]="isListView"
-              class="header-icon-btn view-toggle-btn"
-              fill="clear"
-              [title]="isListView ? 'Grid view' : 'List view'"
-              [attr.aria-label]="isListView ? 'Switch to grid view' : 'Switch to list view'"
-            >
-              <ion-icon [name]="isListView ? 'grid-outline' : 'list-outline'" slot="icon-only"></ion-icon>
-            </ion-button>
-
-            <ion-button
-              (click)="openExportDialog()"
-              class="header-icon-btn download-btn"
-              fill="clear"
-              title="Download whole library"
-              aria-label="Download whole library"
-            >
-              <ion-icon name="download-outline" slot="icon-only"></ion-icon>
-            </ion-button>
-
-            <ion-button
-              routerLink="/profile"
-              class="header-icon-btn profile-btn"
-              fill="clear"
-              title="Profile"
-              aria-label="Profile"
-            >
-              <ion-icon name="person-circle-outline" slot="icon-only"></ion-icon>
-            </ion-button>
-
-            <ion-button
-              (click)="logout()"
-              class="header-icon-btn logout-btn"
-              fill="clear"
-              title="Log out"
-              aria-label="Log out"
-            >
-              <ion-icon name="log-out-outline" slot="icon-only"></ion-icon>
-            </ion-button>
-          </div>
-        </div>
-      </ion-toolbar>
-    </ion-header>
-
     <ion-content class="home-content">
-      <div class="content-wrapper">
-        <!-- Search and Stats Bar -->
-        <div class="search-section">
+      <div class="content-wrapper vault-home">
+        <!-- Continue Playing -->
+        <section
+          class="continue-section"
+          *ngIf="!gamesLoading() && continuePlaying.length > 0 && libraryStatusFilter === 'all' && !hasActiveFilters()"
+          aria-label="Continue playing"
+        >
+          <div class="section-header section-header--continue">
+            <div>
+              <h2 class="section-title">Continue playing</h2>
+              <p class="section-subtitle">Pick up where you left off</p>
+            </div>
+          </div>
+          <div class="continue-rail">
+            <a
+              *ngFor="let game of continuePlaying; trackBy: trackByGameId; let i = index"
+              class="continue-card"
+              [routerLink]="['/game', game.id]"
+              [style.--i]="i"
+            >
+              <div class="continue-card__cover">
+                <app-game-cover
+                  [title]="game.title"
+                  [coverImage]="game.coverImage"
+                  variant="card"
+                />
+                <span class="continue-card__play" aria-hidden="true">
+                  <ion-icon name="play-outline"></ion-icon>
+                </span>
+              </div>
+              <div class="continue-card__meta">
+                <h3 class="continue-card__title">{{ game.title }}</h3>
+                <p class="continue-card__sub">
+                  <span *ngIf="game.platform?.name">{{ game.platform.name }}</span>
+                  <span *ngIf="game.playtimeHours"> · {{ game.playtimeHours }}h</span>
+                </p>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <!-- Toolbar: search + filters + sort -->
+        <div class="library-toolbar">
           <div class="search-bar-container">
             <div class="search-field">
               <ion-icon name="search-outline" class="search-field__icon" aria-hidden="true"></ion-icon>
               <ion-input
                 [(ngModel)]="searchQuery"
                 (ionInput)="onSearch($event)"
-                placeholder="Search games..."
+                placeholder="Filter this collection…"
                 class="search-field__input"
                 clearInput="true"
                 enterkeyhint="search"
@@ -127,146 +112,156 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
                 type="button"
                 (click)="showFilters = !showFilters"
                 [class.active]="showFilters || hasActiveFilters()"
-                class="filter-toggle-btn"
-                title="Toggle filters"
+                class="filter-toggle-btn filter-toggle-btn--wide"
                 [attr.aria-expanded]="showFilters"
                 aria-label="Toggle filters"
               >
                 <ion-icon name="filter-outline" aria-hidden="true" class="filter-toggle-icon"></ion-icon>
                 <span class="filter-toggle-label">Filters</span>
               </button>
-              <span
-                *ngIf="activeFilterCount > 0"
-                class="filter-badge"
-                aria-hidden="true"
-              >{{ activeFilterCount }}</span>
+              <span *ngIf="activeFilterCount > 0" class="filter-badge" aria-hidden="true">{{ activeFilterCount }}</span>
             </div>
+
+            <button
+              type="button"
+              class="toolbar-icon-btn"
+              (click)="openExportDialog()"
+              title="Download library"
+              aria-label="Download library"
+            >
+              <ion-icon name="download-outline"></ion-icon>
+            </button>
+
+            <button
+              type="button"
+              class="toolbar-icon-btn"
+              (click)="importFileInput.click()"
+              title="Import library JSON"
+              aria-label="Import library JSON"
+              [disabled]="importing"
+            >
+              <ion-icon name="cloud-upload-outline"></ion-icon>
+            </button>
+            <input
+              #importFileInput
+              type="file"
+              accept="application/json,.json"
+              hidden
+              (change)="onImportFile($event)"
+            />
+
+            <button
+              type="button"
+              class="toolbar-icon-btn"
+              (click)="saveCurrentCollection()"
+              title="Save current view as collection"
+              aria-label="Save current view as collection"
+            >
+              <ion-icon name="bookmark-outline"></ion-icon>
+            </button>
           </div>
 
-          <div class="library-tools-row">
-            <!-- Library filters -->
-            <div class="stats-bar" role="group" aria-label="Library filters">
+          <div class="saved-collections" *ngIf="savedCollections.length">
             <button
               type="button"
-              class="stat-item"
-              [class.stat-item--clickable]="libraryGamesCount > 0"
-              [class.stat-item--active]="isLibraryFilterActive('all')"
-              [disabled]="libraryGamesCount === 0"
-              (click)="setLibraryFilter('all')"
-              [attr.aria-pressed]="isLibraryFilterActive('all')"
-              [attr.aria-label]="libraryGamesCount > 0 ? 'Show all library games' : null"
+              class="collection-chip"
+              *ngFor="let col of savedCollections"
+              [class.collection-chip--active]="activeSavedCollectionId === col.id"
+              (click)="applySavedCollection(col)"
             >
-              <ion-icon [name]="isListView ? 'list-outline' : 'grid-outline'"></ion-icon>
-              <span>{{ libraryGamesCount }} games</span>
+              {{ col.name }}
+              <span
+                class="collection-chip__remove"
+                (click)="removeSavedCollection($event, col.id)"
+                aria-label="Remove saved collection"
+              >×</span>
+            </button>
+          </div>
+
+          <div class="collection-chips" role="tablist" aria-label="Smart collections">
+            <button
+              type="button"
+              class="collection-chip"
+              [class.collection-chip--active]="isLibraryFilterActive('all')"
+              (click)="setCollection('all')"
+              role="tab"
+              [attr.aria-selected]="isLibraryFilterActive('all')"
+            >
+              All
+              <span class="collection-chip__count">{{ libraryGamesCount }}</span>
             </button>
             <button
               type="button"
-              class="stat-item"
-              [class.stat-item--clickable]="notStartedCount > 0"
-              [class.stat-item--active]="isLibraryFilterActive('not_started')"
-              [disabled]="notStartedCount === 0"
-              (click)="setLibraryFilter('not_started')"
-              [attr.aria-pressed]="isLibraryFilterActive('not_started')"
-              [attr.aria-label]="notStartedCount > 0 ? 'Filter by not started games' : null"
-            >
-              <ion-icon name="ellipse-outline"></ion-icon>
-              <span>{{ notStartedCount }} not started</span>
-            </button>
-            <button
-              type="button"
-              class="stat-item"
-              [class.stat-item--clickable]="playingCount > 0"
-              [class.stat-item--active]="isLibraryFilterActive('playing')"
+              class="collection-chip"
+              [class.collection-chip--active]="isLibraryFilterActive('playing')"
               [disabled]="playingCount === 0"
-              (click)="setLibraryFilter('playing')"
-              [attr.aria-pressed]="isLibraryFilterActive('playing')"
-              [attr.aria-label]="playingCount > 0 ? 'Filter by currently playing' : null"
+              (click)="setCollection('playing')"
+              role="tab"
+              [attr.aria-selected]="isLibraryFilterActive('playing')"
             >
-              <ion-icon name="time-outline"></ion-icon>
-              <span>{{ playingCount }} playing</span>
+              Playing
+              <span class="collection-chip__count">{{ playingCount }}</span>
             </button>
             <button
               type="button"
-              class="stat-item"
-              [class.stat-item--clickable]="pausedCount > 0"
-              [class.stat-item--active]="isLibraryFilterActive('paused')"
+              class="collection-chip"
+              [class.collection-chip--active]="isLibraryFilterActive('paused')"
               [disabled]="pausedCount === 0"
-              (click)="setLibraryFilter('paused')"
-              [attr.aria-pressed]="isLibraryFilterActive('paused')"
-              [attr.aria-label]="pausedCount > 0 ? 'Filter by paused games' : null"
+              (click)="setCollection('paused')"
+              role="tab"
+              [attr.aria-selected]="isLibraryFilterActive('paused')"
             >
-              <ion-icon name="pause-circle-outline"></ion-icon>
-              <span>{{ pausedCount }} paused</span>
+              Paused
+              <span class="collection-chip__count">{{ pausedCount }}</span>
             </button>
             <button
               type="button"
-              class="stat-item"
-              [class.stat-item--clickable]="completedCount > 0"
-              [class.stat-item--active]="isLibraryFilterActive('completed')"
+              class="collection-chip"
+              [class.collection-chip--active]="isLibraryFilterActive('completed')"
               [disabled]="completedCount === 0"
-              (click)="setLibraryFilter('completed')"
-              [attr.aria-pressed]="isLibraryFilterActive('completed')"
-              [attr.aria-label]="completedCount > 0 ? 'Filter by completed games' : null"
+              (click)="setCollection('completed')"
+              role="tab"
+              [attr.aria-selected]="isLibraryFilterActive('completed')"
             >
-              <ion-icon name="checkmark-circle-outline"></ion-icon>
-              <span>{{ completedCount }} completed</span>
+              Done
+              <span class="collection-chip__count">{{ completedCount }}</span>
             </button>
             <button
               type="button"
-              class="stat-item"
-              [class.stat-item--clickable]="ratedCount > 0"
-              [class.stat-item--active]="isLibraryFilterActive('rated')"
-              [disabled]="ratedCount === 0"
-              (click)="setLibraryFilter('rated')"
-              [attr.aria-pressed]="isLibraryFilterActive('rated')"
-              [attr.aria-label]="ratedCount > 0 ? 'Filter by rated games' : null"
+              class="collection-chip"
+              [class.collection-chip--active]="isLibraryFilterActive('wishlist')"
+              [disabled]="wishlistGames.length === 0 && libraryStatusFilter !== 'wishlist'"
+              (click)="setCollection('wishlist')"
+              role="tab"
+              [attr.aria-selected]="isLibraryFilterActive('wishlist')"
             >
-              <ion-icon name="star-outline"></ion-icon>
-              <span>{{ ratedCount }} rated</span>
+              Wishlist
+              <span class="collection-chip__count">{{ wishlistGames.length }}</span>
             </button>
             <button
               type="button"
-              class="stat-item"
-              [class.stat-item--clickable]="playtimeGamesCount > 0"
-              [class.stat-item--active]="isLibraryFilterActive('with_playtime')"
-              [disabled]="playtimeGamesCount === 0"
-              (click)="setLibraryFilter('with_playtime')"
-              [attr.aria-pressed]="isLibraryFilterActive('with_playtime')"
-              [attr.aria-label]="playtimeGamesCount > 0 ? 'Filter by games with playtime' : null"
+              class="collection-chip"
+              [class.collection-chip--active]="isLibraryFilterActive('not_started')"
+              [disabled]="notStartedCount === 0"
+              (click)="setCollection('not_started')"
+              role="tab"
+              [attr.aria-selected]="isLibraryFilterActive('not_started')"
             >
-              <ion-icon name="time-outline"></ion-icon>
-              <span>{{ totalPlaytime }}h played</span>
+              Backlog
+              <span class="collection-chip__count">{{ notStartedCount }}</span>
             </button>
-            </div>
-
-            <nav class="library-shortcuts" aria-label="Library shortcuts">
-              <a routerLink="/play-history" class="library-shortcut">
-                <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
-                <span>History</span>
-                <span class="library-shortcut__count">{{ completedCount }}</span>
-              </a>
-
-              <button type="button" class="library-shortcut" (click)="scrollToWishlist()">
-                <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
-                <span>Wishlist</span>
-                <span class="library-shortcut__count">{{ wishlistGames.length }}</span>
-              </button>
-            </nav>
           </div>
         </div>
 
         <!-- Filters Panel -->
         <div class="filters-panel" *ngIf="showFilters">
           <div class="filters-header">
-            <h3>Filters</h3>
-            <ion-button fill="clear" size="small" (click)="clearFilters()">
-              Clear All
-            </ion-button>
+            <h3>Filters &amp; sort</h3>
+            <ion-button fill="clear" size="small" (click)="clearFilters()">Clear All</ion-button>
           </div>
 
           <ion-grid class="filters-grid">
             <ion-row>
-              <!-- Platform Filter -->
               <ion-col size="12" sizeMd="6" sizeLg="3">
                 <div class="filter-group">
                   <label>Platform</label>
@@ -277,13 +272,12 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
                       (click)="togglePlatform(platform)"
                       [style.--platform-color]="getPlatformColor(platform)"
                     >
-                      {{platform}}
+                      {{ platform }}
                     </ion-chip>
                   </div>
                 </div>
               </ion-col>
 
-              <!-- Year Filter -->
               <ion-col size="12" sizeMd="6" sizeLg="3">
                 <div class="filter-group">
                   <label>Release Year</label>
@@ -293,13 +287,12 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
                       [class.selected]="isYearSelected(year)"
                       (click)="toggleYear(year)"
                     >
-                      {{year}}
+                      {{ year }}
                     </ion-chip>
                   </div>
                 </div>
               </ion-col>
 
-              <!-- Developer Filter -->
               <ion-col size="12" sizeMd="6" sizeLg="3">
                 <div class="filter-group">
                   <label>Developer</label>
@@ -311,15 +304,13 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
                     class="gaming-select"
                     (ionChange)="applyFilters()"
                   >
-                    <ion-select-option *ngFor="let dev of developers" [value]="dev"
->
-                      {{dev}}
+                    <ion-select-option *ngFor="let dev of developers" [value]="dev">
+                      {{ dev }}
                     </ion-select-option>
                   </ion-select>
                 </div>
               </ion-col>
 
-              <!-- Sort -->
               <ion-col size="12" sizeMd="6" sizeLg="3">
                 <div class="filter-group">
                   <label>Sort By</label>
@@ -333,13 +324,29 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
                     <ion-select-option value="releaseYear">Release Year</ion-select-option>
                     <ion-select-option value="rating">Rating</ion-select-option>
                     <ion-select-option value="createdAt">Date Added</ion-select-option>
+                    <ion-select-option value="lastPlayedAt">Last Played</ion-select-option>
+                    <ion-select-option value="playtimeHours">Playtime</ion-select-option>
                   </ion-select>
+                </div>
+              </ion-col>
+
+              <ion-col size="12" *ngIf="availableTags.length">
+                <div class="filter-group">
+                  <label>Tags</label>
+                  <div class="filter-chips">
+                    <ion-chip
+                      *ngFor="let tag of availableTags"
+                      [class.selected]="isTagSelected(tag)"
+                      (click)="toggleTag(tag)"
+                    >
+                      {{ tag }}
+                    </ion-chip>
+                  </div>
                 </div>
               </ion-col>
             </ion-row>
           </ion-grid>
 
-          <!-- Active Filters -->
           <div class="active-filters" *ngIf="hasActiveFilters()">
             <button
               type="button"
@@ -363,8 +370,6 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
             class="filter-results-bar__download"
             (click)="openFilteredExportDialog()"
             [disabled]="filteredResultsCount === 0"
-            title="Download filtered games"
-            aria-label="Download filtered games"
           >
             <ion-icon name="download-outline" aria-hidden="true"></ion-icon>
             <span>Download</span>
@@ -384,64 +389,101 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
           </div>
         </div>
 
-        <!-- Library -->
+        <!-- Main library (non-wishlist collection) -->
         <section
           id="library-section"
           class="library-section"
-          *ngIf="!gamesLoading() && (showStatusSections || displayGames.length > 0)"
+          *ngIf="!gamesLoading() && libraryStatusFilter !== 'wishlist' && (showStatusSections || displayGames.length > 0)"
         >
-          <div class="section-header" *ngIf="showStatusSections">
-            <h2 class="section-title">Your Library</h2>
+          <div class="section-header">
+            <h2 class="section-title">{{ collectionTitle }}</h2>
             <div class="section-header__actions">
               <span class="section-count">{{ librarySectionCountLabel }}</span>
-              <button
-                *ngIf="libraryStatusFilter !== 'all'"
-                type="button"
-                class="section-download-btn"
-                (click)="openFilteredExportDialog()"
-                [disabled]="filteredResultsCount === 0"
-                title="Download filtered games"
-                aria-label="Download filtered games"
-              >
-                <ion-icon name="download-outline" aria-hidden="true"></ion-icon>
-                <span>Download</span>
-              </button>
+              <div class="view-mode-inline" role="group" aria-label="View mode">
+                <button type="button" class="view-mode-btn" [class.active]="viewMode === 'grid'" (click)="setViewMode('grid')" aria-label="Grid">
+                  <ion-icon name="grid-outline"></ion-icon>
+                </button>
+                <button type="button" class="view-mode-btn" [class.active]="viewMode === 'list'" (click)="setViewMode('list')" aria-label="List">
+                  <ion-icon name="list-outline"></ion-icon>
+                </button>
+                <button type="button" class="view-mode-btn" [class.active]="viewMode === 'shelf'" (click)="setViewMode('shelf')" aria-label="Shelf">
+                  <ion-icon name="albums-outline"></ion-icon>
+                </button>
+              </div>
             </div>
           </div>
 
-          <p class="section-empty" *ngIf="showStatusSections && libraryGamesCount === 0">
+          <p class="section-empty" *ngIf="libraryGamesCount === 0">
             No games in your library yet.
           </p>
 
-          <p class="section-empty" *ngIf="showStatusSections && libraryGamesCount > 0 && displayGames.length === 0">
+          <p class="section-empty" *ngIf="libraryGamesCount > 0 && displayGames.length === 0">
             {{ getLibraryEmptyMessage() }}
           </p>
 
-        <!-- Games Grid View -->
-        <div class="games-grid" *ngIf="!isListView && displayGames.length > 0">
-          <app-game-card
-            *ngFor="let game of displayGames; trackBy: trackByGameId"
-            [game]="game"
-            (onToggleCompleted)="cycleStatus($event)"
-            (onMarkCompleted)="markCompleted($event)"
-            (onDelete)="deleteGame($event)"
-            class="game-card-wrapper"
-          ></app-game-card>
-        </div>
+          <div class="games-grid" *ngIf="viewMode === 'grid' && displayGames.length > 0">
+            <app-game-card
+              *ngFor="let game of displayGames; trackBy: trackByGameId; let i = index"
+              [game]="game"
+              (onToggleCompleted)="cycleStatus($event)"
+              (onMarkCompleted)="markCompleted($event)"
+              (onDelete)="deleteGame($event)"
+              class="game-card-wrapper"
+              [style.--i]="i"
+            ></app-game-card>
+          </div>
 
-        <!-- Games List View -->
-        <ion-list class="games-list" *ngIf="isListView && displayGames.length > 0">
-          <ng-container *ngTemplateOutlet="listItems; context: { $implicit: displayGames }"></ng-container>
-        </ion-list>
+          <div class="games-shelf" *ngIf="viewMode === 'shelf' && displayGames.length > 0">
+            <a
+              *ngFor="let game of displayGames; trackBy: trackByGameId; let i = index"
+              class="shelf-item"
+              [routerLink]="['/game', game.id]"
+              [style.--i]="i"
+              [attr.title]="game.title"
+            >
+              <div class="shelf-item__art">
+                <app-game-cover
+                  [title]="game.title"
+                  [coverImage]="game.coverImage"
+                  variant="card"
+                />
+                <span
+                  *ngIf="game.status !== 'not_started'"
+                  [class]="'shelf-item__status shelf-item__status--' + game.status"
+                  [attr.aria-label]="getStatusLabel(game.status)"
+                ></span>
+                <span
+                  *ngIf="game.platform?.name"
+                  class="shelf-item__badge"
+                  [style.--platform-color]="game.platform?.color || '#a855f7'"
+                >{{ game.platform.name }}</span>
+                <span class="shelf-item__shade" aria-hidden="true"></span>
+              </div>
+              <div class="shelf-item__meta">
+                <h3 class="shelf-item__title">{{ game.title }}</h3>
+                <p class="shelf-item__sub">
+                  <span *ngIf="game.releaseYear">{{ game.releaseYear }}</span>
+                  <span *ngIf="game.rating != null && game.status !== 'wishlist'">
+                    · {{ game.rating }}/10
+                  </span>
+                  <span *ngIf="game.playtimeHours"> · {{ game.playtimeHours }}h</span>
+                </p>
+              </div>
+            </a>
+          </div>
+
+          <ion-list class="games-list" *ngIf="viewMode === 'list' && displayGames.length > 0">
+            <ng-container *ngTemplateOutlet="listItems; context: { $implicit: displayGames }"></ng-container>
+          </ion-list>
         </section>
 
         <!-- Wishlist -->
         <section
           id="wishlist-section"
           class="library-section wishlist-section"
-          *ngIf="!gamesLoading() && (showStatusSections || wishlistGames.length > 0)"
+          *ngIf="!gamesLoading() && (libraryStatusFilter === 'wishlist' || (libraryStatusFilter === 'all' && !hasActiveFilters()) || (hasActiveFilters() && wishlistGames.length > 0))"
         >
-          <div class="section-header">
+          <div class="section-header" *ngIf="libraryStatusFilter !== 'wishlist'">
             <h2 class="section-title">Wishlist</h2>
             <div class="section-header__actions">
               <span class="section-count">{{ wishlistGames.length }}</span>
@@ -452,11 +494,22 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
             </div>
           </div>
 
-          <p class="section-empty" *ngIf="showStatusSections && wishlistGames.length === 0">
+          <div class="section-header" *ngIf="libraryStatusFilter === 'wishlist'">
+            <h2 class="section-title">Wishlist</h2>
+            <div class="section-header__actions">
+              <span class="section-count">{{ wishlistGames.length }}</span>
+              <a routerLink="/wishlist/add" class="section-add-btn">
+                <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+                <span>Add</span>
+              </a>
+            </div>
+          </div>
+
+          <p class="section-empty" *ngIf="wishlistGames.length === 0">
             No wishlist games yet. Add upcoming titles you want to play.
           </p>
 
-          <div class="games-grid" *ngIf="!isListView && wishlistGames.length">
+          <div class="games-grid" *ngIf="viewMode === 'grid' && wishlistGames.length">
             <app-game-card
               *ngFor="let game of wishlistGames; trackBy: trackByGameId"
               [game]="game"
@@ -467,7 +520,37 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
               class="game-card-wrapper"
             ></app-game-card>
           </div>
-          <ion-list class="games-list" *ngIf="isListView && wishlistGames.length">
+
+          <div class="games-shelf" *ngIf="viewMode === 'shelf' && wishlistGames.length">
+            <a
+              *ngFor="let game of wishlistGames; trackBy: trackByGameId; let i = index"
+              class="shelf-item"
+              [routerLink]="['/game', game.id]"
+              [style.--i]="i"
+              [attr.title]="game.title"
+            >
+              <div class="shelf-item__art">
+                <app-game-cover
+                  [title]="game.title"
+                  [coverImage]="game.coverImage"
+                  variant="card"
+                />
+                <span class="shelf-item__status shelf-item__status--wishlist" aria-label="Wishlist"></span>
+                <span
+                  *ngIf="game.platform?.name"
+                  class="shelf-item__badge"
+                  [style.--platform-color]="game.platform?.color || '#a855f7'"
+                >{{ game.platform.name }}</span>
+                <span class="shelf-item__shade" aria-hidden="true"></span>
+              </div>
+              <div class="shelf-item__meta">
+                <h3 class="shelf-item__title">{{ game.title }}</h3>
+                <p class="shelf-item__sub">{{ getCountdownLabel(game) }}</p>
+              </div>
+            </a>
+          </div>
+
+          <ion-list class="games-list" *ngIf="viewMode === 'list' && wishlistGames.length">
             <ng-container *ngTemplateOutlet="listItems; context: { $implicit: wishlistGames, showCountdown: true }"></ng-container>
           </ion-list>
         </section>
@@ -491,26 +574,15 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
             <div class="game-list-content">
               <ion-label class="game-info">
                 <h3 class="game-title">{{ game.title }}</h3>
-
                 <div class="game-meta-row">
                   <span *ngIf="game.platform.name" class="platform-tag">{{ game.platform.name }}</span>
                   <span *ngIf="game.releaseYear" class="game-year">{{ game.releaseYear }}</span>
                   <span *ngIf="game.rating != null" class="rating-tag">
-                    <app-game-rating
-                      [rating]="game.rating"
-                      [readonly]="true"
-                      size="sm"
-                      [showValue]="false"
-                    />
+                    <app-game-rating [rating]="game.rating" [readonly]="true" size="sm" [showValue]="false" />
                   </span>
                 </div>
-
                 <p class="game-description" *ngIf="game.description">{{ game.description }}</p>
-
-                <p
-                  class="game-secondary"
-                  *ngIf="game.developer.name || game.playtimeHours || (showCountdown && game.status === 'wishlist')"
-                >
+                <p class="game-secondary" *ngIf="game.developer.name || game.playtimeHours || (showCountdown && game.status === 'wishlist')">
                   <span *ngIf="game.developer.name">{{ game.developer.name }}</span>
                   <span *ngIf="game.playtimeHours">{{ game.playtimeHours }}h played</span>
                   <span *ngIf="showCountdown && game.status === 'wishlist'" class="wishlist-countdown">
@@ -524,13 +596,11 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
                   type="button"
                   [class]="'status-badge status-badge--' + game.status"
                   [class.status-badge--disabled]="isWishlistLocked(game)"
-                  [attr.aria-disabled]="isWishlistLocked(game) ? true : null"
                   (click)="handleStatusClick($event, game)"
                 >
                   <ion-icon [name]="getStatusIcon(game.status)"></ion-icon>
                   {{ getStatusLabel(game.status) }}
                 </button>
-
                 <button
                   *ngIf="showMarkCompleted(game)"
                   type="button"
@@ -546,26 +616,20 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
         </ng-template>
 
         <!-- Empty State -->
-        <div class="empty-state" *ngIf="!gamesLoading() && filteredGames().length === 0">
+        <div class="empty-state empty-state--vault" *ngIf="!gamesLoading() && filteredGames().length === 0">
           <div class="empty-icon">
             <ion-icon name="game-controller-outline"></ion-icon>
           </div>
-          <h3>No games found</h3>
-          <p *ngIf="hasActiveFilters()">Try adjusting your filters or search query</p>
-          <p *ngIf="!hasActiveFilters()">Start building your collection by adding your first game</p>
-
-          <ion-button
-            *ngIf="!hasActiveFilters()"
-            routerLink="/add"
-            class="add-first-game-btn"
-          >
+          <h3>{{ hasActiveFilters() ? 'No games found' : 'Your vault is empty' }}</h3>
+          <p *ngIf="hasActiveFilters()">Try adjusting filters or search</p>
+          <p *ngIf="!hasActiveFilters()">Add your first title — covers, play status, and history live here.</p>
+          <ion-button *ngIf="!hasActiveFilters()" routerLink="/add" class="add-first-game-btn">
             <ion-icon name="add-outline" slot="start"></ion-icon>
-            Add Game
+            Add game
           </ion-button>
         </div>
       </div>
 
-      <!-- Toast -->
       <ion-toast
         [isOpen]="!!toastMessage"
         [message]="toastMessage"
@@ -575,11 +639,6 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
         (didDismiss)="toastMessage = ''"
       ></ion-toast>
     </ion-content>
-
-    <!-- Custom Add Button - Fixed Position for iOS compatibility -->
-    <button type="button" class="custom-add-button" routerLink="/add" aria-label="Add Game">
-      <ion-icon name="add-outline"></ion-icon>
-    </button>
 
     <div
       *ngIf="showExportDialog"
@@ -598,34 +657,15 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
           <h2 id="export-dialog-title">{{ exportDialogTitle }}</h2>
           <p>{{ exportDialogMessage }}</p>
         </div>
-
         <div class="export-dialog__actions">
-          <button
-            type="button"
-            class="export-dialog__btn export-dialog__btn--export"
-            (click)="exportAndClose('json')"
-          >
-            JSON
-          </button>
-          <button
-            type="button"
-            class="export-dialog__btn export-dialog__btn--export"
-            (click)="exportAndClose('xlsx')"
-          >
-            Excel (.xlsx)
-          </button>
+          <button type="button" class="export-dialog__btn export-dialog__btn--export" (click)="exportAndClose('json')">JSON</button>
+          <button type="button" class="export-dialog__btn export-dialog__btn--export" (click)="exportAndClose('xlsx')">Excel (.xlsx)</button>
         </div>
-
         <label class="export-dialog__checkbox">
           <input type="checkbox" [(ngModel)]="includeWishlistInExport" />
           <span>Include wishlist</span>
         </label>
-
-        <button
-          type="button"
-          class="export-dialog__btn export-dialog__btn--cancel export-dialog__btn--cancel-block"
-          (click)="closeExportDialog()"
-        >
+        <button type="button" class="export-dialog__btn export-dialog__btn--cancel export-dialog__btn--cancel-block" (click)="closeExportDialog()">
           Cancel
         </button>
       </div>
@@ -637,14 +677,10 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   readonly filteredGames: Signal<Game[]>;
   readonly gamesLoading: Signal<boolean>;
 
-  // View mode
-  isListView = false;
-
-  // Search
+  viewMode: LibraryViewMode = 'grid';
   searchQuery = '';
   private searchSubject = new Subject<string>();
 
-  // Filters
   showFilters = false;
   platforms: string[] = [];
   years: number[] = [];
@@ -655,14 +691,14 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   selectedYears: number[] = [];
   selectedDevelopers: string[] = [];
   selectedGenres: string[] = [];
+  selectedTags: string[] = [];
+  availableTags: string[] = [];
 
-  // Sort
-  sortBy: 'title' | 'releaseYear' | 'rating' | 'createdAt' = 'createdAt';
+  sortBy: 'title' | 'releaseYear' | 'rating' | 'createdAt' | 'lastPlayedAt' | 'playtimeHours' = 'createdAt';
   sortOrder: 'asc' | 'desc' = 'desc';
 
   libraryStatusFilter: LibraryStatusFilter = 'all';
 
-  // Toast
   toastMessage = '';
   toastColor: 'success' | 'danger' | 'warning' = 'success';
   countdownTick = 0;
@@ -670,8 +706,11 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   showExportDialog = false;
   includeWishlistInExport = true;
   exportScope: 'library' | 'filtered' = 'library';
+  importing = false;
 
-  // Skeleton placeholders (modern loading state)
+  savedCollections: SavedCollection[] = [];
+  activeSavedCollectionId: string | null = null;
+
   readonly skeletonItems = Array.from({ length: 8 });
 
   private destroy$ = new Subject<void>();
@@ -679,28 +718,66 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
 
   constructor(
     private gameService: GameService,
-    private authService: AuthService,
     private router: Router,
-    private alertController: AlertController
+    private route: ActivatedRoute,
+    private alertController: AlertController,
+    private prefs: LibraryPrefsService,
+    private collections: CollectionsService,
   ) {
     this.filteredGames = this.gameService.filteredGames;
     this.gamesLoading = this.gameService.gamesLoading;
     addIcons({
       gameControllerOutline, addOutline, searchOutline, filterOutline,
-      logOutOutline, gridOutline, listOutline,
+      gridOutline, listOutline, albumsOutline,
       starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
       closeOutline, imageOutline, heartOutline, ellipseOutline,
-      personCircleOutline, pauseCircleOutline, downloadOutline
+      pauseCircleOutline, downloadOutline, playOutline, chevronForwardOutline,
+      cloudUploadOutline, bookmarkOutline
     });
   }
 
   ngOnInit(): void {
+    this.viewMode = this.prefs.viewMode;
+    this.prefs.viewMode$.pipe(takeUntil(this.destroy$)).subscribe((m) => {
+      this.viewMode = m;
+    });
+
     this.loadGames();
     this.setupSearch();
     this.applyFilters();
     this.countdownInterval = setInterval(() => {
       this.countdownTick++;
     }, 60000);
+
+    this.collections.collections$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((items) => {
+        this.savedCollections = items;
+      });
+
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
+      const c = params.get('collection');
+      const tag = params.get('tag');
+      this.activeSavedCollectionId = params.get('saved') || null;
+      if (
+        c === 'playing' ||
+        c === 'paused' ||
+        c === 'completed' ||
+        c === 'wishlist' ||
+        c === 'not_started' ||
+        c === 'rated' ||
+        c === 'with_playtime'
+      ) {
+        this.libraryStatusFilter = c;
+      } else {
+        this.libraryStatusFilter = 'all';
+      }
+
+      if (tag) {
+        this.selectedTags = [tag];
+        this.applyFilters();
+      }
+    });
   }
 
   ionViewWillEnter(): void {
@@ -713,7 +790,6 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     if (!state?.showDeletedGameToast) {
       return;
     }
-
     this.showToast('Game deleted successfully', 'success');
     history.replaceState({ ...state, showDeletedGameToast: false }, '');
   }
@@ -727,11 +803,11 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   }
 
   private loadGames(): void {
-    this.gameService.games$.pipe(takeUntil(this.destroy$))
-      .subscribe(games => {
-        this.games = games;
-        this.syncLibraryFilter();
-      });
+    this.gameService.games$.pipe(takeUntil(this.destroy$)).subscribe((games) => {
+      this.games = games;
+      this.availableTags = collectUniqueTags(games);
+      this.syncLibraryFilter();
+    });
   }
 
   private refreshFilterOptions(): void {
@@ -740,13 +816,15 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       years: this.gameService.getYears().pipe(take(1)),
       developers: this.gameService.getDevelopers().pipe(take(1)),
       genres: this.gameService.getGenres().pipe(take(1)),
-    }).pipe(takeUntil(this.destroy$)).subscribe(({ platforms, years, developers, genres }) => {
-      this.platforms = platforms;
-      this.years = years;
-      this.developers = developers;
-      this.genres = genres;
-      this.pruneInvalidFilterSelections();
-    });
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(({ platforms, years, developers, genres }) => {
+        this.platforms = platforms;
+        this.years = years;
+        this.developers = developers;
+        this.genres = genres;
+        this.pruneInvalidFilterSelections();
+      });
   }
 
   private pruneInvalidFilterSelections(): void {
@@ -772,17 +850,17 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   }
 
   private setupSearch(): void {
-    this.searchSubject.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      takeUntil(this.destroy$)
-    ).subscribe(() => {
-      this.applyFilters();
-    });
+    this.searchSubject
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.applyFilters();
+      });
   }
 
-  onSearch(event: any): void {
-    this.searchQuery = event.target.value || '';
+  onSearch(event: CustomEvent | Event): void {
+    const detail = (event as CustomEvent<{ value?: string | null }>).detail;
+    const target = event.target as HTMLInputElement | null;
+    this.searchQuery = detail?.value ?? target?.value ?? this.searchQuery ?? '';
     this.searchSubject.next(this.searchQuery);
   }
 
@@ -793,25 +871,153 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       years: this.selectedYears.length > 0 ? this.selectedYears : undefined,
       developers: this.selectedDevelopers.length > 0 ? this.selectedDevelopers : undefined,
       genres: this.selectedGenres.length > 0 ? this.selectedGenres : undefined,
+      tags: this.selectedTags.length > 0 ? this.selectedTags : undefined,
       sortBy: this.sortBy,
-      sortOrder: this.sortOrder
+      sortOrder: this.sortOrder,
     };
 
-    this.gameService.getGames(filters).pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => undefined,
+    this.gameService.getGames(filters).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => undefined,
+      error: () => {
+        this.showToast('Failed to load games', 'danger');
+      },
+    });
+  }
+
+  isTagSelected(tag: string): boolean {
+    return this.selectedTags.includes(tag);
+  }
+
+  toggleTag(tag: string): void {
+    const index = this.selectedTags.indexOf(tag);
+    if (index > -1) {
+      this.selectedTags.splice(index, 1);
+    } else {
+      this.selectedTags.push(tag);
+    }
+    this.applyFilters();
+  }
+
+  async saveCurrentCollection(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Save collection',
+      message: 'Name this view (status filter + optional tag).',
+      cssClass: 'app-alert',
+      inputs: [
+        {
+          name: 'name',
+          type: 'text',
+          placeholder: 'e.g. Weekend backlog',
+          attributes: { maxlength: 40 },
+        },
+      ],
+      buttons: [
+        { text: 'Cancel', role: 'cancel', cssClass: 'app-alert-btn-cancel' },
+        {
+          text: 'Save',
+          cssClass: 'app-alert-btn-delete',
+          handler: (data: { name?: string }) => {
+            const name = (data?.name || '').trim();
+            if (!name) {
+              this.showToast('Name is required', 'warning');
+              return false;
+            }
+            const filter =
+              this.libraryStatusFilter === 'wishlist' ||
+              this.libraryStatusFilter === 'playing' ||
+              this.libraryStatusFilter === 'paused' ||
+              this.libraryStatusFilter === 'completed' ||
+              this.libraryStatusFilter === 'not_started' ||
+              this.libraryStatusFilter === 'rated' ||
+              this.libraryStatusFilter === 'with_playtime'
+                ? this.libraryStatusFilter
+                : 'all';
+            const col = this.collections.add(name, filter, this.selectedTags[0]);
+            this.showToast(`Saved “${col.name}”`, 'success');
+            return true;
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  applySavedCollection(col: SavedCollection): void {
+    void this.router.navigate(['/home'], {
+      queryParams: {
+        collection: col.filter === 'all' ? null : col.filter,
+        tag: col.tag || null,
+        saved: col.id,
+      },
+    });
+  }
+
+  removeSavedCollection(event: Event, id: string): void {
+    event.stopPropagation();
+    this.collections.remove(id);
+    if (this.activeSavedCollectionId === id) {
+      this.activeSavedCollectionId = null;
+    }
+  }
+
+  onImportFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) {
+      return;
+    }
+
+    this.importing = true;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || '');
+      const parsed = parseLibraryImportJson(text);
+      if (!parsed.games.length) {
+        this.importing = false;
+        this.showToast(parsed.errors[0] || 'No games found in file', 'warning');
+        return;
+      }
+
+      this.gameService.importGames(parsed.games).subscribe({
+        next: (result) => {
+          this.importing = false;
+          this.refreshFilterOptions();
+          this.showToast(
+            `Imported ${result.created} game${result.created === 1 ? '' : 's'}${
+              result.failed ? `, ${result.failed} failed` : ''
+            }`,
+            result.created > 0 ? 'success' : 'warning',
+          );
+        },
         error: () => {
-          this.showToast('Failed to load games', 'danger');
-        }
+          this.importing = false;
+          this.showToast('Import failed', 'danger');
+        },
       });
+    };
+    reader.onerror = () => {
+      this.importing = false;
+      this.showToast('Could not read file', 'danger');
+    };
+    reader.readAsText(file);
   }
 
-  // View toggle
-  toggleViewMode(): void {
-    this.isListView = !this.isListView;
+  setViewMode(mode: LibraryViewMode): void {
+    this.prefs.setViewMode(mode);
   }
 
-  // Platform filter
+  setCollection(filter: LibraryStatusFilter): void {
+    if (filter === 'all') {
+      void this.router.navigate(['/home'], { queryParams: {} });
+      return;
+    }
+    if (!this.canSelectLibraryFilter(filter) && filter !== 'wishlist') {
+      return;
+    }
+    void this.router.navigate(['/home'], { queryParams: { collection: filter } });
+  }
+
   isPlatformSelected(platform: string): boolean {
     return this.selectedPlatforms.includes(platform);
   }
@@ -827,11 +1033,10 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   }
 
   getPlatformColor(platform: string): string {
-    const p = PLATFORMS.find(p => p.name === platform);
+    const p = PLATFORMS.find((x) => x.name === platform);
     return p?.color || '#a855f7';
   }
 
-  // Year filter
   isYearSelected(year: number): boolean {
     return this.selectedYears.includes(year);
   }
@@ -847,63 +1052,59 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   }
 
   hasActiveFilters(): boolean {
-    return this.selectedPlatforms.length > 0 ||
-           this.selectedYears.length > 0 ||
-           this.selectedDevelopers.length > 0 ||
-           this.selectedGenres.length > 0 ||
-           !!this.searchQuery;
+    return (
+      this.selectedPlatforms.length > 0 ||
+      this.selectedYears.length > 0 ||
+      this.selectedDevelopers.length > 0 ||
+      this.selectedGenres.length > 0 ||
+      this.selectedTags.length > 0 ||
+      !!this.searchQuery
+    );
   }
 
   get activeFilterCount(): number {
-    return this.selectedPlatforms.length +
-           this.selectedYears.length +
-           this.selectedDevelopers.length +
-           this.selectedGenres.length +
-           (this.searchQuery ? 1 : 0);
+    return (
+      this.selectedPlatforms.length +
+      this.selectedYears.length +
+      this.selectedDevelopers.length +
+      this.selectedGenres.length +
+      this.selectedTags.length +
+      (this.searchQuery ? 1 : 0)
+    );
   }
 
-  getActiveFilterChips(): Array<{ type: string; value: any; label: string }> {
-    const chips: Array<{ type: string; value: any; label: string }> = [];
-
+  getActiveFilterChips(): Array<{ type: string; value: unknown; label: string }> {
+    const chips: Array<{ type: string; value: unknown; label: string }> = [];
     if (this.searchQuery) {
       chips.push({ type: 'search', value: this.searchQuery, label: `Search: ${this.searchQuery}` });
     }
-
-    this.selectedPlatforms.forEach(p => {
-      chips.push({ type: 'platform', value: p, label: p });
-    });
-
-    this.selectedYears.forEach(y => {
-      chips.push({ type: 'year', value: y, label: y.toString() });
-    });
-
-    this.selectedDevelopers.forEach(d => {
-      chips.push({ type: 'developer', value: d, label: d });
-    });
-
-    this.selectedGenres.forEach(g => {
-      chips.push({ type: 'genre', value: g, label: g });
-    });
-
+    this.selectedPlatforms.forEach((p) => chips.push({ type: 'platform', value: p, label: p }));
+    this.selectedYears.forEach((y) => chips.push({ type: 'year', value: y, label: y.toString() }));
+    this.selectedDevelopers.forEach((d) => chips.push({ type: 'developer', value: d, label: d }));
+    this.selectedGenres.forEach((g) => chips.push({ type: 'genre', value: g, label: g }));
+    this.selectedTags.forEach((t) => chips.push({ type: 'tag', value: t, label: `#${t}` }));
     return chips;
   }
 
-  removeFilter(type: string, value: any): void {
+  removeFilter(type: string, value: unknown): void {
     switch (type) {
       case 'search':
         this.searchQuery = '';
         break;
       case 'platform':
-        this.selectedPlatforms = this.selectedPlatforms.filter(p => p !== value);
+        this.selectedPlatforms = this.selectedPlatforms.filter((p) => p !== value);
         break;
       case 'year':
-        this.selectedYears = this.selectedYears.filter(y => y !== value);
+        this.selectedYears = this.selectedYears.filter((y) => y !== value);
         break;
       case 'developer':
-        this.selectedDevelopers = this.selectedDevelopers.filter(d => d !== value);
+        this.selectedDevelopers = this.selectedDevelopers.filter((d) => d !== value);
         break;
       case 'genre':
-        this.selectedGenres = this.selectedGenres.filter(g => g !== value);
+        this.selectedGenres = this.selectedGenres.filter((g) => g !== value);
+        break;
+      case 'tag':
+        this.selectedTags = this.selectedTags.filter((t) => t !== value);
         break;
     }
     this.applyFilters();
@@ -915,12 +1116,8 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.selectedYears = [];
     this.selectedDevelopers = [];
     this.selectedGenres = [];
+    this.selectedTags = [];
     this.applyFilters();
-  }
-
-  // Actions
-  toggleCompleted(gameId: string): void {
-    this.cycleStatus(gameId);
   }
 
   handleStatusClick(event: Event, game: Game): void {
@@ -950,11 +1147,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     }
 
     const nextStatus = game ? GAME_STATUS_CYCLE[game.status] : undefined;
-    if (
-      game &&
-      nextStatus &&
-      statusChangeClearsPlayHistory(game.status, nextStatus)
-    ) {
+    if (game && nextStatus && statusChangeClearsPlayHistory(game.status, nextStatus)) {
       void this.confirmAndCycleStatus(gameId);
       return;
     }
@@ -977,7 +1170,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       },
       error: () => {
         this.showToast('Failed to update game', 'danger');
-      }
+      },
     });
   }
 
@@ -1033,6 +1226,18 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     return this.filteredGames().filter((game) => game.status === 'wishlist');
   }
 
+  get continuePlaying(): Game[] {
+    return this.libraryGames
+      .filter((g) => g.status === 'playing')
+      .slice()
+      .sort((a, b) => {
+        const ta = a.lastPlayedAt ? Date.parse(a.lastPlayedAt) : 0;
+        const tb = b.lastPlayedAt ? Date.parse(b.lastPlayedAt) : 0;
+        return tb - ta;
+      })
+      .slice(0, 8);
+  }
+
   get libraryGamesCount(): number {
     return this.libraryGames.length;
   }
@@ -1051,17 +1256,30 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
         return this.libraryGames.filter((game) => game.rating != null);
       case 'with_playtime':
         return this.libraryGames.filter((game) => (game.playtime || 0) > 0);
+      case 'wishlist':
+        return [];
       default:
         return this.libraryGames;
     }
   }
 
-  setLibraryFilter(filter: LibraryStatusFilter): void {
-    if (!this.canSelectLibraryFilter(filter)) {
-      return;
+  get collectionTitle(): string {
+    switch (this.libraryStatusFilter) {
+      case 'not_started':
+        return 'Backlog';
+      case 'playing':
+        return 'Playing';
+      case 'paused':
+        return 'Paused';
+      case 'completed':
+        return 'Completed';
+      case 'rated':
+        return 'Rated';
+      case 'with_playtime':
+        return 'With playtime';
+      default:
+        return 'Your library';
     }
-
-    this.libraryStatusFilter = this.libraryStatusFilter === filter ? 'all' : filter;
   }
 
   isLibraryFilterActive(filter: LibraryStatusFilter): boolean {
@@ -1084,14 +1302,15 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
         return this.ratedCount > 0;
       case 'with_playtime':
         return this.playtimeGamesCount > 0;
+      case 'wishlist':
+        return true;
     }
   }
 
   private syncLibraryFilter(): void {
-    if (this.libraryStatusFilter === 'all') {
+    if (this.libraryStatusFilter === 'all' || this.libraryStatusFilter === 'wishlist') {
       return;
     }
-
     if (!this.canSelectLibraryFilter(this.libraryStatusFilter)) {
       this.libraryStatusFilter = 'all';
     }
@@ -1140,19 +1359,8 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     }
   }
 
-  scrollToWishlist(): void {
-    if (!this.showStatusSections && this.wishlistGames.length === 0) {
-      return;
-    }
-
-    document.getElementById('wishlist-section')?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-  }
-
   async deleteGame(gameId: string): Promise<void> {
-    const game = this.games.find(g => g.id === gameId);
+    const game = this.games.find((g) => g.id === gameId);
     const title = game?.title ?? 'this game';
 
     const alert = await this.alertController.create({
@@ -1190,13 +1398,11 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     });
   }
 
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
-  }
-
   get filteredExportGames(): Game[] {
-    return [...this.displayGames, ...this.wishlistGames];
+    if (this.libraryStatusFilter === 'wishlist') {
+      return [...this.wishlistGames];
+    }
+    return [...this.displayGames, ...(this.libraryStatusFilter === 'all' ? this.wishlistGames : [])];
   }
 
   get filteredResultsCount(): number {
@@ -1204,9 +1410,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   }
 
   get exportDialogTitle(): string {
-    return this.exportScope === 'filtered'
-      ? 'Download filtered games'
-      : 'Download library';
+    return this.exportScope === 'filtered' ? 'Download filtered games' : 'Download library';
   }
 
   get exportDialogMessage(): string {
@@ -1215,7 +1419,6 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       const label = count === 1 ? 'game' : 'games';
       return `Export ${count} filtered ${label} in your chosen format.`;
     }
-
     return 'Choose a format for your export.';
   }
 
@@ -1224,7 +1427,6 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       this.showToast('No games to export', 'warning');
       return;
     }
-
     this.exportScope = 'library';
     this.includeWishlistInExport = true;
     this.showExportDialog = true;
@@ -1235,7 +1437,6 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       this.showToast('No games to export', 'warning');
       return;
     }
-
     this.exportScope = 'filtered';
     this.includeWishlistInExport = true;
     this.showExportDialog = true;
@@ -1250,13 +1451,8 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.closeExportDialog();
   }
 
-  private exportLibrary(
-    format: LibraryExportFormat,
-    includeWishlist = true,
-  ): void {
-    const games =
-      this.exportScope === 'filtered' ? this.filteredExportGames : this.games;
-
+  private exportLibrary(format: LibraryExportFormat, includeWishlist = true): void {
+    const games = this.exportScope === 'filtered' ? this.filteredExportGames : this.games;
     try {
       exportLibrary(games, format, {
         includeWishlist,
@@ -1274,21 +1470,15 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   }
 
   private showWishlistLockedToast(): void {
-    this.showToast(
-      "You can't add a game to your library before its release date.",
-      'warning',
-    );
+    this.showToast("You can't add a game to your library before its release date.", 'warning');
   }
 
-  private showToast(
-    message: string,
-    color: 'success' | 'danger' | 'warning' = 'success',
-  ): void {
+  private showToast(message: string, color: 'success' | 'danger' | 'warning' = 'success'): void {
     this.toastMessage = message;
     this.toastColor = color;
   }
 
-  trackByGameId(index: number, game: Game): string {
+  trackByGameId(_index: number, game: Game): string {
     return game.id;
   }
 
@@ -1296,7 +1486,6 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     return index;
   }
 
-  // Stats
   get completedCount(): number {
     return this.libraryGames.filter((g) => g.status === 'completed').length;
   }

@@ -125,12 +125,16 @@ export class DatabaseService {
         this.http.post<T[]>(url, data, {
           headers: this.getHeaders({ write: true }),
         }),
-      ).then((rows) => {
-        if (!rows?.[0]) {
-          throw new Error("Insert failed: no row returned");
-        }
-        return rows[0];
-      }),
+      )
+        .then((rows) => {
+          if (!rows?.[0]) {
+            throw new Error("Insert failed: no row returned");
+          }
+          return rows[0];
+        })
+        .catch((error) => {
+          throw this.normalizeHttpError(error);
+        }),
     );
   }
 
@@ -149,8 +153,39 @@ export class DatabaseService {
           params: this.buildParams({ filters }),
           headers: this.getHeaders({ write: true }),
         }),
-      ),
+      ).catch((error) => {
+        throw this.normalizeHttpError(error);
+      }),
     );
+  }
+
+  /** Surface PostgREST/Data API error bodies as Error.message */
+  private normalizeHttpError(error: unknown): Error {
+    const err = error as {
+      error?: { message?: string; code?: string; details?: string; hint?: string } | string;
+      message?: string;
+      status?: number;
+    };
+
+    if (err?.error && typeof err.error === "object") {
+      const body = err.error;
+      const parts = [body.message, body.details, body.hint, body.code].filter(
+        Boolean,
+      );
+      if (parts.length) {
+        return new Error(parts.join(" — "));
+      }
+    }
+
+    if (typeof err?.error === "string" && err.error.trim()) {
+      return new Error(err.error);
+    }
+
+    if (err?.message) {
+      return new Error(err.message);
+    }
+
+    return new Error("Database request failed");
   }
 
   /**

@@ -18,7 +18,7 @@ GameVault is a personal videogame library manager: add and edit titles, search a
 
 ## Brand Personality
 
-Cyberpunk neon — dark, atmospheric, confident. Purple/cyan/pink accents and Orbitron display type signal gaming identity without shouting. Voice is direct and tool-like (Steam/GOG-adjacent), not playful or childish. Emotional goal: immersion and ownership — "this is my vault," not a generic dashboard.
+**Refined Vault** — dark cyberpunk DNA executed with Apple-level restraint. Purple accent is earned (selection, primary actions, focus); cyan/pink/green stay semantic. Orbitron only for brand. Voice is direct and tool-like (Steam/GOG density + Linear keyboard fluency), not playful or childish. Emotional goal: calm ownership — "this is my vault," not a light show.
 
 ## Anti-references
 

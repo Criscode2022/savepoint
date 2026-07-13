@@ -17,6 +17,7 @@
     "ionic:build": "ionic build",
     "db:migrate": "node neon/migrate.js",
     "db:seed": "node neon/seed.js",
+    "db:add-tags": "node neon/apply-tags-column.js",
     "db:refresh-api-schema": "node scripts/refresh-data-api-schema.js",
     "generate:favicon": "node scripts/generate-favicon.js"
   },

@@ -9,14 +9,20 @@ A modern, gaming-themed videogames library management application built with Ang
 
 ## ✨ Features
 
-- 🎨 **Gaming Aesthetic**: Dark cyberpunk theme with neon accents, gradients, and smooth animations
-- 🌙 **Dark Mode**: Toggle between dark and light themes
-- 🔐 **Authentication**: Secure login/register with Neon Auth
-- 📚 **Game Collection**: Add, edit, and manage your game library
-- 🔍 **Advanced Filtering**: Filter by platform, year, developer, director, and genre
-- 🔎 **Search**: Real-time search through your collection
-- 📊 **Stats**: Track completed games and total playtime
-- 📱 **Responsive**: Works on desktop, tablet, and mobile
+- 🎛️ **Command Center shell** — sidebar smart collections, top search, mobile tabs
+- ⌘ **Command palette** — jump to games, collections, and actions (`Ctrl/⌘K`)
+- ▶️ **Continue Playing** — resume strip for active titles
+- 📚 **Multi-view library** — grid, list, and shelf (preference persisted)
+- 🔐 **Authentication** — Neon Auth login/register
+- 🔍 **Filters & sort** — platform, year, developer, rating, last played, playtime
+- 💖 **Wishlist** — upcoming titles with release countdown
+- 🏷️ **Tags & saved collections** — personal labels + bookmarkable library views
+- 📥 **Import / export** — JSON import; JSON & Excel export
+- 📈 **Insights** — streaks, completion rate, playtime by platform/genre
+- ✨ **Recommendations** — online picks from your library taste (RAWG, no AI)
+- ⏱️ **Log playtime** — quick session hours on game detail
+- 📊 **Play history** — completed timeline
+- 🎨 **Refined Vault** — dark cyberpunk DNA with Apple-level restraint
 
 ## 🛠️ Tech Stack
 
