@@ -1,0 +1,174 @@
+<div class="cover-upload">
+  <div class="cover-upload__preview">
+    <div class="cover-media-actions">
+      <button
+        type="button"
+        class="cover-media-action cover-media-action--edit"
+        aria-label="Upload cover image"
+        [disabled]="uploading"
+        (click)="fileInput.click()"
+      >
+        <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
+      </button>
+      @if (coverImage) {
+        <button
+          type="button"
+          class="cover-media-action cover-media-action--remove"
+          aria-label="Remove cover image"
+          [disabled]="uploading"
+          (click)="clearCover()"
+        >
+          <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+        </button>
+      }
+    </div>
+    <app-game-cover
+      [title]="title || 'Game cover'"
+      [coverImage]="coverImage"
+      variant="card"
+    ></app-game-cover>
+  </div>
+
+  <div class="cover-upload__actions">
+    <input
+      #fileInput
+      type="file"
+      class="cover-upload__file-input"
+      [accept]="accept"
+      (change)="onFileSelected($event)"
+    />
+
+    <ion-button
+      type="button"
+      fill="outline"
+      class="cover-upload__button"
+      [disabled]="uploading"
+      (click)="fileInput.click()"
+    >
+      @if (uploading) {
+        <ion-spinner name="crescent"></ion-spinner>
+      } @else {
+        <ion-icon name="cloud-upload-outline" slot="start"></ion-icon>
+      }
+      {{ uploading ? 'Processing...' : 'Upload image' }}
+    </ion-button>
+
+    @if (coverImage) {
+      <ion-button
+        type="button"
+        fill="clear"
+        color="danger"
+        class="cover-upload__button cover-upload__button--remove"
+        [disabled]="uploading"
+        (click)="clearCover()"
+      >
+        <ion-icon name="trash-outline" slot="start"></ion-icon>
+        Remove
+      </ion-button>
+    }
+  </div>
+
+  <p class="cover-upload__hint">
+    JPG, PNG, WebP, or GIF up to {{ maxInputLabel }}. Images are compressed before saving.
+    Or search RAWG and pick a cover.
+  </p>
+
+  <!-- RAWG cover search -->
+  @if (rawgConfigured) {
+    <div class="cover-upload__rawg">
+      <label class="field-label" for="cover-rawg-query">
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+        Search covers online
+      </label>
+      <div class="cover-upload__rawg-row">
+        <ion-item class="form-item cover-upload__rawg-input" lines="none">
+          <ion-input
+            id="cover-rawg-query"
+            [(ngModel)]="searchQuery"
+            name="rawgCoverQuery"
+            type="search"
+            placeholder="Search by game title…"
+            (ionInput)="onSearchInput()"
+            (keyup.enter)="searchNow()"
+          ></ion-input>
+        </ion-item>
+        <button
+          type="button"
+          class="cover-upload__search-btn"
+          [disabled]="searching || !searchQuery.trim()"
+          (click)="searchNow()"
+        >
+          @if (searching) {
+            <ion-spinner name="crescent"></ion-spinner>
+          } @else {
+            <span>Search</span>
+          }
+        </button>
+      </div>
+
+      @if (searchError) {
+        <p class="cover-upload__rawg-status">{{ searchError }}</p>
+      }
+      @if (!searching && searched && !candidates.length && !searchError) {
+        <p class="cover-upload__rawg-status">
+          No images found. Try a shorter title or upload manually.
+        </p>
+      }
+
+      @if (candidates.length) {
+        <div class="cover-upload__grid" role="listbox" aria-label="Cover image results">
+          @for (item of candidates; track item.imageUrl) {
+            <button
+              type="button"
+              class="cover-pick"
+              role="option"
+              [class.cover-pick--selected]="coverImage === item.imageUrl"
+              [attr.aria-selected]="coverImage === item.imageUrl"
+              [attr.title]="item.gameName + (item.releaseYear ? ' (' + item.releaseYear + ')' : '')"
+              (click)="selectCandidate(item)"
+            >
+              <img [src]="item.imageUrl" [alt]="item.gameName" loading="lazy" />
+              <span class="cover-pick__badge">{{ item.kind === 'cover' ? 'Cover' : 'Shot' }}</span>
+              @if (coverImage === item.imageUrl) {
+                <span class="cover-pick__check" aria-hidden="true">
+                  <ion-icon name="checkmark-circle-outline"></ion-icon>
+                </span>
+              }
+              <span class="cover-pick__meta">
+                <strong>{{ item.gameName }}</strong>
+                @if (item.releaseYear) {
+                  <small>{{ item.releaseYear }}</small>
+                }
+              </span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <p class="cover-upload__rawg-missing">
+      <ion-icon name="image-outline" aria-hidden="true"></ion-icon>
+      Online cover search needs <code>RAWG_API_KEY</code> in <code>.env</code>.
+    </p>
+  }
+
+  @if (errorMessage) {
+    <p class="cover-upload__error">{{ errorMessage }}</p>
+  }
+
+  <div class="cover-upload__url">
+    <label class="field-label" for="cover-image-url">
+      <ion-icon name="link-outline" aria-hidden="true"></ion-icon>
+      Or paste an image URL
+    </label>
+    <ion-item class="form-item" lines="none">
+      <ion-input
+        id="cover-image-url"
+        [value]="urlValue"
+        type="url"
+        placeholder="https://..."
+        (ionInput)="onUrlInput($event)"
+      ></ion-input>
+    </ion-item>
+  </div>
+</div>

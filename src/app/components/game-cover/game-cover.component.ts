@@ -12,36 +12,7 @@ interface PlaceholderMetrics {
   selector: 'app-game-cover',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div
-      class="game-cover"
-      [class]="'game-cover--' + variant"
-      [class.game-cover--landscape]="isLandscape"
-    >
-      <div
-        *ngIf="showImage && isLandscape"
-        class="cover-backdrop"
-        [style.background-image]="'url(' + coverImage + ')'"
-        aria-hidden="true"
-      ></div>
-      <img
-        *ngIf="showImage"
-        [src]="coverImage!"
-        [alt]="title"
-        class="cover-image"
-        loading="lazy"
-        (load)="onImageLoad($event)"
-        (error)="onImageError()"
-      />
-      <div *ngIf="!showImage" class="cover-placeholder" aria-hidden="true">
-        <span
-          class="placeholder-title"
-          [style.--placeholder-size]="placeholderMetrics.fontSize"
-          [style.-webkit-line-clamp]="placeholderMetrics.lineClamp"
-        >{{ title }}</span>
-      </div>
-    </div>
-  `,
+  templateUrl: './game-cover.component.html',
   styles: [`
     :host {
       display: block;

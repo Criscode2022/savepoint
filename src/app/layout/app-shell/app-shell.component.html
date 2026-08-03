@@ -1,0 +1,232 @@
+<div
+  class="shell"
+  [class.shell--collapsed]="sidebarCollapsed"
+  [class.shell--drawer-open]="mobileDrawerOpen"
+>
+  @if (mobileDrawerOpen) {
+    <div
+      class="shell-scrim"
+      (click)="mobileDrawerOpen = false"
+      role="presentation"
+    ></div>
+  }
+
+  <aside class="shell-sidebar" aria-label="Main navigation">
+    <div class="shell-brand">
+      <div class="shell-brand__mark" aria-hidden="true">
+        <ion-icon name="game-controller-outline"></ion-icon>
+      </div>
+      @if (!sidebarCollapsed || mobileDrawerOpen) {
+        <div class="shell-brand__copy">
+          <span class="shell-brand__name gaming-font"
+            >Game<span class="text-gradient">Vault</span></span
+          >
+          <span class="shell-brand__tag">Your collection</span>
+        </div>
+      }
+      <button
+        type="button"
+        class="shell-collapse-btn shell-collapse-btn--desktop"
+        (click)="toggleSidebar()"
+        [attr.aria-label]="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+      >
+        <ion-icon
+          [name]="sidebarCollapsed ? 'chevron-forward-outline' : 'chevron-back-outline'"
+        ></ion-icon>
+      </button>
+    </div>
+
+    <nav class="shell-nav">
+      <div class="shell-nav__section">
+        @if (!sidebarCollapsed || mobileDrawerOpen) {
+          <span class="shell-nav__label">Library</span>
+        }
+        @for (item of primaryNav; track item.label) {
+          <a
+            class="shell-nav__item"
+            [routerLink]="item.link"
+            [queryParams]="item.queryParams || {}"
+            routerLinkActive="shell-nav__item--active"
+            [routerLinkActiveOptions]="item.exact ? { exact: true, queryParams: 'exact' } : { exact: false }"
+            (click)="onNavClick()"
+            [title]="item.label"
+          >
+            <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
+            @if (!sidebarCollapsed || mobileDrawerOpen) {
+              <span class="shell-nav__text">{{ item.label }}</span>
+            }
+            @if (item.count && (!sidebarCollapsed || mobileDrawerOpen)) {
+              <span class="shell-nav__count">{{ item.count() }}</span>
+            }
+          </a>
+        }
+      </div>
+
+      <div class="shell-nav__section">
+        @if (!sidebarCollapsed || mobileDrawerOpen) {
+          <span class="shell-nav__label">Collections</span>
+        }
+        @for (item of collectionNav; track item.label) {
+          <a
+            class="shell-nav__item"
+            [routerLink]="item.link"
+            [queryParams]="item.queryParams || {}"
+            routerLinkActive="shell-nav__item--active"
+            [routerLinkActiveOptions]="{ exact: true, queryParams: 'exact' }"
+            (click)="onNavClick()"
+            [title]="item.label"
+          >
+            <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
+            @if (!sidebarCollapsed || mobileDrawerOpen) {
+              <span class="shell-nav__text">{{ item.label }}</span>
+            }
+            @if (item.count && (!sidebarCollapsed || mobileDrawerOpen)) {
+              <span class="shell-nav__count">{{ item.count() }}</span>
+            }
+          </a>
+        }
+      </div>
+    </nav>
+
+    <div class="shell-sidebar__foot">
+      <a
+        class="shell-nav__item"
+        routerLink="/profile"
+        routerLinkActive="shell-nav__item--active"
+        (click)="onNavClick()"
+        title="Profile"
+      >
+        <ion-icon name="person-circle-outline" aria-hidden="true"></ion-icon>
+        @if (!sidebarCollapsed || mobileDrawerOpen) {
+          <span class="shell-nav__text">Profile</span>
+        }
+      </a>
+      <button
+        type="button"
+        class="shell-nav__item shell-nav__item--btn"
+        (click)="logout()"
+        title="Log out"
+      >
+        <ion-icon name="log-out-outline" aria-hidden="true"></ion-icon>
+        @if (!sidebarCollapsed || mobileDrawerOpen) {
+          <span class="shell-nav__text">Log out</span>
+        }
+      </button>
+    </div>
+  </aside>
+
+  <div class="shell-main">
+    <header class="shell-topbar">
+      <button
+        type="button"
+        class="shell-icon-btn shell-menu-btn"
+        (click)="mobileDrawerOpen = !mobileDrawerOpen"
+        aria-label="Open menu"
+      >
+        <ion-icon name="menu-outline"></ion-icon>
+      </button>
+
+      <button
+        type="button"
+        class="shell-search-trigger"
+        (click)="openPalette()"
+        aria-label="Open search and commands"
+      >
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+        <span class="shell-search-trigger__label">Search library…</span>
+        <kbd class="shell-search-trigger__kbd">{{ modKey }}K</kbd>
+      </button>
+
+      <div class="shell-topbar__actions">
+        <div class="shell-view-toggle" role="group" aria-label="Library view">
+          <button
+            type="button"
+            class="shell-icon-btn"
+            [class.shell-icon-btn--active]="viewMode === 'grid'"
+            (click)="setView('grid')"
+            title="Grid view"
+            aria-label="Grid view"
+          >
+            <ion-icon name="grid-outline"></ion-icon>
+          </button>
+          <button
+            type="button"
+            class="shell-icon-btn"
+            [class.shell-icon-btn--active]="viewMode === 'list'"
+            (click)="setView('list')"
+            title="List view"
+            aria-label="List view"
+          >
+            <ion-icon name="list-outline"></ion-icon>
+          </button>
+          <button
+            type="button"
+            class="shell-icon-btn"
+            [class.shell-icon-btn--active]="viewMode === 'shelf'"
+            (click)="setView('shelf')"
+            title="Shelf view"
+            aria-label="Shelf view"
+          >
+            <ion-icon name="albums-outline"></ion-icon>
+          </button>
+        </div>
+
+        <a routerLink="/add" class="shell-add-btn">
+          <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+          <span>Add game</span>
+        </a>
+      </div>
+    </header>
+
+    <main class="shell-content">
+      <ion-router-outlet></ion-router-outlet>
+    </main>
+  </div>
+
+  <nav class="shell-mobile-tabs" aria-label="Mobile navigation">
+    <a
+      routerLink="/home"
+      [queryParams]="{}"
+      routerLinkActive="shell-mobile-tabs__item--active"
+      [routerLinkActiveOptions]="{ exact: true, queryParams: 'exact' }"
+      class="shell-mobile-tabs__item"
+    >
+      <ion-icon name="game-controller-outline"></ion-icon>
+      <span>Library</span>
+    </a>
+    <a
+      routerLink="/home"
+      [queryParams]="{ collection: 'playing' }"
+      routerLinkActive="shell-mobile-tabs__item--active"
+      class="shell-mobile-tabs__item"
+    >
+      <ion-icon name="time-outline"></ion-icon>
+      <span>Playing</span>
+    </a>
+    <a routerLink="/add" class="shell-mobile-tabs__item shell-mobile-tabs__item--add">
+      <span class="shell-mobile-tabs__fab">
+        <ion-icon name="add-outline"></ion-icon>
+      </span>
+      <span>Add</span>
+    </a>
+    <a
+      routerLink="/home"
+      [queryParams]="{ collection: 'wishlist' }"
+      routerLinkActive="shell-mobile-tabs__item--active"
+      class="shell-mobile-tabs__item"
+    >
+      <ion-icon name="heart-outline"></ion-icon>
+      <span>Wishlist</span>
+    </a>
+    <a
+      routerLink="/profile"
+      routerLinkActive="shell-mobile-tabs__item--active"
+      class="shell-mobile-tabs__item"
+    >
+      <ion-icon name="person-circle-outline"></ion-icon>
+      <span>You</span>
+    </a>
+  </nav>
+
+  <app-command-palette></app-command-palette>
+</div>

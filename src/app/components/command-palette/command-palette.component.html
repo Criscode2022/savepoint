@@ -1,0 +1,60 @@
+@if (open) {
+  <div
+    class="cmd-backdrop"
+    role="presentation"
+    (click)="close()"
+  >
+    <div
+      class="cmd-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Command palette"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="cmd-search">
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+        <input
+          #queryInput
+          type="search"
+          class="cmd-input"
+          [(ngModel)]="query"
+          (ngModelChange)="onQueryChange()"
+          (keydown)="onKeydown($event)"
+          placeholder="Jump to a game, collection, or action…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <kbd class="cmd-kbd">esc</kbd>
+      </div>
+
+      <div class="cmd-results" role="listbox">
+        @for (group of groups; track group) {
+          @if (itemsForGroup(group).length) {
+            <div class="cmd-group-label">{{ group }}</div>
+            @for (item of itemsForGroup(group); track item.id) {
+              <button
+                type="button"
+                class="cmd-item"
+                role="option"
+                [class.cmd-item--active]="item.id === activeId"
+                [attr.aria-selected]="item.id === activeId"
+                (click)="run(item)"
+                (mouseenter)="activeId = item.id"
+              >
+                <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
+                <span class="cmd-item__label">{{ item.label }}</span>
+                @if (item.hint) {
+                  <span class="cmd-item__hint">{{ item.hint }}</span>
+                }
+              </button>
+            }
+          }
+        }
+
+        @if (!flatItems.length) {
+          <p class="cmd-empty">No matches</p>
+        }
+      </div>
+    </div>
+  </div>
+}

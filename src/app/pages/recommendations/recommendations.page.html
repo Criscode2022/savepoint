@@ -1,0 +1,188 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="header-toolbar">
+    <div class="header-inner">
+      <div class="header-brand">
+        <ion-back-button
+          class="header-back-btn"
+          defaultHref="/home"
+          text=""
+          icon="arrow-back-outline"
+        ></ion-back-button>
+        <h1 class="header-title">For you</h1>
+      </div>
+      <div class="header-actions">
+        <ion-button
+          fill="clear"
+          class="header-icon-btn"
+          (click)="reload()"
+          [disabled]="loading"
+          aria-label="Refresh recommendations"
+        >
+          <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="recs-content">
+  <div class="recs-wrap">
+    <header class="recs-hero">
+      <div class="recs-hero__icon" aria-hidden="true">
+        <ion-icon name="sparkles-outline"></ion-icon>
+      </div>
+      <div>
+        <h2 class="recs-hero__title">Picks from your vault</h2>
+        <p class="recs-hero__sub">
+          Online suggestions matched to your genres, platforms, and highly rated titles — rule-based, no AI.
+        </p>
+      </div>
+    </header>
+
+    @if (result?.profile; as profile) {
+      <section class="taste-panel">
+        <h3 class="taste-panel__title">Your taste signals</h3>
+        @if (profile.topGenres.length) {
+          <div class="taste-chips">
+            <span class="taste-label">Genres</span>
+            @for (g of profile.topGenres; track g.name) {
+              <ion-chip class="taste-chip">{{ g.name }}</ion-chip>
+            }
+          </div>
+        }
+        @if (profile.topPlatforms.length) {
+          <div class="taste-chips">
+            <span class="taste-label">Platforms</span>
+            @for (p of profile.topPlatforms; track p.name) {
+              <ion-chip class="taste-chip taste-chip--platform">{{ p.name }}</ion-chip>
+            }
+          </div>
+        }
+        @if (profile.seedTitles.length) {
+          <div class="taste-chips">
+            <span class="taste-label">Seeds</span>
+            @for (t of profile.seedTitles; track t) {
+              <ion-chip class="taste-chip taste-chip--seed">{{ t }}</ion-chip>
+            }
+          </div>
+        }
+      </section>
+    }
+
+    @if (loading) {
+      <div class="recs-loading">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Scanning your library and fetching online matches…</p>
+      </div>
+    }
+
+    @if (!loading && result && !result.configured) {
+      <div class="recs-banner recs-banner--warn">
+        <ion-icon name="bulb-outline" aria-hidden="true"></ion-icon>
+        <div>
+          <strong>Connect RAWG for online picks</strong>
+          <p>
+            Create a free key at
+            <a href="https://rawg.io/apidocs" target="_blank" rel="noopener">rawg.io/apidocs</a>,
+            then add <code>RAWG_API_KEY=…</code> to your <code>.env</code> and restart the app.
+          </p>
+        </div>
+      </div>
+    }
+
+    @if (!loading && result?.error && result?.configured) {
+      <div class="recs-banner">
+        <p>{{ result?.error }}</p>
+      </div>
+    }
+
+    @if (!loading && result?.configured && !result?.items?.length && !result?.error) {
+      <div class="recs-empty">
+        <ion-icon name="game-controller-outline"></ion-icon>
+        <h3>No fresh picks yet</h3>
+        <p>Try adding more genres or completed games so we have stronger signals.</p>
+      </div>
+    }
+
+    @if (!loading && result?.items?.length) {
+      <div class="recs-grid">
+        @for (rec of result!.items; track rec.externalId) {
+          <article class="rec-card">
+            <div
+              class="rec-card__art"
+              [class.rec-card__art--empty]="!rec.backgroundImage"
+              [style.background-image]="rec.backgroundImage ? 'url(' + rec.backgroundImage + ')' : null"
+            >
+              <span class="rec-card__source">{{ sourceLabel(rec.source) }}</span>
+              @if (rec.metacritic != null) {
+                <span class="rec-card__score">
+                  <ion-icon name="star-outline" aria-hidden="true"></ion-icon>
+                  {{ rec.metacritic }}
+                </span>
+              }
+            </div>
+
+            <div class="rec-card__body">
+              <h3 class="rec-card__title">{{ rec.title }}</h3>
+              <p class="rec-card__reason">{{ rec.reason }}</p>
+              <p class="rec-card__meta">
+                @if (rec.releaseYear) {
+                  <span>{{ rec.releaseYear }}</span>
+                }
+                @if (rec.genres.length) {
+                  <span> · {{ rec.genres.slice(0, 2).join(', ') }}</span>
+                }
+              </p>
+              @if (rec.platforms.length) {
+                <div class="rec-card__platforms">
+                  @for (p of rec.platforms.slice(0, 3); track p) {
+                    <span>{{ p }}</span>
+                  }
+                </div>
+              }
+
+              <div class="rec-card__actions">
+                <button
+                  type="button"
+                  class="rec-btn rec-btn--primary"
+                  (click)="addToLibrary(rec)"
+                  [disabled]="isAdding(rec)"
+                >
+                  <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+                  {{ addingKey === rec.externalId + ':library' ? 'Adding…' : 'Library' }}
+                </button>
+                <button
+                  type="button"
+                  class="rec-btn rec-btn--wishlist"
+                  (click)="addToWishlist(rec)"
+                  [disabled]="isAdding(rec)"
+                >
+                  <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
+                  {{ addingKey === rec.externalId + ':wishlist' ? 'Adding…' : 'Wishlist' }}
+                </button>
+                <a
+                  class="rec-btn rec-btn--ghost"
+                  [href]="rec.rawgUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ion-icon name="open-outline" aria-hidden="true"></ion-icon>
+                  Details
+                </a>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </div>
+
+  <ion-toast
+    [isOpen]="!!toastMessage"
+    [message]="toastMessage"
+    [color]="toastColor"
+    duration="3200"
+    position="bottom"
+    (didDismiss)="toastMessage = ''"
+  ></ion-toast>
+</ion-content>

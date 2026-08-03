@@ -1,0 +1,421 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="header-toolbar">
+    <div class="header-inner">
+      <div class="header-brand">
+        <ion-back-button
+          class="header-back-btn"
+          defaultHref="/home"
+          text=""
+          icon="arrow-back-outline"
+        ></ion-back-button>
+        <h1 class="header-title">Game Details</h1>
+      </div>
+
+      @if (game) {
+        <div class="header-actions">
+          <ion-button
+            [routerLink]="['/edit', game.id]"
+            class="header-icon-btn edit-btn"
+            fill="clear"
+            aria-label="Edit game"
+          >
+            <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+          <ion-button
+            (click)="deleteGame()"
+            class="header-icon-btn delete-btn"
+            fill="clear"
+            aria-label="Delete game"
+          >
+            <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+      }
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+@if (game) {
+  <ion-content class="detail-content">
+    <section class="hero-section">
+      <div
+        class="hero-background"
+        [class.hero-background--placeholder]="!hasCoverImage()"
+        [style.background-image]="getHeroBackgroundImage()"
+      ></div>
+      <div class="hero-overlay"></div>
+
+      <div class="hero-inner">
+        <div class="hero-content">
+          <div class="hero-image">
+            <div class="cover-media-actions">
+              <a
+                [routerLink]="['/edit', game.id]"
+                class="cover-media-action cover-media-action--edit"
+                aria-label="Edit cover image"
+              >
+                <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
+              </a>
+              @if (hasCoverImage()) {
+                <button
+                  type="button"
+                  class="cover-media-action cover-media-action--remove"
+                  aria-label="Remove cover image"
+                  (click)="removeCoverImage()"
+                >
+                  <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+                </button>
+              }
+            </div>
+            <app-game-cover
+              [title]="game.title"
+              [coverImage]="heroCoverImage"
+              variant="hero"
+            />
+          </div>
+
+          <div class="hero-info">
+            <h1 class="game-title">{{ game.title }}</h1>
+
+            <div class="hero-meta">
+              <span class="platform-chip" [style.--platform-color]="game.platform.color || '#a855f7'">
+                {{ game.platform.name }}
+              </span>
+
+              <span class="year">{{ game.releaseYear }}</span>
+
+              <div class="status-picker" [class.status-picker--locked]="isWishlistLocked()">
+                <button
+                  type="button"
+                  [class]="'status-badge status-badge--' + game.status"
+                  [class.status-badge--disabled]="isWishlistLocked()"
+                  [attr.aria-disabled]="isWishlistLocked() ? true : null"
+                  (click)="openStatusSelect($event, statusSelect)"
+                  aria-haspopup="listbox"
+                  [attr.aria-label]="
+                    'Status: ' + getStatusLabel(game.status) + (isWishlistLocked() ? '.' : '. Click to change.')
+                  "
+                >
+                  <ion-icon [name]="getStatusIcon(game.status)"></ion-icon>
+                  {{ getStatusLabel(game.status) }}
+                  <ion-icon
+                    name="chevron-down-outline"
+                    class="status-badge__chevron"
+                    aria-hidden="true"
+                  ></ion-icon>
+                </button>
+                <ion-select
+                  #statusSelect
+                  class="status-select-hidden"
+                  [value]="game.status"
+                  (ionChange)="onStatusSelect($event)"
+                  interface="action-sheet"
+                  [interfaceOptions]="statusSheetOptions"
+                >
+                  @for (option of getAvailableStatusOptions(); track option) {
+                    <ion-select-option [value]="option">
+                      {{ getStatusLabel(option) }}
+                    </ion-select-option>
+                  }
+                </ion-select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="detail-page">
+      <section class="content-section">
+        <div class="content-layout">
+          <div class="main-column">
+            @if (game.status !== 'wishlist') {
+              <section class="detail-stats" aria-label="Game overview">
+                @if (canShowRating()) {
+                  <article class="detail-stat-card">
+                    <div class="detail-stat-card__icon detail-stat-card__icon--rating">
+                      <ion-icon name="star-outline" aria-hidden="true"></ion-icon>
+                    </div>
+                    <div class="detail-stat-card__body">
+                      <span class="detail-stat-card__value">{{ getRatingDisplay() }}</span>
+                      <span class="detail-stat-card__label">Your rating</span>
+                    </div>
+                  </article>
+                }
+
+                <article class="detail-stat-card">
+                  <div class="detail-stat-card__icon detail-stat-card__icon--playtime">
+                    <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+                  </div>
+                  <div class="detail-stat-card__body">
+                    <span class="detail-stat-card__value">{{ getPlaytimeDisplay() }}</span>
+                    <span class="detail-stat-card__label">Playtime</span>
+                  </div>
+                </article>
+
+                <article class="detail-stat-card">
+                  <div class="detail-stat-card__icon detail-stat-card__icon--sessions">
+                    <ion-icon name="game-controller-outline" aria-hidden="true"></ion-icon>
+                  </div>
+                  <div class="detail-stat-card__body">
+                    <span class="detail-stat-card__value">{{ playSessions.length }}</span>
+                    <span class="detail-stat-card__label">Sessions</span>
+                  </div>
+                </article>
+
+                <article class="detail-stat-card">
+                  <div class="detail-stat-card__icon detail-stat-card__icon--tracked">
+                    <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon>
+                  </div>
+                  <div class="detail-stat-card__body">
+                    <span class="detail-stat-card__value">{{ getTrackedMinutesDisplay() }}</span>
+                    <span class="detail-stat-card__label">Tracked time</span>
+                  </div>
+                </article>
+              </section>
+            }
+
+            @if (canShowRating()) {
+              <ion-card class="rating-card">
+                <ion-card-content>
+                  <div class="rating-card__header">
+                    <h2 class="section-title">Your rating</h2>
+                    <span
+                      class="rating-card__score"
+                      [class.rating-card__score--preview]="ratingPreview != null"
+                      [class.rating-card__score--empty]="game.rating == null && ratingPreview == null"
+                    >
+                      {{ getRatingDisplay() }}
+                    </span>
+                  </div>
+                  <app-game-rating
+                    [rating]="game.rating"
+                    (ratingChange)="onRatingChange($event)"
+                    (previewChange)="ratingPreview = $event"
+                    size="lg"
+                    [showClear]="true"
+                    [showValue]="false"
+                    [disabled]="ratingSaving"
+                  />
+                  @if (game.ratedAt) {
+                    <p class="rating-card__meta">
+                      Rated on {{ game.ratedAt | date:'mediumDate' }}
+                    </p>
+                  }
+                </ion-card-content>
+              </ion-card>
+            }
+
+            <ion-card class="info-card">
+              <ion-card-content>
+                <h2 class="section-title">About</h2>
+                @if (game.description) {
+                  <p class="description">{{ game.description }}</p>
+                } @else {
+                  <p class="description empty">No description added yet.</p>
+                }
+              </ion-card-content>
+            </ion-card>
+
+            @if (game.genre?.length) {
+              <ion-card class="genres-card">
+                <ion-card-content>
+                  <h2 class="section-title">Genres</h2>
+                  <div class="genre-chips">
+                    @for (genre of game.genre; track genre) {
+                      <ion-chip class="genre-chip">
+                        {{ genre }}
+                      </ion-chip>
+                    }
+                  </div>
+                </ion-card-content>
+              </ion-card>
+            }
+
+            @if (game.tags?.length) {
+              <ion-card class="genres-card">
+                <ion-card-content>
+                  <h2 class="section-title">Tags</h2>
+                  <div class="genre-chips">
+                    @for (tag of game.tags; track tag) {
+                      <ion-chip class="genre-chip tag-chip">
+                        #{{ tag }}
+                      </ion-chip>
+                    }
+                  </div>
+                </ion-card-content>
+              </ion-card>
+            }
+
+            @if (game.status !== 'wishlist') {
+              <ion-card class="ritual-card">
+                <ion-card-content>
+                  <h2 class="section-title">Log playtime</h2>
+                  <p class="ritual-card__help">Quick ritual — add hours and mark last played.</p>
+                  <div class="ritual-log">
+                    <ion-input
+                      type="number"
+                      min="0.1"
+                      step="0.5"
+                      [(ngModel)]="logHours"
+                      placeholder="Hours"
+                      class="ritual-log__input"
+                    ></ion-input>
+                    <button
+                      type="button"
+                      class="ritual-log__btn"
+                      [disabled]="loggingPlaytime || !canLogHours()"
+                      (click)="logPlaytime()"
+                    >
+                      {{ loggingPlaytime ? 'Saving…' : 'Log session' }}
+                    </button>
+                  </div>
+                </ion-card-content>
+              </ion-card>
+            }
+
+            <ion-card class="timeline-card">
+              <ion-card-content>
+                <h2 class="section-title">Library timeline</h2>
+                <ol class="timeline-list">
+                  @for (event of getTimelineEvents(); track event.label + event.date) {
+                    <li class="timeline-entry">
+                      <div class="timeline-entry__content">
+                        <div class="timeline-entry__icon">
+                          <ion-icon [name]="event.icon" aria-hidden="true"></ion-icon>
+                        </div>
+                        <div class="timeline-entry__text">
+                          <span class="timeline-entry__label">{{ event.label }}</span>
+                          <time class="timeline-entry__date">{{ event.date | date:'mediumDate' }}</time>
+                        </div>
+                      </div>
+                    </li>
+                  }
+                </ol>
+              </ion-card-content>
+            </ion-card>
+          </div>
+
+          <aside class="sidebar">
+            <ion-card class="stats-card">
+              <ion-card-content>
+                <h2 class="section-title">Details</h2>
+
+                @if (game.developer) {
+                  <div class="detail-item">
+                    <ion-icon name="business-outline"></ion-icon>
+                    <div class="detail-info">
+                      <label>Developer</label>
+                      <span>{{ game.developer.name }}</span>
+                    </div>
+                  </div>
+                }
+
+                @if (game.director) {
+                  <div class="detail-item">
+                    <ion-icon name="person-outline"></ion-icon>
+                    <div class="detail-info">
+                      <label>Director</label>
+                      <span>{{ game.director }}</span>
+                    </div>
+                  </div>
+                }
+
+                @if (game.status === 'wishlist' && game.releaseDate) {
+                  <div class="detail-item">
+                    <ion-icon name="calendar-outline"></ion-icon>
+                    <div class="detail-info">
+                      <label>Release Date</label>
+                      <span>{{ getFormattedReleaseDate() }}</span>
+                    </div>
+                  </div>
+                }
+
+                <div class="detail-item">
+                  <ion-icon name="calendar-outline"></ion-icon>
+                  <div class="detail-info">
+                    <label>Release Year</label>
+                    <span>{{ game.releaseYear }}</span>
+                  </div>
+                </div>
+
+                @if (canShowRating() && game.rating) {
+                  <div class="detail-item">
+                    <ion-icon name="star-outline"></ion-icon>
+                    <div class="detail-info">
+                      <label>Your Rating</label>
+                      <span class="rating">{{ game.rating }}/10</span>
+                    </div>
+                  </div>
+                }
+
+                @if (getPlaytime()) {
+                  <div class="detail-item">
+                    <ion-icon name="time-outline"></ion-icon>
+                    <div class="detail-info">
+                      <label>Playtime</label>
+                      <span>{{ getPlaytime() }} hours</span>
+                    </div>
+                  </div>
+                }
+
+                @if (game.purchaseDate) {
+                  <div class="detail-item">
+                    <ion-icon name="calendar-outline"></ion-icon>
+                    <div class="detail-info">
+                      <label>Purchased</label>
+                      <span>{{ game.purchaseDate | date:'mediumDate' }}</span>
+                    </div>
+                  </div>
+                }
+              </ion-card-content>
+            </ion-card>
+
+            @if (game.notes) {
+              <ion-card class="notes-card">
+                <ion-card-content>
+                  <h2 class="section-title">Notes</h2>
+                  <p class="notes-text">{{ game.notes }}</p>
+                </ion-card-content>
+              </ion-card>
+            }
+
+            @if (playSessions.length) {
+              <ion-card class="history-card">
+                <ion-card-content>
+                  <h2 class="section-title">Play History</h2>
+                  <div class="history-list">
+                    @for (session of playSessions; track session.id) {
+                      <div class="history-item">
+                        <div class="history-item__dates">
+                          <span>{{ session.startedAt | date:'mediumDate' }}</span>
+                          @if (session.endedAt) {
+                            <span> · {{ session.endedAt | date:'shortTime' }}</span>
+                          }
+                        </div>
+                        @if (session.durationMinutes) {
+                          <span class="history-item__duration">
+                            {{ session.durationMinutes }} min
+                          </span>
+                        }
+                      </div>
+                    }
+                  </div>
+                </ion-card-content>
+              </ion-card>
+            }
+          </aside>
+        </div>
+      </section>
+    </div>
+
+    <ion-toast
+      [isOpen]="!!toastMessage"
+      [message]="toastMessage"
+      [color]="toastColor"
+      duration="3000"
+      position="bottom"
+      (didDismiss)="toastMessage = ''">
+    </ion-toast>
+  </ion-content>
+}

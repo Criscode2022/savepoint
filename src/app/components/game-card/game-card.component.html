@@ -1,0 +1,132 @@
+<ion-card class="game-card" [class]="'game-card game-card--' + game.status" [routerLink]="['/game', game.id]">
+  <div class="card-image-wrapper">
+    <app-game-cover
+      [title]="game.title"
+      [coverImage]="coverImage || game.coverImage"
+      variant="card"
+    />
+    <div class="image-overlay">
+      <div class="overlay-actions">
+        <ion-button 
+          fill="clear" 
+          size="small"
+          [routerLink]="['/edit', game.id]"
+          (click)="$event.stopPropagation()"
+          class="action-btn">
+          <ion-icon name="create-outline"></ion-icon>
+        </ion-button>
+        
+        <ion-button 
+          fill="clear" 
+          size="small"
+          (click)="onDelete.emit(game.id); $event.stopPropagation()"
+          class="action-btn delete">
+          <ion-icon name="trash-outline"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+    
+    <!-- Platform Badge -->
+    <span
+      class="platform-chip"
+      [style.--platform-color]="getPlatformColor()"
+      [attr.title]="game.platform.name"
+    >
+      <span class="platform-chip__text">{{ game.platform.name }}</span>
+    </span>
+    
+    <!-- Status Badge -->
+    @if (game.status !== 'not_started') {
+      <div class="status-badge" [class]="'status-badge--' + game.status">
+        <ion-icon [name]="getStatusIcon()"></ion-icon>
+      </div>
+    }
+
+    @if (game.status === 'wishlist') {
+      <div
+        class="countdown-badge"
+        [class.countdown-badge--released]="countdown.isReleased"
+        [class.countdown-badge--unknown]="countdown.isUnknown"
+      >
+        <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+        <span>{{ countdown.label }}</span>
+      </div>
+    }
+  </div>
+
+  <ion-card-header>
+    <ion-card-title class="game-title">{{game.title}}</ion-card-title>
+    <div class="game-meta">
+      <span class="developer">{{game.developer.name}}</span>
+      <span class="separator">•</span>
+      <span class="year">{{game.releaseYear}}</span>
+    </div>
+  </ion-card-header>
+
+  <ion-card-content>
+    @if (game.description) {
+      <p class="game-description">
+        {{ game.description | slice:0:100 }}{{ game.description.length > 100 ? '...' : '' }}
+      </p>
+    }
+    
+    @if ((game.rating != null && game.status !== 'wishlist') || getPlaytime()) {
+      <div class="game-stats">
+        @if (game.rating != null && game.status !== 'wishlist') {
+          <div class="stat stat--rating">
+            <app-game-rating
+              [rating]="game.rating"
+              [readonly]="true"
+              size="sm"
+              [showValue]="false"
+            />
+          </div>
+        }
+        
+        @if (getPlaytime()) {
+          <div class="stat">
+            <ion-icon name="time-outline" class="stat-icon time-icon"></ion-icon>
+            <span>{{ getPlaytime() }}h</span>
+          </div>
+        }
+      </div>
+    }
+
+    @if (game.genre?.length) {
+      <div class="game-genres">
+        @for (genre of (game.genre || []).slice(0, 3); track genre) {
+          <ion-chip class="genre-chip">
+            {{ genre }}
+          </ion-chip>
+        }
+      </div>
+    }
+  </ion-card-content>
+
+  <div
+    class="card-footer"
+    [class.card-footer--locked]="isWishlistLocked"
+    (click)="$event.stopPropagation()"
+  >
+    <ion-button 
+      fill="outline"
+      size="small"
+      [class]="'status-btn status-btn--' + game.status"
+      [class.status-btn--disabled]="isWishlistLocked"
+      (click)="handleStatusClick($event)">
+      <ion-icon [name]="getStatusIcon()" slot="start"></ion-icon>
+      {{ getStatusLabel() }}
+    </ion-button>
+
+    @if (showMarkCompleted()) {
+      <button
+        type="button"
+        class="play-history-btn mark-completed-btn"
+        (click)="handleMarkCompletedClick($event)"
+      >
+        <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
+        <span class="play-history-btn__label">Mark as completed</span>
+      </button>
+    }
+  </div>
+</ion-card>

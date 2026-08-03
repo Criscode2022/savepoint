@@ -5,11 +5,7 @@ import { ThemeService } from './services/theme.service';
 
 @Component({
   selector: 'app-root',
-  template: `
-    <ion-app>
-      <ion-router-outlet></ion-router-outlet>
-    </ion-app>
-  `,
+  templateUrl: './app.component.html',
   standalone: true,
   imports: [CommonModule, IonApp, IonRouterOutlet]
 })

@@ -41,89 +41,7 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
     IonIcon,
     IonSpinner,
   ],
-  template: `
-    <ion-header class="ion-no-border">
-      <ion-toolbar class="history-toolbar">
-        <ion-buttons slot="start">
-          <ion-back-button defaultHref="/home" icon="arrow-back-outline"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Play History</ion-title>
-      </ion-toolbar>
-    </ion-header>
-
-    <ion-content class="history-content">
-      <div class="history-container">
-        <header class="history-hero">
-          <div class="history-hero__icon" aria-hidden="true">
-            <ion-icon name="checkmark-circle-outline"></ion-icon>
-          </div>
-          <div class="history-hero__copy">
-            <h1 class="history-hero__title">Completed Games</h1>
-            <p class="history-hero__subtitle">
-              {{ completedGames.length }}
-              {{ completedGames.length === 1 ? 'game' : 'games' }} finished
-            </p>
-          </div>
-        </header>
-
-        <div class="history-loading" *ngIf="loading">
-          <ion-spinner name="crescent"></ion-spinner>
-        </div>
-
-        <div class="history-empty" *ngIf="!loading && completedGames.length === 0">
-          <ion-icon name="game-controller-outline"></ion-icon>
-          <h2>No completed games yet</h2>
-          <p>Mark a game as completed to see it here with the date you finished it.</p>
-        </div>
-
-        <ol class="history-timeline" *ngIf="!loading && completedGames.length > 0">
-          <li
-            *ngFor="let game of completedGames; trackBy: trackByGameId"
-            class="history-entry"
-          >
-            <div class="history-entry__date">
-              <span class="history-entry__date-label">Completed</span>
-              <time [dateTime]="getCompletedIso(game)">
-                {{ formatCompletedAt(game) }}
-              </time>
-            </div>
-
-            <a [routerLink]="['/game', game.id]" class="history-entry__card">
-              <div class="history-entry__cover">
-                <app-game-cover
-                  [title]="game.title"
-                  [coverImage]="game.coverImage"
-                  variant="thumbnail"
-                />
-              </div>
-
-              <div class="history-entry__info">
-                <h2 class="history-entry__title">{{ game.title }}</h2>
-                <p class="history-entry__meta">
-                  <span *ngIf="game.platform.name" class="platform-tag">
-                    {{ game.platform.name }}
-                  </span>
-                  <span *ngIf="game.releaseYear">{{ game.releaseYear }}</span>
-                </p>
-                <p class="history-entry__details">
-                  <span *ngIf="game.rating" class="detail-pill">
-                    <ion-icon name="star-outline"></ion-icon>
-                    {{ game.rating }}
-                  </span>
-                  <span *ngIf="game.playtimeHours" class="detail-pill">
-                    <ion-icon name="time-outline"></ion-icon>
-                    {{ game.playtimeHours }}h
-                  </span>
-                </p>
-              </div>
-
-              <ion-icon name="calendar-outline" class="history-entry__chevron" aria-hidden="true"></ion-icon>
-            </a>
-          </li>
-        </ol>
-      </div>
-    </ion-content>
-  `,})
+  templateUrl: './play-history.page.html',})
 export class PlayHistoryPage implements OnInit, OnDestroy {
   completedGames: Game[] = [];
   loading = true;

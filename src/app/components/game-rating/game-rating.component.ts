@@ -14,54 +14,7 @@ import {
   selector: 'app-game-rating',
   standalone: true,
   imports: [CommonModule, IonIcon, IonButton],
-  template: `
-    <div
-      class="game-rating"
-      [class.game-rating--readonly]="readonly"
-      [class.game-rating--sm]="size === 'sm'"
-      [class.game-rating--md]="size === 'md'"
-      [class.game-rating--lg]="size === 'lg'"
-    >
-      <div class="game-rating__row">
-        <div
-          class="game-rating__stars"
-          role="slider"
-          [attr.aria-valuemin]="0"
-          [attr.aria-valuemax]="10"
-          [attr.aria-valuenow]="displayRating ?? 0"
-          [attr.aria-label]="readonly ? 'Rating ' + formatRatingLabel(rating) : 'Rate this game from 1 to 10'"
-          [attr.tabindex]="readonly ? -1 : 0"
-          (keydown)="onKeydown($event)"
-          (mouseleave)="onStarsLeave()"
-        >
-          <button
-            *ngFor="let filled of starStates; let index = index"
-            type="button"
-            class="game-rating__star"
-            [class.game-rating__star--filled]="filled"
-            [disabled]="readonly || disabled"
-            [attr.aria-label]="'Rate ' + (index + 1) + ' out of 10'"
-            (click)="onStarClick(index + 1, $event)"
-            (mouseenter)="onStarHover(index + 1)"
-          >
-            <ion-icon [name]="filled ? 'star' : 'star-outline'"></ion-icon>
-          </button>
-        </div>
-
-        <ion-button
-          *ngIf="showClear && !readonly && isValidRating(rating)"
-          fill="outline"
-          size="small"
-          class="game-rating__clear"
-          (click)="clearRating($event)"
-        >
-          Clear
-        </ion-button>
-      </div>
-
-      <span class="game-rating__value" *ngIf="showValue">{{ formatRatingLabel(displayRating) }}</span>
-    </div>
-  `,
+  templateUrl: './game-rating.component.html',
   styles: [`
     .game-rating {
       display: flex;
