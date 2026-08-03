@@ -1,4 +1,4 @@
-/* ─── Profile page ───────────────────────────────────────────────── */
+// Profile page
 
 .profile-content {
   --background: var(--vault-bg);
@@ -9,7 +9,7 @@
   padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
 }
 
-/* ─── Hero header ───────────────────────────────────────────────── */
+// Hero header
 
 .profile-header {
   display: flex;
@@ -108,7 +108,7 @@
   margin: 0;
 }
 
-/* ─── Stats grid ────────────────────────────────────────────────── */
+// Stats grid
 
 .stats-grid {
   --ion-grid-padding: 0;
@@ -192,7 +192,7 @@
   letter-spacing: 0.02em;
 }
 
-/* ─── Shared profile cards ──────────────────────────────────────── */
+// Shared profile cards
 
 .profile-card {
   margin: 0 0 1rem;
@@ -245,7 +245,7 @@
   font-size: 0.9375rem;
 }
 
-/* ─── Recent games list ─────────────────────────────────────────── */
+// Recent games list
 
 .recent-games-list {
   display: flex;
@@ -367,7 +367,7 @@
   text-align: center;
 }
 
-/* ─── Responsive ────────────────────────────────────────────────── */
+// Responsive
 
 @media (max-width: 480px) {
   .profile-container {

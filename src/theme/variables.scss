@@ -2,7 +2,7 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ─── GameVault design tokens (DESIGN.md canonical) ───────────────── */
+// GameVault design tokens (DESIGN.md canonical)
 
 :root {
   /* Surfaces */
@@ -132,7 +132,7 @@
   --color-text-muted: var(--ink-muted);
 }
 
-/* ─── Base ───────────────────────────────────────────────────────── */
+// Base
 
 * {
   box-sizing: border-box;
@@ -204,7 +204,7 @@ body {
   }
 }
 
-/* ─── Ionic dark overrides ───────────────────────────────────────── */
+// Ionic dark overrides
 
 .dark ion-content {
   --background: var(--vault-bg);

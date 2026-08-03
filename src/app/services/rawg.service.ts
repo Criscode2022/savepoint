@@ -26,6 +26,30 @@ export interface RawgGameSummary {
   genres: string[];
   platforms: string[];
   shortScreenshots: string[];
+  /** Present when loaded via getGameDetails */
+  description?: string | null;
+  developers?: string[];
+  publishers?: string[];
+  tags?: string[];
+  website?: string | null;
+  playtimeHours?: number | null;
+}
+
+/** Fields applied onto the add/edit game form from a RAWG result. */
+export interface RawgGameImport {
+  title: string;
+  description?: string;
+  coverImage?: string | null;
+  releaseYear?: number;
+  releaseDate?: string;
+  developerName?: string;
+  genres: string[];
+  tags: string[];
+  platforms: string[];
+  rawgId: number;
+  rawgUrl: string;
+  metacritic?: number | null;
+  playtimeHours?: number | null;
 }
 
 interface RawgListResponse<T> {
@@ -44,6 +68,13 @@ interface RawgGameListItem {
   genres?: Array<{ name: string; slug: string }>;
   platforms?: Array<{ platform: { name: string; slug: string } }>;
   short_screenshots?: Array<{ id: number; image: string }>;
+  description_raw?: string | null;
+  description?: string | null;
+  developers?: Array<{ name: string }>;
+  publishers?: Array<{ name: string }>;
+  tags?: Array<{ name: string }>;
+  website?: string | null;
+  playtime?: number | null;
 }
 
 interface RawgScreenshotItem {
@@ -128,6 +159,105 @@ export class RawgService {
       );
   }
 
+  /** Full game payload for auto-filling the add form. */
+  getGameDetails(gameId: number): Observable<RawgGameSummary | null> {
+    if (!this.apiKey || !gameId) {
+      return of(null);
+    }
+
+    const params = new HttpParams().set('key', this.apiKey);
+
+    return this.http
+      .get<RawgGameListItem>(`${RAWG_BASE}/games/${gameId}`, { params })
+      .pipe(
+        map((item) => this.mapGame(item)),
+        catchError(() => of(null)),
+      );
+  }
+
+  /**
+   * Search → fetch details → map into form-ready import fields.
+   * Uses the list hit immediately, then enriches from /games/:id when available.
+   */
+  importGame(gameId: number, fallback?: RawgGameSummary): Observable<RawgGameImport | null> {
+    return this.getGameDetails(gameId).pipe(
+      map((detail) => {
+        const src = detail ?? fallback;
+        if (!src) return null;
+        return this.toImport(src);
+      }),
+      catchError(() => of(fallback ? this.toImport(fallback) : null)),
+    );
+  }
+
+  toImport(game: RawgGameSummary): RawgGameImport {
+    const year = this.yearFromReleased(game.released);
+    const description = this.cleanDescription(game.description ?? null);
+    const developerName = game.developers?.[0] ?? undefined;
+    const genreTags = game.genres ?? [];
+    const rawgTags = (game.tags ?? []).slice(0, 8);
+
+    return {
+      title: game.name,
+      description: description || undefined,
+      coverImage: game.backgroundImage ?? null,
+      releaseYear: year,
+      releaseDate: game.released ?? undefined,
+      developerName,
+      genres: genreTags,
+      tags: this.uniqueStrings([...genreTags.map((g) => g.toLowerCase()), ...rawgTags]).slice(0, 12),
+      platforms: game.platforms ?? [],
+      rawgId: game.id,
+      rawgUrl: `https://rawg.io/games/${game.slug}`,
+      metacritic: game.metacritic ?? null,
+      playtimeHours: game.playtimeHours ?? null,
+    };
+  }
+
+  /** Map RAWG platform label → local library platform id when possible. */
+  matchPlatformId(
+    rawgPlatforms: string[],
+    libraryPlatforms: Array<{ id: string; name: string }>,
+  ): string | null {
+    if (!rawgPlatforms.length || !libraryPlatforms.length) return null;
+
+    const normalize = (s: string) =>
+      s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+    const aliases: Array<{ idHint: string; patterns: string[] }> = [
+      { idHint: 'ps5', patterns: ['playstation 5', 'ps5'] },
+      { idHint: 'ps4', patterns: ['playstation 4', 'ps4'] },
+      { idHint: 'xbox-series', patterns: ['xbox series', 'xbox series x', 'xbox series s'] },
+      { idHint: 'xbox-one', patterns: ['xbox one'] },
+      { idHint: 'switch', patterns: ['nintendo switch', 'switch'] },
+      { idHint: 'pc', patterns: ['pc', 'windows', 'macos', 'linux', 'steam'] },
+      { idHint: 'steam-deck', patterns: ['steam deck'] },
+    ];
+
+    const rawgNorm = rawgPlatforms.map(normalize);
+
+    for (const alias of aliases) {
+      const hit = alias.patterns.some((p) => rawgNorm.some((r) => r.includes(p)));
+      if (!hit) continue;
+      const byId = libraryPlatforms.find((p) => p.id === alias.idHint);
+      if (byId) return byId.id;
+      const byName = libraryPlatforms.find((p) =>
+        alias.patterns.some((pat) => normalize(p.name).includes(pat)),
+      );
+      if (byName) return byName.id;
+    }
+
+    for (const rp of rawgNorm) {
+      const match = libraryPlatforms.find((p) => {
+        const n = normalize(p.name);
+        return n === rp || n.includes(rp) || rp.includes(n);
+      });
+      if (match) return match.id;
+    }
+
+    return null;
+  }
+
   getScreenshots(gameId: number): Observable<string[]> {
     if (!this.apiKey || !gameId) {
       return of([]);
@@ -192,6 +322,10 @@ export class RawgService {
   }
 
   private mapGame(item: RawgGameListItem): RawgGameSummary {
+    const description =
+      this.cleanDescription(item.description_raw) ||
+      this.cleanDescription(item.description);
+
     return {
       id: item.id,
       slug: item.slug,
@@ -207,7 +341,44 @@ export class RawgService {
       shortScreenshots: (item.short_screenshots ?? [])
         .map((s) => s.image)
         .filter((url): url is string => !!url?.trim()),
+      description: description || null,
+      developers: (item.developers ?? []).map((d) => d.name).filter(Boolean),
+      publishers: (item.publishers ?? []).map((p) => p.name).filter(Boolean),
+      tags: (item.tags ?? []).map((t) => t.name).filter(Boolean),
+      website: item.website ?? null,
+      playtimeHours:
+        item.playtime != null && item.playtime > 0 ? item.playtime : null,
     };
+  }
+
+  private cleanDescription(html?: string | null): string {
+    if (!html?.trim()) return '';
+    return html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+      .slice(0, 2000);
+  }
+
+  private uniqueStrings(values: string[]): string[] {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const v of values) {
+      const t = v.trim();
+      if (!t) continue;
+      const key = t.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(t);
+    }
+    return out;
   }
 
   private yearFromReleased(released?: string | null): number | undefined {

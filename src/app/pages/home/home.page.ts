@@ -253,6 +253,27 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
           </div>
         </div>
 
+        <!-- Quick tag filter rail -->
+        <div class="tag-rail" *ngIf="availableTags.length && !gamesLoading()" role="toolbar" aria-label="Filter by tag">
+          <button
+            type="button"
+            class="tag-rail__chip"
+            [class.tag-rail__chip--active]="selectedTags.length === 0"
+            (click)="clearTagFilters()"
+          >
+            All tags
+          </button>
+          <button
+            type="button"
+            class="tag-rail__chip"
+            *ngFor="let tag of availableTags"
+            [class.tag-rail__chip--active]="isTagSelected(tag)"
+            (click)="toggleTag(tag)"
+          >
+            #{{ tag }}
+          </button>
+        </div>
+
         <!-- Filters Panel -->
         <div class="filters-panel" *ngIf="showFilters">
           <div class="filters-header">
@@ -330,16 +351,34 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
                 </div>
               </ion-col>
 
-              <ion-col size="12" *ngIf="availableTags.length">
+              <ion-col size="12" *ngIf="genres.length">
+                <div class="filter-group">
+                  <label>Genre</label>
+                  <div class="filter-chips">
+                    <ion-chip
+                      *ngFor="let genre of genres"
+                      [class.selected]="isGenreSelected(genre)"
+                      (click)="toggleGenre(genre)"
+                    >
+                      {{ genre }}
+                    </ion-chip>
+                  </div>
+                </div>
+              </ion-col>
+
+              <ion-col size="12">
                 <div class="filter-group">
                   <label>Tags</label>
-                  <div class="filter-chips">
+                  <p class="filter-group__hint" *ngIf="!availableTags.length">
+                    No tags yet — add tags on a game’s edit screen, then filter here.
+                  </p>
+                  <div class="filter-chips" *ngIf="availableTags.length">
                     <ion-chip
                       *ngFor="let tag of availableTags"
                       [class.selected]="isTagSelected(tag)"
                       (click)="toggleTag(tag)"
                     >
-                      {{ tag }}
+                      #{{ tag }}
                     </ion-chip>
                   </div>
                 </div>
@@ -888,6 +927,28 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     return this.selectedTags.includes(tag);
   }
 
+  isGenreSelected(genre: string): boolean {
+    return this.selectedGenres.includes(genre);
+  }
+
+  toggleGenre(genre: string): void {
+    const index = this.selectedGenres.indexOf(genre);
+    if (index > -1) {
+      this.selectedGenres.splice(index, 1);
+    } else {
+      this.selectedGenres.push(genre);
+    }
+    this.activeSavedCollectionId = null;
+    this.applyFilters();
+  }
+
+  clearTagFilters(): void {
+    if (!this.selectedTags.length) return;
+    this.selectedTags = [];
+    this.activeSavedCollectionId = null;
+    this.applyFilters();
+  }
+
   toggleTag(tag: string): void {
     const index = this.selectedTags.indexOf(tag);
     if (index > -1) {
@@ -895,6 +956,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     } else {
       this.selectedTags.push(tag);
     }
+    this.activeSavedCollectionId = null;
     this.applyFilters();
   }
 

@@ -1,4 +1,4 @@
-/* ─── Shared form layout ─────────────────────────────────────────── */
+// Shared form layout
 
 .form-content,
 .profile-content,
@@ -89,7 +89,7 @@
   padding: 1.25rem 1rem 5rem;
 }
 
-/* ─── Cards ─────────────────────────────────────────────────────── */
+// Cards
 
 .form-card,
 .progress-card,
@@ -211,7 +211,7 @@
   border-radius: 12px;
 }
 
-/* ─── Sections ──────────────────────────────────────────────────── */
+// Sections
 
 .form-section {
   display: flex;
@@ -321,7 +321,7 @@
   line-height: 1.35;
 }
 
-/* ─── Form fields (ion-item) ────────────────────────────────────── */
+// Form fields (ion-item)
 
 .dark ion-item.form-item,
 .dark ion-item.toggle-item,
@@ -469,7 +469,7 @@ ion-toggle {
   padding-inline-end: 4px;
 }
 
-/* ─── Search field (home) ─────────────────────────────────────────── */
+// Search field (home)
 
 .search-bar-container {
   display: flex;
@@ -621,7 +621,7 @@ ion-toggle {
   text-transform: none;
 }
 
-/* ─── Toolbars / App headers ────────────────────────────────────── */
+// Toolbars / App headers
 
 .header-toolbar,
 .form-toolbar,
@@ -885,7 +885,7 @@ ion-toggle {
   color: var(--ink-muted);
 }
 
-/* ─── Action bars ───────────────────────────────────────────────── */
+// Action bars
 
 .form-actions {
   display: flex;
@@ -990,7 +990,7 @@ ion-toggle {
   opacity: 0.55;
 }
 
-/* ─── List items (profile, home) ────────────────────────────────── */
+// List items (profile, home)
 
 .recent-games-card ion-item,
 .game-list-item {
@@ -1025,7 +1025,7 @@ ion-toggle {
   padding: 0.75rem 1.25rem 1.25rem;
 }
 
-/* ─── Responsive ────────────────────────────────────────────────── */
+// Responsive
 
 @media (max-width: 639px) {
   .filters-panel {

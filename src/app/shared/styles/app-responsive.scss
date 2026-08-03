@@ -1,6 +1,6 @@
 @use '../../../theme/breakpoints.scss' as bp;
 
-/* ─── Tablet bridge layouts (640px – 1023px) ─────────────────────── */
+// Tablet bridge layouts (640px – 1023px)
 
 @include bp.tablet {
   .content-wrapper {

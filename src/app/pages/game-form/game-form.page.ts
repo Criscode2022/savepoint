@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm, NgModel } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -9,11 +9,24 @@ import {
   IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton, IonSpinner, AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { arrowBackOutline, saveOutline, imageOutline, closeOutline } from 'ionicons/icons';
+import {
+  arrowBackOutline, saveOutline, imageOutline, closeOutline,
+  searchOutline, cloudDownloadOutline, checkmarkCircleOutline,
+} from 'ionicons/icons';
+import {
+  Subject,
+  debounceTime,
+  distinctUntilChanged,
+  switchMap,
+  takeUntil,
+  of,
+  catchError,
+} from 'rxjs';
 import { PLATFORMS, GENRES, Game, Platform, GamePlayStatus, GAME_STATUS_LABELS } from '../../models/game.model';
 import { normalizeTags } from '../../shared/utils/tag.utils';
 import { GameService } from '../../services/game.service';
 import { PlatformService } from '../../services/platform.service';
+import { RawgService, RawgGameSummary } from '../../services/rawg.service';
 import { GameRatingComponent } from '../../components/game-rating/game-rating.component';
 import { GameCoverUploadComponent } from '../../components/game-cover-upload/game-cover-upload.component';
 import {
@@ -63,6 +76,76 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
 
           <ion-card-content>
             <form (ngSubmit)="onSubmit(gameForm)" #gameForm="ngForm">
+              <!-- RAWG auto-fill -->
+              <div class="form-section rawg-import" *ngIf="!isEdit">
+                <h3 class="section-title">
+                  <ion-icon name="cloud-download-outline" aria-hidden="true"></ion-icon>
+                  Search RAWG (auto-fill)
+                </h3>
+                <p class="field-help" *ngIf="rawgConfigured">
+                  Type a game name, pick a result, and we’ll fill title, cover, year, genres, tags, and developer.
+                </p>
+                <p class="field-help rawg-import__missing" *ngIf="!rawgConfigured">
+                  Add <code>RAWG_API_KEY</code> to <code>.env</code> and restart the app to enable search.
+                  Get a free key at
+                  <a href="https://rawg.io/apidocs" target="_blank" rel="noopener">rawg.io/apidocs</a>.
+                </p>
+
+                <div class="field-group" *ngIf="rawgConfigured">
+                  <label class="field-label" for="rawg-search">Find a game</label>
+                  <ion-item class="form-item" lines="none">
+                    <ion-icon name="search-outline" slot="start" aria-hidden="true"></ion-icon>
+                    <ion-input
+                      id="rawg-search"
+                      [(ngModel)]="rawgQuery"
+                      name="rawgQuery"
+                      placeholder="e.g. Hades, Zelda, Elden Ring…"
+                      (ionInput)="onRawgQuery($event)"
+                      clearInput="true"
+                      enterkeyhint="search"
+                    ></ion-input>
+                    <ion-spinner *ngIf="rawgSearching" name="crescent" slot="end"></ion-spinner>
+                  </ion-item>
+                  <p class="field-error" *ngIf="rawgError">{{ rawgError }}</p>
+                  <p class="field-help" *ngIf="rawgImportedTitle">
+                    <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
+                    Imported from RAWG: <strong>{{ rawgImportedTitle }}</strong>
+                  </p>
+                </div>
+
+                <ul class="rawg-results" *ngIf="rawgResults.length" role="listbox" aria-label="RAWG search results">
+                  <li *ngFor="let hit of rawgResults">
+                    <button
+                      type="button"
+                      class="rawg-result"
+                      (click)="applyRawgGame(hit)"
+                      [disabled]="rawgImportingId === hit.id"
+                    >
+                      <img
+                        *ngIf="hit.backgroundImage"
+                        [src]="hit.backgroundImage"
+                        [alt]="hit.name"
+                        class="rawg-result__cover"
+                        loading="lazy"
+                      />
+                      <span class="rawg-result__cover rawg-result__cover--empty" *ngIf="!hit.backgroundImage" aria-hidden="true"></span>
+                      <span class="rawg-result__meta">
+                        <span class="rawg-result__title">{{ hit.name }}</span>
+                        <span class="rawg-result__sub">
+                          <span *ngIf="hit.released">{{ hit.released | slice:0:4 }}</span>
+                          <span *ngIf="hit.genres?.length"> · {{ hit.genres.slice(0, 3).join(', ') }}</span>
+                        </span>
+                      </span>
+                      <ion-spinner *ngIf="rawgImportingId === hit.id" name="crescent"></ion-spinner>
+                      <span class="rawg-result__action" *ngIf="rawgImportingId !== hit.id">Use</span>
+                    </button>
+                  </li>
+                </ul>
+                <p class="field-help" *ngIf="rawgConfigured && rawgSearched && !rawgSearching && !rawgResults.length && rawgQuery.trim()">
+                  No RAWG matches. Try a shorter title or add details manually below.
+                </p>
+              </div>
+
               <!-- Basic Info -->
               <div class="form-section">
                 <h3 class="section-title">Basic Information</h3>
@@ -340,9 +423,80 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
       </ion-toast>
     </ion-content>
   `,
-  styles: [],
+  styles: [`
+    .rawg-import .section-title {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .rawg-import__missing code {
+      font-size: 0.85em;
+    }
+    .rawg-results {
+      list-style: none;
+      margin: 0.75rem 0 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 22rem;
+      overflow-y: auto;
+    }
+    .rawg-result {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.5rem 0.65rem;
+      border: 1px solid var(--app-border, rgba(255,255,255,0.08));
+      border-radius: 0.65rem;
+      background: var(--app-surface-2, rgba(0,0,0,0.2));
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .rawg-result:hover:not(:disabled) {
+      border-color: var(--ion-color-primary, #6c8cff);
+    }
+    .rawg-result:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
+    .rawg-result__cover {
+      width: 3.25rem;
+      height: 3.25rem;
+      object-fit: cover;
+      border-radius: 0.4rem;
+      flex-shrink: 0;
+      background: rgba(0,0,0,0.25);
+    }
+    .rawg-result__cover--empty {
+      display: block;
+    }
+    .rawg-result__meta {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .rawg-result__title {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .rawg-result__sub {
+      font-size: 0.78rem;
+      opacity: 0.7;
+    }
+    .rawg-result__action {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--ion-color-primary, #6c8cff);
+      flex-shrink: 0;
+    }
+  `],
 })
-export class GameFormPage implements OnInit {
+export class GameFormPage implements OnInit, OnDestroy {
   @ViewChild('gameForm') gameFormRef?: NgForm;
 
   platforms: Platform[] = [];
@@ -380,18 +534,43 @@ export class GameFormPage implements OnInit {
   private originalStatus: GamePlayStatus = 'not_started';
   ratingPreview: number | null = null;
 
+  // RAWG search / import
+  rawgQuery = '';
+  rawgResults: RawgGameSummary[] = [];
+  rawgSearching = false;
+  rawgSearched = false;
+  rawgError = '';
+  rawgImportingId: number | null = null;
+  rawgImportedTitle = '';
+  private readonly rawgQuery$ = new Subject<string>();
+  private readonly destroy$ = new Subject<void>();
+
+  get rawgConfigured(): boolean {
+    return this.rawg.isConfigured;
+  }
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private gameService: GameService,
     private platformService: PlatformService,
-    private alertController: AlertController
+    private alertController: AlertController,
+    private rawg: RawgService,
   ) {
-    addIcons({ arrowBackOutline, saveOutline, imageOutline, closeOutline });
+    addIcons({
+      arrowBackOutline,
+      saveOutline,
+      imageOutline,
+      closeOutline,
+      searchOutline,
+      cloudDownloadOutline,
+      checkmarkCircleOutline,
+    });
   }
 
   ngOnInit(): void {
     this.loadPlatforms();
+    this.setupRawgSearch();
     this.gameId = this.route.snapshot.paramMap.get('id');
     this.isEdit = !!this.gameId;
     this.isWishlistMode =
@@ -406,6 +585,124 @@ export class GameFormPage implements OnInit {
       this.isLoadingGame = true;
       this.loadGame(this.gameId);
     }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private setupRawgSearch(): void {
+    this.rawgQuery$
+      .pipe(
+        debounceTime(350),
+        distinctUntilChanged(),
+        switchMap((q) => {
+          const query = q.trim();
+          if (!query || query.length < 2 || !this.rawg.isConfigured) {
+            this.rawgSearching = false;
+            this.rawgSearched = !!query;
+            this.rawgResults = [];
+            return of([] as RawgGameSummary[]);
+          }
+          this.rawgSearching = true;
+          this.rawgError = '';
+          return this.rawg.searchGames(query, 10).pipe(
+            catchError(() => {
+              this.rawgError = 'RAWG search failed. Check your API key or try again.';
+              return of([] as RawgGameSummary[]);
+            }),
+          );
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe((results) => {
+        this.rawgResults = results;
+        this.rawgSearching = false;
+        this.rawgSearched = true;
+      });
+  }
+
+  onRawgQuery(event: CustomEvent | Event): void {
+    const value =
+      (event as CustomEvent)?.detail?.value ??
+      (event.target as HTMLInputElement | null)?.value ??
+      this.rawgQuery;
+    this.rawgQuery = String(value ?? '');
+    this.rawgQuery$.next(this.rawgQuery);
+  }
+
+  applyRawgGame(hit: RawgGameSummary): void {
+    if (this.rawgImportingId != null) return;
+    this.rawgImportingId = hit.id;
+    this.rawgError = '';
+
+    this.rawg
+      .importGame(hit.id, hit)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (imported) => {
+          this.rawgImportingId = null;
+          if (!imported) {
+            this.rawgError = 'Could not load full game details from RAWG.';
+            return;
+          }
+
+          this.game.title = imported.title;
+          if (imported.description) this.game.description = imported.description;
+          if (imported.coverImage) this.game.coverImage = imported.coverImage;
+          if (imported.releaseYear != null) this.game.releaseYear = imported.releaseYear;
+          if (imported.releaseDate) {
+            this.game.releaseDate = imported.releaseDate.slice(0, 10);
+          }
+          if (imported.developerName) this.developerName = imported.developerName;
+
+          // Merge RAWG genres into known library genres when possible
+          const genreSet = new Set(this.game.genre ?? []);
+          for (const g of imported.genres) {
+            const match =
+              this.genres.find((x) => x.toLowerCase() === g.toLowerCase()) ?? g;
+            genreSet.add(match);
+          }
+          this.game.genre = [...genreSet];
+
+          this.game.tags = normalizeTags([
+            ...(this.game.tags ?? []),
+            ...imported.tags,
+          ]);
+
+          const platformId = this.rawg.matchPlatformId(
+            imported.platforms,
+            this.platforms,
+          );
+          if (platformId) {
+            this.selectedPlatformId = platformId;
+          }
+
+          if (
+            imported.playtimeHours != null &&
+            (this.game.playtime == null || this.game.playtime === 0)
+          ) {
+            this.game.playtime = imported.playtimeHours;
+          }
+
+          // Keep a reference note without overwriting user notes entirely
+          const noteLine = `Imported from RAWG · ${imported.rawgUrl}`;
+          if (!this.game.notes?.includes('rawg.io')) {
+            this.game.notes = this.game.notes
+              ? `${this.game.notes.trim()}\n\n${noteLine}`
+              : noteLine;
+          }
+
+          this.rawgImportedTitle = imported.title;
+          this.rawgResults = [];
+          this.rawgQuery = imported.title;
+        },
+        error: () => {
+          this.rawgImportingId = null;
+          this.rawgError = 'Could not import that game. Try another result.';
+        },
+      });
   }
 
   get pageTitle(): string {
