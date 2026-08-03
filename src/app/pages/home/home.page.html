@@ -397,19 +397,53 @@
     }
 
     @if (gamesLoading()) {
-      <div class="games-loading">
-        <div class="skeleton-grid" aria-hidden="true">
-          @for (_ of skeletonItems; track $index; let i = $index) {
-            <div class="skeleton-card">
-              <div class="skeleton-cover"></div>
-              <div class="skeleton-body">
-                <div class="skeleton-line tall"></div>
+      <div class="games-loading" aria-busy="true" aria-label="Loading games">
+        @if (viewMode === 'grid') {
+          <div class="games-grid" aria-hidden="true">
+            @for (_ of skeletonGridItems; track $index) {
+              <div class="skeleton-card">
+                <div class="skeleton-cover">
+                  <span class="skeleton-chip"></span>
+                </div>
+                <div class="skeleton-body">
+                  <div class="skeleton-line tall"></div>
+                  <div class="skeleton-meta">
+                    <div class="skeleton-line short"></div>
+                    <div class="skeleton-line tiny"></div>
+                  </div>
+                  <div class="skeleton-line medium"></div>
+                  <div class="skeleton-chips">
+                    <span class="skeleton-pill"></span>
+                    <span class="skeleton-pill"></span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else if (viewMode === 'shelf') {
+          <div class="games-shelf" aria-hidden="true">
+            @for (_ of skeletonShelfItems; track $index) {
+              <div class="skeleton-shelf-item">
+                <div class="skeleton-cover skeleton-cover--shelf"></div>
                 <div class="skeleton-line medium"></div>
                 <div class="skeleton-line short"></div>
               </div>
-            </div>
-          }
-        </div>
+            }
+          </div>
+        } @else {
+          <div class="skeleton-list" aria-hidden="true">
+            @for (_ of skeletonListItems; track $index) {
+              <div class="skeleton-list-item">
+                <div class="skeleton-cover skeleton-cover--list"></div>
+                <div class="skeleton-list-body">
+                  <div class="skeleton-line tall"></div>
+                  <div class="skeleton-line medium"></div>
+                  <div class="skeleton-line short"></div>
+                </div>
+              </div>
+            }
+          </div>
+        }
       </div>
     }
 

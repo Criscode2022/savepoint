@@ -685,9 +685,9 @@
 }
 
 .games-loading {
-  display: flex;
-  justify-content: center;
-  padding: 3rem 0 4rem;
+  display: block;
+  width: 100%;
+  padding: 0.25rem 0 2.5rem;
 }
 
 .games-loading ion-spinner {
@@ -696,23 +696,18 @@
   color: var(--neon-purple);
 }
 
-/* Premium vault skeleton cards — modern & on-brand */
-.skeleton-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
-  gap: var(--spacing-md);
-}
-
+/* Premium vault skeleton — mirrors live grid / shelf / list layouts */
 .skeleton-card {
   background: var(--vault-elevated);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
   overflow: hidden;
   height: 100%;
+  min-width: 0;
 }
 
 .skeleton-cover {
-  aspect-ratio: 3/4;
+  aspect-ratio: 3 / 4;
   background: linear-gradient(145deg, #1f1f2b 0%, #171721 100%);
   position: relative;
   overflow: hidden;
@@ -725,10 +720,21 @@
   background: linear-gradient(
     100deg,
     transparent 20%,
-    rgba(255,255,255,0.045) 50%,
+    rgba(255, 255, 255, 0.055) 50%,
     transparent 80%
   );
   animation: skeleton-shimmer 1.6s infinite;
+}
+
+.skeleton-chip {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 1;
+  width: 4.25rem;
+  height: 1.35rem;
+  border-radius: var(--radius-pill);
+  background: rgba(148, 163, 184, 0.16);
 }
 
 @keyframes skeleton-shimmer {
@@ -744,6 +750,32 @@
   padding: 1rem 1.125rem 1.125rem;
 }
 
+.skeleton-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.skeleton-meta .skeleton-line {
+  margin-bottom: 0;
+}
+
+.skeleton-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+}
+
+.skeleton-pill {
+  display: inline-block;
+  width: 3.5rem;
+  height: 1.35rem;
+  border-radius: var(--radius-pill);
+  background: rgba(148, 163, 184, 0.12);
+}
+
 .skeleton-line {
   height: 12px;
   background: rgba(148, 163, 184, 0.12);
@@ -753,7 +785,51 @@
 
 .skeleton-line.short { width: 52%; }
 .skeleton-line.medium { width: 78%; }
-.skeleton-line.tall { height: 15px; margin-bottom: 14px; width: 100%; }
+.skeleton-line.tiny { width: 2.25rem; flex-shrink: 0; }
+.skeleton-line.tall { height: 15px; margin-bottom: 14px; width: 88%; }
+
+.skeleton-shelf-item {
+  min-width: 0;
+}
+
+.skeleton-cover--shelf {
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  margin-bottom: 0.55rem;
+}
+
+.skeleton-shelf-item .skeleton-line {
+  margin-bottom: 0.4rem;
+}
+
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skeleton-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 0.75rem 0.875rem;
+  background: var(--vault-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-cover--list {
+  width: 4.5rem;
+  flex-shrink: 0;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-list-body {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0.15rem;
+}
 
 .empty-state {
   text-align: center;

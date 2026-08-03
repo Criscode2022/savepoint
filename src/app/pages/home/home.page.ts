@@ -90,7 +90,9 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   savedCollections: SavedCollection[] = [];
   activeSavedCollectionId: string | null = null;
 
-  readonly skeletonItems = Array.from({ length: 8 });
+  readonly skeletonGridItems = Array.from({ length: 12 });
+  readonly skeletonShelfItems = Array.from({ length: 18 });
+  readonly skeletonListItems = Array.from({ length: 6 });
 
   private destroy$ = new Subject<void>();
   private countdownInterval?: ReturnType<typeof setInterval>;
