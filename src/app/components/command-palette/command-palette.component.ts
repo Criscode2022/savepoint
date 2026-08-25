@@ -10,12 +10,13 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { IonIcon } from '@ionic/angular/standalone';
+import { IonIcon, IonToast } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   addOutline,
   checkmarkCircleOutline,
   gameControllerOutline,
+  globeOutline,
   heartOutline,
   personCircleOutline,
   searchOutline,
@@ -27,25 +28,39 @@ import {
   sparklesOutline,
   statsChartOutline,
 } from 'ionicons/icons';
-import { Subject, takeUntil } from 'rxjs';
-import { Game } from '../../models/game.model';
+import {
+  Subject,
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  of,
+  switchMap,
+  takeUntil,
+} from 'rxjs';
+import { Game, GamePlayStatus, Platform } from '../../models/game.model';
 import { CommandPaletteService } from '../../services/command-palette.service';
 import { GameService } from '../../services/game.service';
 import { LibraryPrefsService, LibraryViewMode } from '../../services/library-prefs.service';
+import { PlatformService } from '../../services/platform.service';
+import { RawgGameSummary, RawgService } from '../../services/rawg.service';
+
+type PaletteGroup = 'Actions' | 'Collections' | 'Games' | 'RAWG';
 
 interface PaletteItem {
   id: string;
   label: string;
   hint?: string;
   icon: string;
-  group: 'Actions' | 'Collections' | 'Games';
+  group: PaletteGroup;
+  kind?: 'rawg';
+  rawg?: RawgGameSummary;
   run: () => void;
 }
 
 @Component({
   selector: 'app-command-palette',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonIcon],
+  imports: [CommonModule, FormsModule, IonIcon, IonToast],
   templateUrl: './command-palette.component.html',
   styles: [
     `
@@ -183,6 +198,59 @@ interface PaletteItem {
         color: var(--ink-muted, #94a3b8);
       }
 
+      .cmd-item--rawg {
+        cursor: default;
+      }
+
+      .cmd-item__actions {
+        display: flex;
+        flex-shrink: 0;
+        gap: 0.35rem;
+      }
+
+      .cmd-mini {
+        margin: 0;
+        padding: 0.28rem 0.5rem;
+        border: 1px solid rgba(168, 85, 247, 0.28);
+        border-radius: 8px;
+        background: rgba(168, 85, 247, 0.12);
+        color: #e9d5ff;
+        font: inherit;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+      }
+
+      .cmd-mini:hover:not(:disabled),
+      .cmd-mini:focus-visible {
+        background: rgba(168, 85, 247, 0.28);
+        outline: none;
+      }
+
+      .cmd-mini--wish {
+        border-color: rgba(244, 114, 182, 0.35);
+        background: rgba(244, 114, 182, 0.1);
+        color: #fbcfe8;
+      }
+
+      .cmd-mini--wish:hover:not(:disabled),
+      .cmd-mini--wish:focus-visible {
+        background: rgba(244, 114, 182, 0.22);
+      }
+
+      .cmd-mini:disabled {
+        opacity: 0.55;
+        cursor: wait;
+      }
+
+      .cmd-rawg-status {
+        margin: 0;
+        padding: 0.35rem 0.75rem 0.65rem;
+        color: var(--ink-muted, #94a3b8);
+        font-size: 0.75rem;
+      }
+
       .cmd-empty {
         margin: 0;
         padding: 1.5rem 0.75rem;
@@ -225,7 +293,10 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
   private readonly gameService = inject(GameService);
   private readonly router = inject(Router);
   private readonly prefs = inject(LibraryPrefsService);
+  private readonly rawg = inject(RawgService);
+  private readonly platformService = inject(PlatformService);
   private readonly destroy$ = new Subject<void>();
+  private readonly rawgQuery$ = new Subject<string>();
 
   @ViewChild('queryInput') queryInput?: ElementRef<HTMLInputElement>;
 
@@ -233,12 +304,19 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
   query = '';
   activeId = '';
   games: Game[] = [];
+  rawgSearching = false;
+  addingKey: string | null = null;
+  toastMessage = '';
+  toastColor: 'success' | 'danger' | 'warning' = 'success';
+  private platforms: Platform[] = [];
+  private rawgItems: PaletteItem[] = [];
   private allItems: PaletteItem[] = [];
   flatItems: PaletteItem[] = [];
-  readonly groups: Array<'Actions' | 'Collections' | 'Games'> = [
+  readonly groups: PaletteGroup[] = [
     'Actions',
     'Collections',
     'Games',
+    'RAWG',
   ];
 
   constructor() {
@@ -246,6 +324,7 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
       addOutline,
       checkmarkCircleOutline,
       gameControllerOutline,
+      globeOutline,
       heartOutline,
       personCircleOutline,
       searchOutline,
@@ -264,7 +343,10 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
       this.open = open;
       if (open) {
         this.query = '';
+        this.rawgItems = [];
+        this.rawgSearching = false;
         this.refreshItems();
+        this.rawgQuery$.next('');
         setTimeout(() => this.queryInput?.nativeElement.focus(), 20);
       }
     });
@@ -275,6 +357,45 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
         this.refreshItems();
       }
     });
+
+    this.platformService
+      .getPlatforms()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (platforms) => {
+          this.platforms = platforms;
+        },
+      });
+
+    this.rawgQuery$
+      .pipe(
+        debounceTime(320),
+        distinctUntilChanged(),
+        switchMap((query) => {
+          const q = query.trim();
+          if (q.length < 2 || !this.rawg.isConfigured) {
+            this.rawgSearching = false;
+            this.rawgItems = [];
+            this.mergeRawgIntoFlat();
+            return of([] as RawgGameSummary[]);
+          }
+          this.rawgSearching = true;
+          this.rawgItems = [];
+          this.mergeRawgIntoFlat();
+          return this.rawg.searchGames(q, 8).pipe(
+            catchError(() => of([] as RawgGameSummary[])),
+          );
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe((results) => {
+        this.rawgSearching = false;
+        const owned = new Set(this.games.map((g) => g.title.toLowerCase()));
+        this.rawgItems = results
+          .filter((hit) => !owned.has(hit.name.toLowerCase()))
+          .map((hit) => this.toRawgItem(hit));
+        this.mergeRawgIntoFlat();
+      });
   }
 
   ngOnDestroy(): void {
@@ -301,6 +422,7 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
 
   onQueryChange(): void {
     this.refreshItems();
+    this.rawgQuery$.next(this.query);
   }
 
   onKeydown(event: KeyboardEvent): void {
@@ -319,13 +441,31 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
     }
   }
 
-  itemsForGroup(group: PaletteItem['group']): PaletteItem[] {
+  itemsForGroup(group: PaletteGroup): PaletteItem[] {
     return this.flatItems.filter((i) => i.group === group);
   }
 
   run(item: PaletteItem): void {
+    if (item.kind === 'rawg' && item.rawg) {
+      this.addRawg(item.rawg, 'not_started');
+      return;
+    }
     item.run();
     this.close();
+  }
+
+  addRawgToLibrary(hit: RawgGameSummary, event?: Event): void {
+    event?.stopPropagation();
+    this.addRawg(hit, 'not_started');
+  }
+
+  addRawgToWishlist(hit: RawgGameSummary, event?: Event): void {
+    event?.stopPropagation();
+    this.addRawg(hit, 'wishlist');
+  }
+
+  isAdding(hit: RawgGameSummary): boolean {
+    return this.addingKey?.startsWith(`${hit.id}:`) ?? false;
   }
 
   private move(delta: number): void {
@@ -340,14 +480,120 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
   private refreshItems(): void {
     const q = this.query.trim().toLowerCase();
     this.allItems = this.buildItems();
-    this.flatItems = q
+    const local = q
       ? this.allItems.filter(
           (i) =>
             i.label.toLowerCase().includes(q) ||
             (i.hint?.toLowerCase().includes(q) ?? false),
         )
       : this.allItems;
+    this.flatItems = [...local, ...this.rawgItems];
     this.activeId = this.flatItems[0]?.id ?? '';
+  }
+
+  private mergeRawgIntoFlat(): void {
+    const local = this.flatItems.filter((i) => i.group !== 'RAWG');
+    this.flatItems = [...local, ...this.rawgItems];
+    if (!this.flatItems.some((i) => i.id === this.activeId)) {
+      this.activeId = this.flatItems[0]?.id ?? '';
+    }
+  }
+
+  private toRawgItem(hit: RawgGameSummary): PaletteItem {
+    const year = hit.released?.slice(0, 4);
+    const platform = hit.platforms[0];
+    const hint = [year, platform].filter(Boolean).join(' · ');
+    return {
+      id: `rawg-${hit.id}`,
+      label: hit.name,
+      hint,
+      icon: 'globe-outline',
+      group: 'RAWG',
+      kind: 'rawg',
+      rawg: hit,
+      run: () => this.addRawg(hit, 'not_started'),
+    };
+  }
+
+  private addRawg(hit: RawgGameSummary, status: GamePlayStatus): void {
+    if (this.addingKey != null) {
+      return;
+    }
+
+    const already = this.games.some(
+      (g) => g.title.toLowerCase() === hit.name.toLowerCase(),
+    );
+    if (already) {
+      this.toast('Already in your vault', 'warning');
+      return;
+    }
+
+    const destination = status === 'wishlist' ? 'wishlist' : 'library';
+    this.addingKey = `${hit.id}:${destination}`;
+
+    this.rawg
+      .importGame(hit.id, hit)
+      .pipe(
+        switchMap((imported) => {
+          if (!imported) {
+            return of(null);
+          }
+          const platformId =
+            this.rawg.matchPlatformId(imported.platforms, this.platforms) ??
+            'pc';
+          const placeNote =
+            destination === 'wishlist'
+              ? `Added from RAWG search · ${imported.rawgUrl}`
+              : `Imported from RAWG · ${imported.rawgUrl}`;
+          return this.gameService.saveGameFromForm({
+            title: imported.title,
+            description: imported.description,
+            coverImage: imported.coverImage ?? undefined,
+            platformId,
+            developerName: imported.developerName || 'Unknown',
+            releaseYear: imported.releaseYear,
+            releaseDate: imported.releaseDate?.slice(0, 10),
+            genre: imported.genres.slice(0, 4),
+            tags: imported.tags,
+            playtimeHours: imported.playtimeHours ?? undefined,
+            status,
+            notes: placeNote,
+          });
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe({
+        next: (saved) => {
+          this.addingKey = null;
+          if (!saved) {
+            this.toast('Could not load that RAWG game', 'danger');
+            return;
+          }
+          this.rawgItems = this.rawgItems.filter((i) => i.rawg?.id !== hit.id);
+          this.mergeRawgIntoFlat();
+          this.toast(
+            destination === 'wishlist'
+              ? `“${hit.name}” added to wishlist`
+              : `“${hit.name}” added to library`,
+            'success',
+          );
+        },
+        error: (err: { message?: string }) => {
+          this.addingKey = null;
+          this.toast(err?.message || `Could not add to ${destination}`, 'danger');
+        },
+      });
+  }
+
+  private toast(
+    message: string,
+    color: 'success' | 'danger' | 'warning' = 'success',
+  ): void {
+    this.toastMessage = '';
+    setTimeout(() => {
+      this.toastMessage = message;
+      this.toastColor = color;
+    }, 0);
   }
 
   private buildItems(): PaletteItem[] {

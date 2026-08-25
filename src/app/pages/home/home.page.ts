@@ -16,7 +16,7 @@ import {
   starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
   closeOutline, imageOutline, heartOutline, ellipseOutline,
   pauseCircleOutline, downloadOutline, playOutline, chevronForwardOutline,
-  cloudUploadOutline, bookmarkOutline
+  documentAttachOutline, bookmarkOutline
 } from 'ionicons/icons';
 import { Game, GameFilters, PLATFORMS, GAME_STATUS_LABELS, GamePlayStatus, GAME_STATUS_CYCLE } from '../../models/game.model';
 import { formatReleaseCountdown, canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
@@ -113,7 +113,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
       closeOutline, imageOutline, heartOutline, ellipseOutline,
       pauseCircleOutline, downloadOutline, playOutline, chevronForwardOutline,
-      cloudUploadOutline, bookmarkOutline
+      documentAttachOutline, bookmarkOutline
     });
   }
 

@@ -20,7 +20,7 @@
           [(ngModel)]="query"
           (ngModelChange)="onQueryChange()"
           (keydown)="onKeydown($event)"
-          placeholder="Jump to a game, collection, or action…"
+          placeholder="Search..."
           autocomplete="off"
           spellcheck="false"
         />
@@ -32,29 +32,76 @@
           @if (itemsForGroup(group).length) {
             <div class="cmd-group-label">{{ group }}</div>
             @for (item of itemsForGroup(group); track item.id) {
-              <button
-                type="button"
-                class="cmd-item"
-                role="option"
-                [class.cmd-item--active]="item.id === activeId"
-                [attr.aria-selected]="item.id === activeId"
-                (click)="run(item)"
-                (mouseenter)="activeId = item.id"
-              >
-                <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
-                <span class="cmd-item__label">{{ item.label }}</span>
-                @if (item.hint) {
-                  <span class="cmd-item__hint">{{ item.hint }}</span>
-                }
-              </button>
+              @if (item.kind === 'rawg' && item.rawg) {
+                <div
+                  class="cmd-item cmd-item--rawg"
+                  role="option"
+                  [class.cmd-item--active]="item.id === activeId"
+                  [attr.aria-selected]="item.id === activeId"
+                  (mouseenter)="activeId = item.id"
+                >
+                  <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
+                  <span class="cmd-item__label">{{ item.label }}</span>
+                  @if (item.hint) {
+                    <span class="cmd-item__hint">{{ item.hint }}</span>
+                  }
+                  <span class="cmd-item__actions">
+                    <button
+                      type="button"
+                      class="cmd-mini"
+                      [disabled]="isAdding(item.rawg)"
+                      (click)="addRawgToLibrary(item.rawg, $event)"
+                    >
+                      {{ addingKey === item.rawg.id + ':library' ? 'Adding…' : 'Library' }}
+                    </button>
+                    <button
+                      type="button"
+                      class="cmd-mini cmd-mini--wish"
+                      [disabled]="isAdding(item.rawg)"
+                      (click)="addRawgToWishlist(item.rawg, $event)"
+                    >
+                      {{ addingKey === item.rawg.id + ':wishlist' ? 'Adding…' : 'Wishlist' }}
+                    </button>
+                  </span>
+                </div>
+              } @else {
+                <button
+                  type="button"
+                  class="cmd-item"
+                  role="option"
+                  [class.cmd-item--active]="item.id === activeId"
+                  [attr.aria-selected]="item.id === activeId"
+                  (click)="run(item)"
+                  (mouseenter)="activeId = item.id"
+                >
+                  <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
+                  <span class="cmd-item__label">{{ item.label }}</span>
+                  @if (item.hint) {
+                    <span class="cmd-item__hint">{{ item.hint }}</span>
+                  }
+                </button>
+              }
             }
           }
         }
 
-        @if (!flatItems.length) {
+        @if (rawgSearching && query.trim().length >= 2) {
+          <p class="cmd-rawg-status">Searching RAWG…</p>
+        }
+
+        @if (!flatItems.length && !rawgSearching) {
           <p class="cmd-empty">No matches</p>
         }
       </div>
     </div>
   </div>
 }
+
+<ion-toast
+  [isOpen]="!!toastMessage"
+  [message]="toastMessage"
+  [color]="toastColor"
+  [duration]="2200"
+  position="bottom"
+  (didDismiss)="toastMessage = ''"
+></ion-toast>
