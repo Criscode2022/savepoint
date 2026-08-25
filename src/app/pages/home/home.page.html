@@ -32,7 +32,7 @@
               <div class="continue-card__meta">
                 <h3 class="continue-card__title">{{ game.title }}</h3>
                 <p class="continue-card__sub">
-                  @if (game.platform?.name) {
+                  @if (game.platform.name) {
                     <span>{{ game.platform.name }}</span>
                   }
                   @if (game.playtimeHours) {
@@ -519,10 +519,10 @@
                       [attr.aria-label]="getStatusLabel(game.status)"
                     ></span>
                   }
-                  @if (game.platform?.name) {
+                  @if (game.platform.name) {
                     <span
                       class="shelf-item__badge"
-                      [style.--platform-color]="game.platform?.color || '#a855f7'"
+                      [style.--platform-color]="game.platform.color || '#a855f7'"
                     >{{ game.platform.name }}</span>
                   }
                   <span class="shelf-item__shade" aria-hidden="true"></span>
@@ -625,10 +625,10 @@
                     variant="card"
                   />
                   <span class="shelf-item__status shelf-item__status--wishlist" aria-label="Wishlist"></span>
-                  @if (game.platform?.name) {
+                  @if (game.platform.name) {
                     <span
                       class="shelf-item__badge"
-                      [style.--platform-color]="game.platform?.color || '#a855f7'"
+                      [style.--platform-color]="game.platform.color || '#a855f7'"
                     >{{ game.platform.name }}</span>
                   }
                   <span class="shelf-item__shade" aria-hidden="true"></span>

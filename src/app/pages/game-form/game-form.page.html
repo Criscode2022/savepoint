@@ -107,7 +107,7 @@
                               @if (hit.released) {
                                 <span>{{ hit.released | slice:0:4 }}</span>
                               }
-                              @if (hit.genres?.length) {
+                              @if (hit.genres.length) {
                                 <span> · {{ hit.genres.slice(0, 3).join(', ') }}</span>
                               }
                             </span>
