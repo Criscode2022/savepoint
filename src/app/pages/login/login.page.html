@@ -54,6 +54,8 @@
                     type="text"
                     autocomplete="username"
                     enterkeyhint="next"
+                    (ionFocus)="onFieldFocus('username')"
+                    (ionBlur)="onFieldBlur('username')"
                   ></ion-input>
                 </ion-item>
                 @if (fieldError("username"); as err) {
@@ -82,6 +84,8 @@
                   type="email"
                   autocomplete="email"
                   enterkeyhint="next"
+                  (ionFocus)="onFieldFocus('email')"
+                  (ionBlur)="onFieldBlur('email')"
                 ></ion-input>
               </ion-item>
               @if (fieldError("email"); as err) {
@@ -103,6 +107,8 @@
                     isRegisterMode() ? 'new-password' : 'current-password'
                   "
                   enterkeyhint="next"
+                  (ionFocus)="onFieldFocus('password')"
+                  (ionBlur)="onFieldBlur('password')"
                 ></ion-input>
                 <button
                   slot="end"
@@ -167,6 +173,8 @@
                     [type]="showConfirmPassword() ? 'text' : 'password'"
                     autocomplete="new-password"
                     enterkeyhint="done"
+                    (ionFocus)="onFieldFocus('confirmPassword')"
+                    (ionBlur)="onFieldBlur('confirmPassword')"
                   ></ion-input>
                   <button
                     slot="end"

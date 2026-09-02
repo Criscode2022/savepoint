@@ -34,6 +34,7 @@ import {
   statusChangeClearsPlayHistory,
 } from '../../shared/utils/game-status.utils';
 import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils';
+import { shouldShowFieldError } from '../../shared/utils/form-field-error';
 
 @Component({
   selector: 'app-game-form',
@@ -154,6 +155,8 @@ export class GameFormPage implements OnInit, OnDestroy {
   developerName = '';
   isSubmitting = false;
   submitted = false;
+  focusedField: string | null = null;
+  private readonly revealedErrors = new Set<string>();
   toastMessage = '';
   private originalStatus: GamePlayStatus = 'not_started';
   ratingPreview: number | null = null;
@@ -381,22 +384,71 @@ export class GameFormPage implements OnInit, OnDestroy {
     return !this.releaseDateYearMismatch();
   }
 
+  onFieldFocus(name: string): void {
+    this.focusedField = name;
+  }
+
+  onFieldBlur(name: string): void {
+    if (this.focusedField === name) {
+      this.focusedField = null;
+    }
+    this.syncFieldError(name);
+    this.syncRelatedFieldError(name);
+  }
+
+  onFieldChange(name: string): void {
+    this.syncFieldError(name);
+    this.syncRelatedFieldError(name);
+  }
+
   isInvalid(control: NgModel | null | undefined): boolean {
+    return !!control && this.revealedErrors.has(control.name);
+  }
+
+  private syncFieldError(name: string): void {
+    const control = this.gameFormRef?.controls?.[name];
     if (!control) {
-      return false;
+      return;
     }
 
-    const touched = control.touched || this.submitted;
+    const mismatch =
+      (name === 'releaseDate' || name === 'releaseYear') &&
+      this.releaseDateYearMismatch();
 
-    if (
-      (control.name === 'releaseDate' || control.name === 'releaseYear') &&
-      this.releaseDateYearMismatch() &&
-      touched
-    ) {
-      return true;
+    const show = shouldShowFieldError(
+      {
+        invalid: !!control.invalid || mismatch,
+        dirty: !!control.dirty,
+      },
+      this.revealedErrors.has(name),
+      this.focusedField === name,
+    );
+
+    if (show) {
+      this.revealedErrors.add(name);
+    } else {
+      this.revealedErrors.delete(name);
     }
+  }
 
-    return !!(control.invalid && touched);
+  private syncRelatedFieldError(name: string): void {
+    if (name === 'releaseYear') {
+      this.syncFieldError('releaseDate');
+    } else if (name === 'releaseDate') {
+      this.syncFieldError('releaseYear');
+    }
+  }
+
+  private revealInvalidFields(form: NgForm): void {
+    for (const name of Object.keys(form.controls)) {
+      const control = form.controls[name];
+      const mismatch =
+        (name === 'releaseDate' || name === 'releaseYear') &&
+        this.releaseDateYearMismatch();
+      if (control.invalid || mismatch) {
+        this.revealedErrors.add(name);
+      }
+    }
   }
 
   fieldError(control: NgModel | null | undefined): string | null {
@@ -536,6 +588,7 @@ export class GameFormPage implements OnInit, OnDestroy {
   async onSubmit(form: NgForm): Promise<void> {
     this.submitted = true;
     form.control.markAllAsTouched();
+    this.revealInvalidFields(form);
 
     if (!this.canSubmit(form)) {
       return;

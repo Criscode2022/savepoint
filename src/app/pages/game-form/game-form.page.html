@@ -144,7 +144,10 @@
                     #titleModel="ngModel"
                     name="title"
                     required
-                    placeholder="Enter game title"></ion-input>
+                    placeholder="Enter game title"
+                    (ionFocus)="onFieldFocus('title')"
+                    (ionBlur)="onFieldBlur('title')"
+                    (ionInput)="onFieldChange('title')"></ion-input>
                 </ion-item>
                 @if (fieldError(titleModel); as err) {
                   <span class="field-error">{{ err }}</span>
@@ -186,7 +189,10 @@
                     name="platform"
                     required
                     interface="popover"
-                    placeholder="Select platform">
+                    placeholder="Select platform"
+                    (ionFocus)="onFieldFocus('platform')"
+                    (ionBlur)="onFieldBlur('platform')"
+                    (ionChange)="onFieldChange('platform')">
                     @for (platform of platforms; track platform.id) {
                       <ion-select-option [value]="platform.id">
                         {{ platform.name }}
@@ -211,7 +217,10 @@
                     required
                     min="1970"
                     [max]="maxReleaseYear"
-                    placeholder="2024"></ion-input>
+                    placeholder="2024"
+                    (ionFocus)="onFieldFocus('releaseYear')"
+                    (ionBlur)="onFieldBlur('releaseYear')"
+                    (ionInput)="onFieldChange('releaseYear')"></ion-input>
                 </ion-item>
                 @if (fieldError(releaseYearModel); as err) {
                   <span class="field-error">{{ err }}</span>
@@ -229,7 +238,10 @@
                       name="releaseDate"
                       type="date"
                       [required]="requiresReleaseDate()"
-                      placeholder="YYYY-MM-DD"></ion-input>
+                      placeholder="YYYY-MM-DD"
+                      (ionFocus)="onFieldFocus('releaseDate')"
+                      (ionBlur)="onFieldBlur('releaseDate')"
+                      (ionInput)="onFieldChange('releaseDate')"></ion-input>
                   </ion-item>
                   @if (fieldError(releaseDateModel); as err) {
                     <span class="field-error">{{ err }}</span>
@@ -253,7 +265,10 @@
                     #developerModel="ngModel"
                     name="developerName"
                     required
-                    placeholder="Developer company name"></ion-input>
+                    placeholder="Developer company name"
+                    (ionFocus)="onFieldFocus('developerName')"
+                    (ionBlur)="onFieldBlur('developerName')"
+                    (ionInput)="onFieldChange('developerName')"></ion-input>
                 </ion-item>
                 @if (fieldError(developerModel); as err) {
                   <span class="field-error">{{ err }}</span>

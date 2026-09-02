@@ -1,5 +1,6 @@
 import { CommonModule } from "@angular/common";
-import { Component, computed, inject, OnInit, signal } from "@angular/core";
+import { Component, computed, DestroyRef, inject, OnInit, signal } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import {
   FormBuilder,
   FormGroup,
@@ -36,6 +37,7 @@ import {
 } from "ionicons/icons";
 import { AuthService } from "../../services/auth.service";
 import { mapAuthError } from "../../shared/utils/auth-errors";
+import { shouldShowFieldError } from "../../shared/utils/form-field-error";
 import {
   getPasswordStrength,
   passwordMatchValidator,
@@ -68,12 +70,22 @@ export class LoginPage implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly toastCtrl = inject(ToastController);
+  private readonly destroyRef = inject(DestroyRef);
 
   isRegisterMode = signal(false);
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
   showPassword = signal(false);
   showConfirmPassword = signal(false);
+  submitted = signal(false);
+  focusedField = signal<string | null>(null);
+  private readonly revealedErrors = signal<ReadonlySet<string>>(new Set());
+  private readonly authFields = [
+    "username",
+    "email",
+    "password",
+    "confirmPassword",
+  ] as const;
 
   authForm: FormGroup = this.fb.group(
     {
@@ -130,16 +142,34 @@ export class LoginPage implements OnInit {
       this.isRegisterMode.set(registerMode);
       this.applyModeValidators(registerMode);
       this.errorMessage.set(null);
+      this.submitted.set(false);
+      this.focusedField.set(null);
+      this.revealedErrors.set(new Set());
     });
+
+    this.authForm.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.syncVisibleErrors();
+      });
+  }
+
+  onFieldFocus(controlName: string): void {
+    this.focusedField.set(controlName);
+  }
+
+  onFieldBlur(controlName: string): void {
+    this.focusedField.update((current) =>
+      current === controlName ? null : current,
+    );
+    this.syncFieldError(controlName);
+    if (controlName === "password") {
+      this.syncFieldError("confirmPassword");
+    }
   }
 
   isInvalid(controlName: string): boolean {
-    const control = this.authForm.get(controlName);
-    return !!(
-      control &&
-      control.invalid &&
-      (control.dirty || control.touched)
-    );
+    return this.revealedErrors().has(controlName);
   }
 
   fieldError(controlName: string): string | null {
@@ -176,7 +206,7 @@ export class LoginPage implements OnInit {
     return (
       this.isRegisterMode() &&
       this.authForm.hasError("passwordMismatch") &&
-      !!this.authForm.get("confirmPassword")?.touched
+      this.revealedErrors().has("confirmPassword")
     );
   }
 
@@ -189,7 +219,9 @@ export class LoginPage implements OnInit {
   }
 
   async onSubmit(): Promise<void> {
+    this.submitted.set(true);
     this.authForm.markAllAsTouched();
+    this.revealInvalidFields();
 
     if (this.authForm.invalid) {
       return;
@@ -239,6 +271,60 @@ export class LoginPage implements OnInit {
 
     username?.updateValueAndValidity({ emitEvent: false });
     confirmPassword?.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private syncVisibleErrors(): void {
+    for (const name of this.authFields) {
+      this.syncFieldError(name);
+    }
+  }
+
+  private revealInvalidFields(): void {
+    for (const name of this.authFields) {
+      if (this.controlHasError(name)) {
+        this.setRevealed(name, true);
+      }
+    }
+  }
+
+  private syncFieldError(controlName: string): void {
+    const control = this.authForm.get(controlName);
+    const show = shouldShowFieldError(
+      {
+        invalid: this.controlHasError(controlName),
+        dirty: !!control?.dirty,
+      },
+      this.revealedErrors().has(controlName),
+      this.focusedField() === controlName,
+    );
+    this.setRevealed(controlName, show);
+  }
+
+  private controlHasError(controlName: string): boolean {
+    const control = this.authForm.get(controlName);
+    if (controlName === "confirmPassword") {
+      return !!(
+        control?.invalid ||
+        (this.isRegisterMode() && this.authForm.hasError("passwordMismatch"))
+      );
+    }
+    return !!control?.invalid;
+  }
+
+  private setRevealed(controlName: string, show: boolean): void {
+    this.revealedErrors.update((current) => {
+      const has = current.has(controlName);
+      if (show === has) {
+        return current;
+      }
+      const next = new Set(current);
+      if (show) {
+        next.add(controlName);
+      } else {
+        next.delete(controlName);
+      }
+      return next;
+    });
   }
 
   private async showToast(
