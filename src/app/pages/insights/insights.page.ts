@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import {
@@ -47,12 +47,14 @@ import {
   styleUrl: './insights.page.scss',
 })
 export class InsightsPage implements OnInit, OnDestroy {
+  private readonly gameService = inject(GameService);
+
   protected loading = true;
   protected insights: LibraryInsights | null = null;
 
   private readonly destroy$ = new Subject<void>();
 
-  constructor(private readonly gameService: GameService) {
+  public ngOnInit(): void {
     addIcons({
       arrowBackOutline,
       checkmarkCircleOutline,
@@ -64,9 +66,7 @@ export class InsightsPage implements OnInit, OnDestroy {
       timeOutline,
       trophyOutline,
     });
-  }
 
-  public ngOnInit(): void {
     this.gameService.games$.pipe(takeUntil(this.destroy$)).subscribe((games) => {
       this.insights = computeLibraryInsights(games);
       this.loading = false;

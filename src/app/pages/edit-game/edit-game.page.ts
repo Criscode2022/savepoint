@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -27,6 +27,10 @@ import { GameService } from '../../services/game.service';
   styleUrl: './edit-game.page.scss',
 })
 export class EditGamePage implements OnInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly gameService = inject(GameService);
+
   protected readonly platforms = PLATFORMS;
   protected readonly genres = GENRES;
   protected readonly currentYear = new Date().getFullYear();
@@ -40,15 +44,9 @@ export class EditGamePage implements OnInit {
   protected toastMessage = '';
   protected toastColor: 'success' | 'danger' = 'success';
 
-  constructor(
-    private readonly route: ActivatedRoute,
-    private readonly router: Router,
-    private readonly gameService: GameService,
-  ) {
-    addIcons({ arrowBackOutline, saveOutline, imageOutline });
-  }
-
   public ngOnInit(): void {
+    addIcons({ arrowBackOutline, saveOutline, imageOutline });
+
     const gameId = this.route.snapshot.paramMap.get('id');
     if (gameId) {
       this.loadGame(gameId);

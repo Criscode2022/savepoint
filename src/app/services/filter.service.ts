@@ -47,9 +47,7 @@ export class FilterService {
     'Open World'
   ]);
 
-  constructor() {
-    this.loadFilterOptions();
-  }
+  private readonly filterOptionsInitialized = this.loadFilterOptions();
 
   public async loadFilterOptions(): Promise<void> {
     this.isLoading.set(true);

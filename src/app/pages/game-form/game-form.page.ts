@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm, NgModel } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -51,6 +51,13 @@ import { shouldShowFieldError } from '../../shared/utils/form-field-error';
   styleUrl: './game-form.page.scss',
 })
 export class GameFormPage implements OnInit, OnDestroy {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly gameService = inject(GameService);
+  private readonly platformService = inject(PlatformService);
+  private readonly alertController = inject(AlertController);
+  private readonly rawg = inject(RawgService);
+
   @ViewChild('gameForm') private gameFormRef?: NgForm;
 
   protected platforms: Platform[] = [];
@@ -105,14 +112,7 @@ export class GameFormPage implements OnInit, OnDestroy {
     return this.rawg.isConfigured;
   }
 
-  constructor(
-    private readonly route: ActivatedRoute,
-    private readonly router: Router,
-    private readonly gameService: GameService,
-    private readonly platformService: PlatformService,
-    private readonly alertController: AlertController,
-    private readonly rawg: RawgService,
-  ) {
+  public ngOnInit(): void {
     addIcons({
       arrowBackOutline,
       saveOutline,
@@ -122,9 +122,7 @@ export class GameFormPage implements OnInit, OnDestroy {
       cloudDownloadOutline,
       checkmarkCircleOutline,
     });
-  }
 
-  public ngOnInit(): void {
     this.loadPlatforms();
     this.setupRawgSearch();
     this.gameId = this.route.snapshot.paramMap.get('id');

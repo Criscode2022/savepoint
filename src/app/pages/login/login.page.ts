@@ -123,7 +123,7 @@ export class LoginPage implements OnInit {
     return levels[this.passwordStrength()];
   });
 
-  constructor() {
+  public ngOnInit(): void {
     addIcons({
       gameController,
       mailOutline,
@@ -134,9 +134,7 @@ export class LoginPage implements OnInit {
       eyeOffOutline,
       alertCircleOutline,
     });
-  }
 
-  public ngOnInit(): void {
     this.route.data.subscribe((data) => {
       const registerMode = data["authMode"] === "register";
       this.isRegisterMode.set(registerMode);

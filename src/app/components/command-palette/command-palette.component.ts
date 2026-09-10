@@ -95,7 +95,7 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
     'RAWG',
   ];
 
-  constructor() {
+  public ngOnInit(): void {
     addIcons({
       addOutline,
       checkmarkCircleOutline,
@@ -112,9 +112,7 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
       sparklesOutline,
       statsChartOutline,
     });
-  }
 
-  public ngOnInit(): void {
     this.palette.open$.pipe(takeUntil(this.destroy$)).subscribe((open) => {
       this.open = open;
       if (open) {

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   IonContent,
@@ -51,6 +51,9 @@ import { RecommendationsService } from '../../services/recommendations.service';
   styleUrl: './recommendations.page.scss',
 })
 export class RecommendationsPage implements OnInit, OnDestroy {
+  private readonly gameService = inject(GameService);
+  private readonly recommendations = inject(RecommendationsService);
+
   protected loading = true;
   protected result: RecommendationsResult | null = null;
   private games: Game[] = [];
@@ -61,10 +64,7 @@ export class RecommendationsPage implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
 
-  constructor(
-    private readonly gameService: GameService,
-    private readonly recommendations: RecommendationsService,
-  ) {
+  public ngOnInit(): void {
     addIcons({
       arrowBackOutline,
       bulbOutline,
@@ -76,9 +76,7 @@ export class RecommendationsPage implements OnInit, OnDestroy {
       sparklesOutline,
       addOutline,
     });
-  }
 
-  public ngOnInit(): void {
     this.gameService.games$.pipe(takeUntil(this.destroy$)).subscribe((games) => {
       this.games = games;
     });

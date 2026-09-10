@@ -29,9 +29,7 @@ export class AuthService {
   private readonly jwtRegex =
     /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
-  constructor() {
-    this.initializeAuth();
-  }
+  private readonly authInitialized = this.initializeAuth();
 
   /**
    * Check if string is a valid JWT (has 3 parts)

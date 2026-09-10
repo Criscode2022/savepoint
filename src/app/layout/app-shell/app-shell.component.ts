@@ -73,7 +73,7 @@ export class AppShellComponent implements OnInit, OnDestroy {
   protected primaryNav: NavItem[] = [];
   protected collectionNav: NavItem[] = [];
 
-  constructor() {
+  public ngOnInit(): void {
     addIcons({
       addOutline,
       albumsOutline,
@@ -94,9 +94,7 @@ export class AppShellComponent implements OnInit, OnDestroy {
       statsChartOutline,
       timeOutline,
     });
-  }
 
-  public ngOnInit(): void {
     this.sidebarCollapsed = this.prefs.sidebarCollapsed;
     this.viewMode = this.prefs.viewMode;
 

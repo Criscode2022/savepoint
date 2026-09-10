@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { 
@@ -26,7 +26,7 @@ import { GameRatingComponent } from '../game-rating/game-rating.component';
   templateUrl: './game-card.component.html',
   styleUrl: './game-card.component.scss',
 })
-export class GameCardComponent {
+export class GameCardComponent implements OnInit {
   @Input() game!: Game;
   @Input() coverImage?: string;
   @Input() countdownTick = 0;
@@ -34,7 +34,7 @@ export class GameCardComponent {
   @Output() onMarkCompleted = new EventEmitter<string>();
   @Output() onDelete = new EventEmitter<string>();
 
-  constructor() {
+  public ngOnInit(): void {
     addIcons({
       starOutline, timeOutline, checkmarkCircleOutline,
       ellipseOutline, trashOutline, createOutline, heartOutline, pauseCircleOutline

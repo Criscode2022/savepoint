@@ -4,6 +4,7 @@ import {
   Input,
   OnChanges,
   OnDestroy,
+  OnInit,
   Output,
   SimpleChanges,
   inject,
@@ -58,7 +59,7 @@ import {
   templateUrl: './game-cover-upload.component.html',
   styleUrl: './game-cover-upload.component.scss',
 })
-export class GameCoverUploadComponent implements OnChanges, OnDestroy {
+export class GameCoverUploadComponent implements OnInit, OnChanges, OnDestroy {
   private readonly gameService = inject(GameService);
   private readonly rawg = inject(RawgService);
   private readonly destroy$ = new Subject<void>();
@@ -81,7 +82,7 @@ export class GameCoverUploadComponent implements OnChanges, OnDestroy {
   protected searchQuery = '';
   protected candidates: RawgCoverCandidate[] = [];
 
-  constructor() {
+  public ngOnInit(): void {
     addIcons({
       cloudUploadOutline,
       createOutline,

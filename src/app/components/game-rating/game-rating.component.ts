@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonIcon, IonButton } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -17,7 +17,7 @@ import {
   templateUrl: './game-rating.component.html',
   styleUrl: './game-rating.component.scss',
 })
-export class GameRatingComponent {
+export class GameRatingComponent implements OnInit {
   @Input() rating: number | null | undefined;
   @Input() readonly = false;
   @Input() disabled = false;
@@ -33,7 +33,7 @@ export class GameRatingComponent {
   protected readonly formatRatingLabel = formatRatingLabel;
   protected readonly isValidRating = isValidRating;
 
-  constructor() {
+  public ngOnInit(): void {
     addIcons({ star, starOutline });
   }
 

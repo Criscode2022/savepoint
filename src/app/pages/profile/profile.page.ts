@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { 
@@ -34,6 +34,10 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
   templateUrl: './profile.page.html',
 })
 export class ProfilePage implements OnInit {
+  private readonly authService = inject(AuthService);
+  private readonly gameService = inject(GameService);
+  private readonly router = inject(Router);
+
   protected user: AuthUser | null = null;
   private games: Game[] = [];
   protected recentGames: Game[] = [];
@@ -44,19 +48,13 @@ export class ProfilePage implements OnInit {
   
   private readonly destroy$ = new Subject<void>();
 
-  constructor(
-    private readonly authService: AuthService,
-    private readonly gameService: GameService,
-    private readonly router: Router,
-  ) {
-    addIcons({ 
-      logOutOutline, personOutline, gameControllerOutline, 
-      timeOutline, checkmarkCircleOutline, starOutline, 
+  public ngOnInit(): void {
+    addIcons({
+      logOutOutline, personOutline, gameControllerOutline,
+      timeOutline, checkmarkCircleOutline, starOutline,
       arrowBackOutline, settingsOutline, trophyOutline
     });
-  }
 
-  public ngOnInit(): void {
     this.user = this.authService.getCurrentUser();
     
     if (!this.user) {

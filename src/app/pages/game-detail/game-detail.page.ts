@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -38,6 +38,11 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
   templateUrl: './game-detail.page.html',
 })
 export class GameDetailPage implements OnInit, ViewWillEnter {
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly gameService = inject(GameService);
+  private readonly alertController = inject(AlertController);
+
   @ViewChild('statusSelect') private statusSelect?: IonSelect;
 
   protected game: Game | null = null;
@@ -66,21 +71,14 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     return this.heroCoverImage ? `url("${this.heroCoverImage}")` : 'none';
   }
 
-  constructor(
-    private readonly route: ActivatedRoute,
-    private readonly router: Router,
-    private readonly gameService: GameService,
-    private readonly alertController: AlertController,
-  ) {
+  public ngOnInit(): void {
     addIcons({
       arrowBackOutline, starOutline, timeOutline, calendarOutline,
       businessOutline, personOutline, gameControllerOutline,
       checkmarkCircleOutline, createOutline, trashOutline, ellipseOutline, heartOutline,
       chevronDownOutline, pauseCircleOutline
     });
-  }
 
-  public ngOnInit(): void {
     const gameId = this.route.snapshot.paramMap.get('id');
     if (gameId) {
       this.loadGame(gameId);

@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, effect, Renderer2, RendererFactory2 } from '@angular/core';
+import { Injectable, inject, signal, RendererFactory2 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
@@ -11,7 +11,7 @@ export type Theme = 'dark' | 'light' | 'system';
 export class ThemeService {
   private readonly document = inject(DOCUMENT);
   private readonly rendererFactory = inject(RendererFactory2);
-  private renderer: Renderer2;
+  private readonly renderer = this.rendererFactory.createRenderer(null, null);
 
   private readonly STORAGE_KEY = 'gamevault_theme';
   
@@ -19,20 +19,7 @@ export class ThemeService {
   public readonly isDarkMode = signal<boolean>(true);
   public readonly isDarkMode$: Observable<boolean> = toObservable(this.isDarkMode);
 
-  constructor() {
-    this.renderer = this.rendererFactory.createRenderer(null, null);
-    this.initializeTheme();
-    
-    // Watch for system theme changes
-    if (typeof window !== 'undefined') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      mediaQuery.addEventListener('change', () => {
-        if (this.currentTheme() === 'system') {
-          this.applyTheme('system');
-        }
-      });
-    }
-  }
+  private readonly themeInitialized = this.bootstrapTheme();
 
   private getStoredTheme(): Theme {
     if (typeof window === 'undefined') return 'dark';
@@ -46,6 +33,19 @@ export class ThemeService {
 
   private initializeTheme(): void {
     this.applyTheme(this.currentTheme());
+  }
+
+  private bootstrapTheme(): void {
+    this.initializeTheme();
+
+    if (typeof window !== 'undefined') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      mediaQuery.addEventListener('change', () => {
+        if (this.currentTheme() === 'system') {
+          this.applyTheme('system');
+        }
+      });
+    }
   }
 
   public setTheme(theme: Theme): void {

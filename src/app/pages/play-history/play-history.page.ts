@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import {
@@ -44,12 +44,14 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
   templateUrl: './play-history.page.html',
 })
 export class PlayHistoryPage implements OnInit, OnDestroy {
+  private readonly gameService = inject(GameService);
+
   protected completedGames: Game[] = [];
   protected loading = true;
 
   private readonly destroy$ = new Subject<void>();
 
-  constructor(private readonly gameService: GameService) {
+  public ngOnInit(): void {
     addIcons({
       arrowBackOutline,
       calendarOutline,
@@ -58,9 +60,7 @@ export class PlayHistoryPage implements OnInit, OnDestroy {
       starOutline,
       timeOutline,
     });
-  }
 
-  public ngOnInit(): void {
     this.loadCompletedGames();
   }
 

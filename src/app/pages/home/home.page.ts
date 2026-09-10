@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, Signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -52,9 +52,16 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
   templateUrl: './home.page.html',
 })
 export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
+  private readonly gameService = inject(GameService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly alertController = inject(AlertController);
+  private readonly prefs = inject(LibraryPrefsService);
+  private readonly collections = inject(CollectionsService);
+
   private games: Game[] = [];
-  protected readonly filteredGames: Signal<Game[]>;
-  protected readonly gamesLoading: Signal<boolean>;
+  protected readonly filteredGames: Signal<Game[]> = this.gameService.filteredGames;
+  protected readonly gamesLoading: Signal<boolean> = this.gameService.gamesLoading;
 
   protected viewMode: LibraryViewMode = 'grid';
   protected searchQuery = '';
@@ -97,16 +104,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   private readonly destroy$ = new Subject<void>();
   private countdownInterval?: ReturnType<typeof setInterval>;
 
-  constructor(
-    private readonly gameService: GameService,
-    private readonly router: Router,
-    private readonly route: ActivatedRoute,
-    private readonly alertController: AlertController,
-    private readonly prefs: LibraryPrefsService,
-    private readonly collections: CollectionsService,
-  ) {
-    this.filteredGames = this.gameService.filteredGames;
-    this.gamesLoading = this.gameService.gamesLoading;
+  public ngOnInit(): void {
     addIcons({
       gameControllerOutline, addOutline, searchOutline, filterOutline,
       gridOutline, listOutline, albumsOutline,
@@ -115,9 +113,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       pauseCircleOutline, downloadOutline, playOutline, chevronForwardOutline,
       documentAttachOutline, bookmarkOutline
     });
-  }
 
-  public ngOnInit(): void {
     this.viewMode = this.prefs.viewMode;
     this.prefs.viewMode$.pipe(takeUntil(this.destroy$)).subscribe((m) => {
       this.viewMode = m;
