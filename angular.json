@@ -6,6 +6,10 @@
     "videogames-library": {
       "projectType": "application",
       "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss",
+          "inlineStyle": false
+        },
         "@ionic/angular:component": {
           "styleext": "scss"
         },
@@ -107,6 +111,10 @@
     "analytics": false
   },
   "schematics": {
+    "@schematics/angular:component": {
+      "style": "scss",
+      "inlineStyle": false
+    },
     "@ionic/angular:component": {
       "styleext": "scss"
     },
