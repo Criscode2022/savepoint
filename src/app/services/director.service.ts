@@ -17,9 +17,9 @@ interface DbDirector {
   providedIn: 'root'
 })
 export class DirectorService {
-  private db = inject(DatabaseService);
+  private readonly db = inject(DatabaseService);
 
-  getDirectors(): Observable<Director[]> {
+  public getDirectors(): Observable<Director[]> {
     return this.db.select<DbDirector>('directors', { order: 'name.asc' }).pipe(
       map(directors => directors.map(d => ({
         id: d.id,
@@ -35,7 +35,7 @@ export class DirectorService {
     );
   }
 
-  getDirectorById(id: string): Observable<Director> {
+  public getDirectorById(id: string): Observable<Director> {
     return this.db.selectOne<DbDirector>('directors', id).pipe(
       map(director => {
         if (!director) {
@@ -56,7 +56,7 @@ export class DirectorService {
     );
   }
 
-  searchDirectors(query: string): Observable<Director[]> {
+  public searchDirectors(query: string): Observable<Director[]> {
     return this.db.select<DbDirector>('directors', { 
       order: 'name.asc'
     }).pipe(
@@ -78,7 +78,7 @@ export class DirectorService {
     );
   }
 
-  findOrCreateByName(name: string): Observable<string | null> {
+  public findOrCreateByName(name: string): Observable<string | null> {
     const trimmed = name.trim();
     if (!trimmed) {
       return from([null]);

@@ -19,9 +19,9 @@ interface DbPlatform {
   providedIn: 'root'
 })
 export class PlatformService {
-  private db = inject(DatabaseService);
+  private readonly db = inject(DatabaseService);
 
-  getPlatforms(): Observable<Platform[]> {
+  public getPlatforms(): Observable<Platform[]> {
     return this.db.select<DbPlatform>('platforms', { order: 'name.asc' }).pipe(
       map(platforms => platforms.map(p => ({
         id: p.id,
@@ -39,7 +39,7 @@ export class PlatformService {
     );
   }
 
-  getPlatformById(id: string): Observable<Platform> {
+  public getPlatformById(id: string): Observable<Platform> {
     return this.db.selectOne<DbPlatform>('platforms', id).pipe(
       map(platform => {
         if (!platform) {
@@ -62,7 +62,7 @@ export class PlatformService {
     );
   }
 
-  resolvePlatformId(platformId?: string): Observable<string | null> {
+  public resolvePlatformId(platformId?: string): Observable<string | null> {
     if (!platformId?.trim()) {
       return of(null);
     }

@@ -51,20 +51,20 @@ import { shouldShowFieldError } from '../../shared/utils/form-field-error';
   styleUrl: './game-form.page.scss',
 })
 export class GameFormPage implements OnInit, OnDestroy {
-  @ViewChild('gameForm') gameFormRef?: NgForm;
+  @ViewChild('gameForm') private gameFormRef?: NgForm;
 
-  platforms: Platform[] = [];
-  genres = GENRES;
-  statusLabels = GAME_STATUS_LABELS;
-  currentYear = new Date().getFullYear();
+  protected platforms: Platform[] = [];
+  protected readonly genres = GENRES;
+  protected readonly statusLabels = GAME_STATUS_LABELS;
+  private readonly currentYear = new Date().getFullYear();
   
-  isEdit = false;
-  isWishlistMode = false;
-  isLoadingGame = false;
-  gameId: string | null = null;
-  selectedPlatformId = '';
+  protected isEdit = false;
+  protected isWishlistMode = false;
+  protected isLoadingGame = false;
+  private gameId: string | null = null;
+  protected selectedPlatformId = '';
   
-  game: Partial<Game> = {
+  protected game: Partial<Game> = {
     title: '',
     description: '',
     coverImage: '',
@@ -79,39 +79,39 @@ export class GameFormPage implements OnInit, OnDestroy {
     notes: ''
   };
 
-  tagDraft = '';
+  protected tagDraft = '';
   
-  developerName = '';
-  isSubmitting = false;
-  submitted = false;
-  focusedField: string | null = null;
+  protected developerName = '';
+  protected isSubmitting = false;
+  private submitted = false;
+  private focusedField: string | null = null;
   private readonly revealedErrors = new Set<string>();
-  toastMessage = '';
+  protected toastMessage = '';
   private originalStatus: GamePlayStatus = 'not_started';
-  ratingPreview: number | null = null;
+  protected ratingPreview: number | null = null;
 
   // RAWG search / import
-  rawgQuery = '';
-  rawgResults: RawgGameSummary[] = [];
-  rawgSearching = false;
-  rawgSearched = false;
-  rawgError = '';
-  rawgImportingId: number | null = null;
-  rawgImportedTitle = '';
+  protected rawgQuery = '';
+  protected rawgResults: RawgGameSummary[] = [];
+  protected rawgSearching = false;
+  protected rawgSearched = false;
+  protected rawgError = '';
+  protected rawgImportingId: number | null = null;
+  protected rawgImportedTitle = '';
   private readonly rawgQuery$ = new Subject<string>();
   private readonly destroy$ = new Subject<void>();
 
-  get rawgConfigured(): boolean {
+  protected get rawgConfigured(): boolean {
     return this.rawg.isConfigured;
   }
 
   constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private gameService: GameService,
-    private platformService: PlatformService,
-    private alertController: AlertController,
-    private rawg: RawgService,
+    private readonly route: ActivatedRoute,
+    private readonly router: Router,
+    private readonly gameService: GameService,
+    private readonly platformService: PlatformService,
+    private readonly alertController: AlertController,
+    private readonly rawg: RawgService,
   ) {
     addIcons({
       arrowBackOutline,
@@ -124,7 +124,7 @@ export class GameFormPage implements OnInit, OnDestroy {
     });
   }
 
-  ngOnInit(): void {
+  public ngOnInit(): void {
     this.loadPlatforms();
     this.setupRawgSearch();
     this.gameId = this.route.snapshot.paramMap.get('id');
@@ -143,7 +143,7 @@ export class GameFormPage implements OnInit, OnDestroy {
     }
   }
 
-  ngOnDestroy(): void {
+  public ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -179,7 +179,7 @@ export class GameFormPage implements OnInit, OnDestroy {
       });
   }
 
-  onRawgQuery(event: CustomEvent | Event): void {
+  protected onRawgQuery(event: CustomEvent | Event): void {
     const value =
       (event as CustomEvent)?.detail?.value ??
       (event.target as HTMLInputElement | null)?.value ??
@@ -188,7 +188,7 @@ export class GameFormPage implements OnInit, OnDestroy {
     this.rawgQuery$.next(this.rawgQuery);
   }
 
-  applyRawgGame(hit: RawgGameSummary): void {
+  protected applyRawgGame(hit: RawgGameSummary): void {
     if (this.rawgImportingId != null) return;
     this.rawgImportingId = hit.id;
     this.rawgError = '';
@@ -261,34 +261,34 @@ export class GameFormPage implements OnInit, OnDestroy {
       });
   }
 
-  get pageTitle(): string {
+  protected get pageTitle(): string {
     if (this.isEdit) return 'Edit Game';
     return this.isWishlistMode ? 'Add to Wishlist' : 'Add Game';
   }
 
-  get formCardTitle(): string {
+  protected get formCardTitle(): string {
     if (this.isEdit) return 'Edit Game Information';
     return this.isWishlistMode ? 'Wishlist Game Information' : 'Game Information';
   }
 
-  get submitLabel(): string {
+  protected get submitLabel(): string {
     if (this.isEdit) return 'Save Changes';
     return this.isWishlistMode ? 'Add to Wishlist' : 'Save Game';
   }
 
-  get maxReleaseYear(): number {
+  protected get maxReleaseYear(): number {
     return this.requiresReleaseDate() ? this.currentYear + 10 : this.currentYear;
   }
 
-  requiresReleaseDate(): boolean {
+  protected requiresReleaseDate(): boolean {
     return this.isWishlistMode || this.game.status === 'wishlist';
   }
 
-  canSelectWishlistStatus(): boolean {
+  protected canSelectWishlistStatus(): boolean {
     return this.isEdit && this.originalStatus === 'wishlist';
   }
 
-  releaseDateYearMismatch(): boolean {
+  private releaseDateYearMismatch(): boolean {
     if (!this.requiresReleaseDate()) {
       return false;
     }
@@ -301,7 +301,7 @@ export class GameFormPage implements OnInit, OnDestroy {
     return dateYear !== Number(this.game.releaseYear);
   }
 
-  canSubmit(form: NgForm): boolean {
+  private canSubmit(form: NgForm): boolean {
     if (!form.valid) {
       return false;
     }
@@ -313,11 +313,11 @@ export class GameFormPage implements OnInit, OnDestroy {
     return !this.releaseDateYearMismatch();
   }
 
-  onFieldFocus(name: string): void {
+  protected onFieldFocus(name: string): void {
     this.focusedField = name;
   }
 
-  onFieldBlur(name: string): void {
+  protected onFieldBlur(name: string): void {
     if (this.focusedField === name) {
       this.focusedField = null;
     }
@@ -325,12 +325,12 @@ export class GameFormPage implements OnInit, OnDestroy {
     this.syncRelatedFieldError(name);
   }
 
-  onFieldChange(name: string): void {
+  protected onFieldChange(name: string): void {
     this.syncFieldError(name);
     this.syncRelatedFieldError(name);
   }
 
-  isInvalid(control: NgModel | null | undefined): boolean {
+  protected isInvalid(control: NgModel | null | undefined): boolean {
     return !!control && this.revealedErrors.has(control.name);
   }
 
@@ -380,7 +380,7 @@ export class GameFormPage implements OnInit, OnDestroy {
     }
   }
 
-  fieldError(control: NgModel | null | undefined): string | null {
+  protected fieldError(control: NgModel | null | undefined): string | null {
     if (!this.isInvalid(control) || !control) {
       return null;
     }
@@ -434,7 +434,7 @@ export class GameFormPage implements OnInit, OnDestroy {
     });
   }
 
-  loadGame(id: string): void {
+  private loadGame(id: string): void {
     this.gameService.getGameById(id).subscribe({
       next: (game) => {
         this.isLoadingGame = false;
@@ -457,19 +457,19 @@ export class GameFormPage implements OnInit, OnDestroy {
     });
   }
 
-  isGenreSelected(genre: string): boolean {
+  protected isGenreSelected(genre: string): boolean {
     return this.game.genre?.includes(genre) || false;
   }
 
-  onCoverImageChange(coverImage: string | null): void {
+  protected onCoverImageChange(coverImage: string | null): void {
     this.game.coverImage = coverImage ?? undefined;
   }
 
-  canShowRating(): boolean {
+  protected canShowRating(): boolean {
     return !this.isWishlistMode && canRateGame(this.game.status);
   }
 
-  onRatingChange(rating: number | null): void {
+  protected onRatingChange(rating: number | null): void {
     if (!this.canShowRating()) {
       return;
     }
@@ -478,11 +478,11 @@ export class GameFormPage implements OnInit, OnDestroy {
     this.game.rating = rating ?? undefined;
   }
 
-  getRatingDisplay(): string {
+  protected getRatingDisplay(): string {
     return formatRatingLabel(this.ratingPreview ?? this.game.rating);
   }
 
-  toggleGenre(genre: string): void {
+  protected toggleGenre(genre: string): void {
     if (!this.game.genre) {
       this.game.genre = [];
     }
@@ -494,27 +494,27 @@ export class GameFormPage implements OnInit, OnDestroy {
     }
   }
 
-  addTagFromDraft(): void {
+  protected addTagFromDraft(): void {
     const next = normalizeTags([...(this.game.tags ?? []), this.tagDraft]);
     this.game.tags = next;
     this.tagDraft = '';
   }
 
-  removeTag(tag: string): void {
+  protected removeTag(tag: string): void {
     this.game.tags = (this.game.tags ?? []).filter((t) => t !== tag);
   }
 
-  canSubmitForm(): boolean {
+  protected canSubmitForm(): boolean {
     return !!this.gameFormRef && this.canSubmit(this.gameFormRef);
   }
 
-  submitForm(): void {
+  protected submitForm(): void {
     if (this.gameFormRef) {
       void this.onSubmit(this.gameFormRef);
     }
   }
 
-  async onSubmit(form: NgForm): Promise<void> {
+  protected async onSubmit(form: NgForm): Promise<void> {
     this.submitted = true;
     form.control.markAllAsTouched();
     this.revealInvalidFields(form);

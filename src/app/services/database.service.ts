@@ -207,7 +207,7 @@ export class DatabaseService {
   /**
    * Delete rows by filter
    */
-  delete(
+  public delete(
     table: string,
     filters: Record<string, string | number | boolean | null | undefined>,
   ): Observable<number> {
@@ -225,7 +225,7 @@ export class DatabaseService {
   /**
    * Delete a single row by ID
    */
-  deleteById(
+  public deleteById(
     table: string,
     id: string,
     idColumn: string = "id",

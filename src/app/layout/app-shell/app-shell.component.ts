@@ -62,16 +62,16 @@ export class AppShellComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly destroy$ = new Subject<void>();
 
-  sidebarCollapsed = false;
-  mobileDrawerOpen = false;
-  viewMode: 'grid' | 'list' | 'shelf' = 'grid';
-  games: Game[] = [];
-  modKey = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
+  protected sidebarCollapsed = false;
+  protected mobileDrawerOpen = false;
+  protected viewMode: 'grid' | 'list' | 'shelf' = 'grid';
+  private games: Game[] = [];
+  protected readonly modKey = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
     ? '⌘'
     : 'Ctrl+';
 
-  primaryNav: NavItem[] = [];
-  collectionNav: NavItem[] = [];
+  protected primaryNav: NavItem[] = [];
+  protected collectionNav: NavItem[] = [];
 
   constructor() {
     addIcons({
@@ -96,7 +96,7 @@ export class AppShellComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnInit(): void {
+  public ngOnInit(): void {
     this.sidebarCollapsed = this.prefs.sidebarCollapsed;
     this.viewMode = this.prefs.viewMode;
 
@@ -130,28 +130,28 @@ export class AppShellComponent implements OnInit, OnDestroy {
       });
   }
 
-  ngOnDestroy(): void {
+  public ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  toggleSidebar(): void {
+  protected toggleSidebar(): void {
     this.prefs.toggleSidebar();
   }
 
-  openPalette(): void {
+  protected openPalette(): void {
     this.palette.open();
   }
 
-  setView(mode: 'grid' | 'list' | 'shelf'): void {
+  protected setView(mode: 'grid' | 'list' | 'shelf'): void {
     this.prefs.setViewMode(mode);
   }
 
-  onNavClick(): void {
+  protected onNavClick(): void {
     this.mobileDrawerOpen = false;
   }
 
-  logout(): void {
+  protected logout(): void {
     this.auth.logout();
     void this.router.navigate(['/login']);
   }

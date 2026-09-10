@@ -52,58 +52,58 @@ type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'compl
   templateUrl: './home.page.html',
 })
 export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
-  games: Game[] = [];
-  readonly filteredGames: Signal<Game[]>;
-  readonly gamesLoading: Signal<boolean>;
+  private games: Game[] = [];
+  protected readonly filteredGames: Signal<Game[]>;
+  protected readonly gamesLoading: Signal<boolean>;
 
-  viewMode: LibraryViewMode = 'grid';
-  searchQuery = '';
-  private searchSubject = new Subject<string>();
+  protected viewMode: LibraryViewMode = 'grid';
+  protected searchQuery = '';
+  private readonly searchSubject = new Subject<string>();
 
-  showFilters = false;
-  platforms: string[] = [];
-  years: number[] = [];
-  developers: string[] = [];
-  genres: string[] = [];
+  protected showFilters = false;
+  protected platforms: string[] = [];
+  protected years: number[] = [];
+  protected developers: string[] = [];
+  protected genres: string[] = [];
 
-  selectedPlatforms: string[] = [];
-  selectedYears: number[] = [];
-  selectedDevelopers: string[] = [];
-  selectedGenres: string[] = [];
-  selectedTags: string[] = [];
-  availableTags: string[] = [];
+  private selectedPlatforms: string[] = [];
+  private selectedYears: number[] = [];
+  protected selectedDevelopers: string[] = [];
+  private selectedGenres: string[] = [];
+  protected selectedTags: string[] = [];
+  protected availableTags: string[] = [];
 
-  sortBy: 'title' | 'releaseYear' | 'rating' | 'createdAt' | 'lastPlayedAt' | 'playtimeHours' = 'createdAt';
-  sortOrder: 'asc' | 'desc' = 'desc';
+  protected sortBy: 'title' | 'releaseYear' | 'rating' | 'createdAt' | 'lastPlayedAt' | 'playtimeHours' = 'createdAt';
+  private sortOrder: 'asc' | 'desc' = 'desc';
 
-  libraryStatusFilter: LibraryStatusFilter = 'all';
+  protected libraryStatusFilter: LibraryStatusFilter = 'all';
 
-  toastMessage = '';
-  toastColor: 'success' | 'danger' | 'warning' = 'success';
-  countdownTick = 0;
+  protected toastMessage = '';
+  protected toastColor: 'success' | 'danger' | 'warning' = 'success';
+  protected countdownTick = 0;
 
-  showExportDialog = false;
-  includeWishlistInExport = true;
-  exportScope: 'library' | 'filtered' = 'library';
-  importing = false;
+  protected showExportDialog = false;
+  protected includeWishlistInExport = true;
+  private exportScope: 'library' | 'filtered' = 'library';
+  protected importing = false;
 
-  savedCollections: SavedCollection[] = [];
-  activeSavedCollectionId: string | null = null;
+  protected savedCollections: SavedCollection[] = [];
+  protected activeSavedCollectionId: string | null = null;
 
-  readonly skeletonGridItems = Array.from({ length: 12 });
-  readonly skeletonShelfItems = Array.from({ length: 18 });
-  readonly skeletonListItems = Array.from({ length: 6 });
+  protected readonly skeletonGridItems = Array.from({ length: 12 });
+  protected readonly skeletonShelfItems = Array.from({ length: 18 });
+  protected readonly skeletonListItems = Array.from({ length: 6 });
 
-  private destroy$ = new Subject<void>();
+  private readonly destroy$ = new Subject<void>();
   private countdownInterval?: ReturnType<typeof setInterval>;
 
   constructor(
-    private gameService: GameService,
-    private router: Router,
-    private route: ActivatedRoute,
-    private alertController: AlertController,
-    private prefs: LibraryPrefsService,
-    private collections: CollectionsService,
+    private readonly gameService: GameService,
+    private readonly router: Router,
+    private readonly route: ActivatedRoute,
+    private readonly alertController: AlertController,
+    private readonly prefs: LibraryPrefsService,
+    private readonly collections: CollectionsService,
   ) {
     this.filteredGames = this.gameService.filteredGames;
     this.gamesLoading = this.gameService.gamesLoading;
@@ -117,7 +117,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     });
   }
 
-  ngOnInit(): void {
+  public ngOnInit(): void {
     this.viewMode = this.prefs.viewMode;
     this.prefs.viewMode$.pipe(takeUntil(this.destroy$)).subscribe((m) => {
       this.viewMode = m;
@@ -161,7 +161,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     });
   }
 
-  ionViewWillEnter(): void {
+  public ionViewWillEnter(): void {
     this.refreshFilterOptions();
     this.consumeNavigationToast();
   }
@@ -175,7 +175,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     history.replaceState({ ...state, showDeletedGameToast: false }, '');
   }
 
-  ngOnDestroy(): void {
+  public ngOnDestroy(): void {
     if (this.countdownInterval) {
       clearInterval(this.countdownInterval);
     }
@@ -238,14 +238,14 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       });
   }
 
-  onSearch(event: CustomEvent | Event): void {
+  protected onSearch(event: CustomEvent | Event): void {
     const detail = (event as CustomEvent<{ value?: string | null }>).detail;
     const target = event.target as HTMLInputElement | null;
     this.searchQuery = detail?.value ?? target?.value ?? this.searchQuery ?? '';
     this.searchSubject.next(this.searchQuery);
   }
 
-  applyFilters(): void {
+  protected applyFilters(): void {
     const filters: GameFilters = {
       search: this.searchQuery,
       platforms: this.selectedPlatforms.length > 0 ? this.selectedPlatforms : undefined,
@@ -265,15 +265,15 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     });
   }
 
-  isTagSelected(tag: string): boolean {
+  protected isTagSelected(tag: string): boolean {
     return this.selectedTags.includes(tag);
   }
 
-  isGenreSelected(genre: string): boolean {
+  protected isGenreSelected(genre: string): boolean {
     return this.selectedGenres.includes(genre);
   }
 
-  toggleGenre(genre: string): void {
+  protected toggleGenre(genre: string): void {
     const index = this.selectedGenres.indexOf(genre);
     if (index > -1) {
       this.selectedGenres.splice(index, 1);
@@ -284,14 +284,14 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.applyFilters();
   }
 
-  clearTagFilters(): void {
+  protected clearTagFilters(): void {
     if (!this.selectedTags.length) return;
     this.selectedTags = [];
     this.activeSavedCollectionId = null;
     this.applyFilters();
   }
 
-  toggleTag(tag: string): void {
+  protected toggleTag(tag: string): void {
     const index = this.selectedTags.indexOf(tag);
     if (index > -1) {
       this.selectedTags.splice(index, 1);
@@ -302,7 +302,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.applyFilters();
   }
 
-  async saveCurrentCollection(): Promise<void> {
+  protected async saveCurrentCollection(): Promise<void> {
     const alert = await this.alertController.create({
       header: 'Save collection',
       message: 'Name this view (status filter + optional tag).',
@@ -346,7 +346,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     await alert.present();
   }
 
-  applySavedCollection(col: SavedCollection): void {
+  protected applySavedCollection(col: SavedCollection): void {
     void this.router.navigate(['/home'], {
       queryParams: {
         collection: col.filter === 'all' ? null : col.filter,
@@ -356,7 +356,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     });
   }
 
-  removeSavedCollection(event: Event, id: string): void {
+  protected removeSavedCollection(event: Event, id: string): void {
     event.stopPropagation();
     this.collections.remove(id);
     if (this.activeSavedCollectionId === id) {
@@ -364,7 +364,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     }
   }
 
-  onImportFile(event: Event): void {
+  protected onImportFile(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
@@ -407,11 +407,11 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     reader.readAsText(file);
   }
 
-  setViewMode(mode: LibraryViewMode): void {
+  protected setViewMode(mode: LibraryViewMode): void {
     this.prefs.setViewMode(mode);
   }
 
-  setCollection(filter: LibraryStatusFilter): void {
+  protected setCollection(filter: LibraryStatusFilter): void {
     if (filter === 'all') {
       void this.router.navigate(['/home'], { queryParams: {} });
       return;
@@ -422,11 +422,11 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     void this.router.navigate(['/home'], { queryParams: { collection: filter } });
   }
 
-  isPlatformSelected(platform: string): boolean {
+  protected isPlatformSelected(platform: string): boolean {
     return this.selectedPlatforms.includes(platform);
   }
 
-  togglePlatform(platform: string): void {
+  protected togglePlatform(platform: string): void {
     const index = this.selectedPlatforms.indexOf(platform);
     if (index > -1) {
       this.selectedPlatforms.splice(index, 1);
@@ -436,16 +436,16 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.applyFilters();
   }
 
-  getPlatformColor(platform: string): string {
+  protected getPlatformColor(platform: string): string {
     const p = PLATFORMS.find((x) => x.name === platform);
     return p?.color || '#a855f7';
   }
 
-  isYearSelected(year: number): boolean {
+  protected isYearSelected(year: number): boolean {
     return this.selectedYears.includes(year);
   }
 
-  toggleYear(year: number): void {
+  protected toggleYear(year: number): void {
     const index = this.selectedYears.indexOf(year);
     if (index > -1) {
       this.selectedYears.splice(index, 1);
@@ -455,7 +455,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.applyFilters();
   }
 
-  hasActiveFilters(): boolean {
+  protected hasActiveFilters(): boolean {
     return (
       this.selectedPlatforms.length > 0 ||
       this.selectedYears.length > 0 ||
@@ -466,7 +466,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     );
   }
 
-  get activeFilterCount(): number {
+  protected get activeFilterCount(): number {
     return (
       this.selectedPlatforms.length +
       this.selectedYears.length +
@@ -477,7 +477,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     );
   }
 
-  getActiveFilterChips(): Array<{ type: string; value: unknown; label: string }> {
+  protected getActiveFilterChips(): Array<{ type: string; value: unknown; label: string }> {
     const chips: Array<{ type: string; value: unknown; label: string }> = [];
     if (this.searchQuery) {
       chips.push({ type: 'search', value: this.searchQuery, label: `Search: ${this.searchQuery}` });
@@ -490,7 +490,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     return chips;
   }
 
-  removeFilter(type: string, value: unknown): void {
+  protected removeFilter(type: string, value: unknown): void {
     switch (type) {
       case 'search':
         this.searchQuery = '';
@@ -514,7 +514,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.applyFilters();
   }
 
-  clearFilters(): void {
+  protected clearFilters(): void {
     this.searchQuery = '';
     this.selectedPlatforms = [];
     this.selectedYears = [];
@@ -524,23 +524,23 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.applyFilters();
   }
 
-  handleStatusClick(event: Event, game: Game): void {
+  protected handleStatusClick(event: Event, game: Game): void {
     event.stopPropagation();
     event.preventDefault();
     this.cycleStatus(game.id);
   }
 
-  handleMarkCompletedClick(event: Event, gameId: string): void {
+  protected handleMarkCompletedClick(event: Event, gameId: string): void {
     event.stopPropagation();
     event.preventDefault();
     this.markCompleted(gameId);
   }
 
-  showMarkCompleted(game: Game): boolean {
+  protected showMarkCompleted(game: Game): boolean {
     return game.status === 'playing' || game.status === 'paused';
   }
 
-  cycleStatus(gameId: string): void {
+  protected cycleStatus(gameId: string): void {
     const game =
       this.games.find((g) => g.id === gameId) ??
       this.filteredGames().find((g) => g.id === gameId);
@@ -578,7 +578,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     });
   }
 
-  markCompleted(gameId: string): void {
+  protected markCompleted(gameId: string): void {
     this.gameService.setStatus(gameId, 'completed').subscribe({
       next: () => {
         this.syncLibraryFilter();
@@ -590,19 +590,19 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     });
   }
 
-  isWishlistLocked(game: Game): boolean {
+  protected isWishlistLocked(game: Game): boolean {
     void this.countdownTick;
     return game.status === 'wishlist' && !canAddWishlistToLibrary(game);
   }
 
-  getStatusLabel(status: GamePlayStatus): string {
+  protected getStatusLabel(status: GamePlayStatus): string {
     if (status === 'wishlist') {
       return 'Add to Library';
     }
     return GAME_STATUS_LABELS[status];
   }
 
-  getStatusIcon(status: GamePlayStatus): string {
+  protected getStatusIcon(status: GamePlayStatus): string {
     const icons: Record<GamePlayStatus, string> = {
       not_started: 'ellipse-outline',
       playing: 'time-outline',
@@ -613,24 +613,24 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     return icons[status];
   }
 
-  getCountdownLabel(game: Game): string {
+  protected getCountdownLabel(game: Game): string {
     void this.countdownTick;
     return formatReleaseCountdown(game).label;
   }
 
-  get showStatusSections(): boolean {
+  protected get showStatusSections(): boolean {
     return !this.hasActiveFilters();
   }
 
-  get libraryGames(): Game[] {
+  protected get libraryGames(): Game[] {
     return this.filteredGames().filter((game) => game.status !== 'wishlist');
   }
 
-  get wishlistGames(): Game[] {
+  protected get wishlistGames(): Game[] {
     return this.filteredGames().filter((game) => game.status === 'wishlist');
   }
 
-  get continuePlaying(): Game[] {
+  protected get continuePlaying(): Game[] {
     return this.libraryGames
       .filter((g) => g.status === 'playing')
       .slice()
@@ -642,11 +642,11 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
       .slice(0, 8);
   }
 
-  get libraryGamesCount(): number {
+  protected get libraryGamesCount(): number {
     return this.libraryGames.length;
   }
 
-  get displayGames(): Game[] {
+  protected get displayGames(): Game[] {
     switch (this.libraryStatusFilter) {
       case 'not_started':
         return this.libraryGames.filter((game) => game.status === 'not_started');
@@ -667,7 +667,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     }
   }
 
-  get collectionTitle(): string {
+  protected get collectionTitle(): string {
     switch (this.libraryStatusFilter) {
       case 'not_started':
         return 'Backlog';
@@ -686,11 +686,11 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     }
   }
 
-  isLibraryFilterActive(filter: LibraryStatusFilter): boolean {
+  protected isLibraryFilterActive(filter: LibraryStatusFilter): boolean {
     return this.libraryStatusFilter === filter;
   }
 
-  canSelectLibraryFilter(filter: LibraryStatusFilter): boolean {
+  private canSelectLibraryFilter(filter: LibraryStatusFilter): boolean {
     switch (filter) {
       case 'all':
         return this.libraryGamesCount > 0;
@@ -720,12 +720,12 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     }
   }
 
-  get librarySectionCountLabel(): string {
+  protected get librarySectionCountLabel(): string {
     const label = this.activeLibraryFilterLabel;
     return label ? `${this.displayGames.length} ${label}` : `${this.displayGames.length}`;
   }
 
-  get activeLibraryFilterLabel(): string | null {
+  private get activeLibraryFilterLabel(): string | null {
     switch (this.libraryStatusFilter) {
       case 'not_started':
         return 'not started';
@@ -744,7 +744,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     }
   }
 
-  getLibraryEmptyMessage(): string {
+  protected getLibraryEmptyMessage(): string {
     switch (this.libraryStatusFilter) {
       case 'not_started':
         return 'No not started games in your library.';
@@ -763,7 +763,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     }
   }
 
-  async deleteGame(gameId: string): Promise<void> {
+  protected async deleteGame(gameId: string): Promise<void> {
     const game = this.games.find((g) => g.id === gameId);
     const title = game?.title ?? 'this game';
 
@@ -802,22 +802,22 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     });
   }
 
-  get filteredExportGames(): Game[] {
+  private get filteredExportGames(): Game[] {
     if (this.libraryStatusFilter === 'wishlist') {
       return [...this.wishlistGames];
     }
     return [...this.displayGames, ...(this.libraryStatusFilter === 'all' ? this.wishlistGames : [])];
   }
 
-  get filteredResultsCount(): number {
+  protected get filteredResultsCount(): number {
     return this.filteredExportGames.length;
   }
 
-  get exportDialogTitle(): string {
+  protected get exportDialogTitle(): string {
     return this.exportScope === 'filtered' ? 'Download filtered games' : 'Download library';
   }
 
-  get exportDialogMessage(): string {
+  protected get exportDialogMessage(): string {
     if (this.exportScope === 'filtered') {
       const count = this.filteredResultsCount;
       const label = count === 1 ? 'game' : 'games';
@@ -826,7 +826,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     return 'Choose a format for your export.';
   }
 
-  openExportDialog(): void {
+  protected openExportDialog(): void {
     if (this.games.length === 0) {
       this.showToast('No games to export', 'warning');
       return;
@@ -836,7 +836,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.showExportDialog = true;
   }
 
-  openFilteredExportDialog(): void {
+  protected openFilteredExportDialog(): void {
     if (this.filteredExportGames.length === 0) {
       this.showToast('No games to export', 'warning');
       return;
@@ -846,11 +846,11 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.showExportDialog = true;
   }
 
-  closeExportDialog(): void {
+  protected closeExportDialog(): void {
     this.showExportDialog = false;
   }
 
-  exportAndClose(format: LibraryExportFormat): void {
+  protected exportAndClose(format: LibraryExportFormat): void {
     this.exportLibrary(format, this.includeWishlistInExport);
     this.closeExportDialog();
   }
@@ -882,39 +882,39 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.toastColor = color;
   }
 
-  trackByGameId(_index: number, game: Game): string {
+  private trackByGameId(_index: number, game: Game): string {
     return game.id;
   }
 
-  trackByIndex(index: number): number {
+  private trackByIndex(index: number): number {
     return index;
   }
 
-  get completedCount(): number {
+  protected get completedCount(): number {
     return this.libraryGames.filter((g) => g.status === 'completed').length;
   }
 
-  get playingCount(): number {
+  protected get playingCount(): number {
     return this.libraryGames.filter((g) => g.status === 'playing').length;
   }
 
-  get pausedCount(): number {
+  protected get pausedCount(): number {
     return this.libraryGames.filter((g) => g.status === 'paused').length;
   }
 
-  get ratedCount(): number {
+  private get ratedCount(): number {
     return this.libraryGames.filter((g) => g.rating != null).length;
   }
 
-  get notStartedCount(): number {
+  protected get notStartedCount(): number {
     return this.libraryGames.filter((g) => g.status === 'not_started').length;
   }
 
-  get totalPlaytime(): number {
+  private get totalPlaytime(): number {
     return this.libraryGames.reduce((sum, g) => sum + (g.playtime || 0), 0);
   }
 
-  get playtimeGamesCount(): number {
+  private get playtimeGamesCount(): number {
     return this.libraryGames.filter((g) => (g.playtime || 0) > 0).length;
   }
 }

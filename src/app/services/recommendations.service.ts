@@ -48,7 +48,7 @@ const GENRE_SLUG_MAP: Record<string, string> = {
 export class RecommendationsService {
   private readonly rawg = inject(RawgService);
 
-  get apiConfigured(): boolean {
+  public get apiConfigured(): boolean {
     return this.rawg.isConfigured;
   }
 
@@ -56,7 +56,7 @@ export class RecommendationsService {
    * Build online recommendations from the user's library (no AI).
    * Uses RAWG: similar titles from seeds + top genres / platforms.
    */
-  getRecommendations(games: Game[]): Observable<RecommendationsResult> {
+  public getRecommendations(games: Game[]): Observable<RecommendationsResult> {
     const profile = this.buildTasteProfile(games);
 
     if (!this.rawg.isConfigured) {
@@ -107,7 +107,7 @@ export class RecommendationsService {
     );
   }
 
-  buildTasteProfile(games: Game[]): TasteProfile {
+  private buildTasteProfile(games: Game[]): TasteProfile {
     const genreWeight = new Map<string, number>();
     const platformWeight = new Map<string, number>();
     const developerWeight = new Map<string, number>();

@@ -9,15 +9,15 @@ export type Theme = 'dark' | 'light' | 'system';
   providedIn: 'root'
 })
 export class ThemeService {
-  private document = inject(DOCUMENT);
-  private rendererFactory = inject(RendererFactory2);
+  private readonly document = inject(DOCUMENT);
+  private readonly rendererFactory = inject(RendererFactory2);
   private renderer: Renderer2;
 
   private readonly STORAGE_KEY = 'gamevault_theme';
   
-  readonly currentTheme = signal<Theme>(this.getStoredTheme());
-  readonly isDarkMode = signal<boolean>(true);
-  readonly isDarkMode$: Observable<boolean> = toObservable(this.isDarkMode);
+  public readonly currentTheme = signal<Theme>(this.getStoredTheme());
+  public readonly isDarkMode = signal<boolean>(true);
+  public readonly isDarkMode$: Observable<boolean> = toObservable(this.isDarkMode);
 
   constructor() {
     this.renderer = this.rendererFactory.createRenderer(null, null);
@@ -48,13 +48,13 @@ export class ThemeService {
     this.applyTheme(this.currentTheme());
   }
 
-  setTheme(theme: Theme): void {
+  public setTheme(theme: Theme): void {
     this.currentTheme.set(theme);
     this.storeTheme(theme);
     this.applyTheme(theme);
   }
 
-  toggleTheme(): void {
+  public toggleTheme(): void {
     const newTheme = this.isDarkMode() ? 'light' : 'dark';
     this.setTheme(newTheme);
   }
@@ -94,17 +94,17 @@ export class ThemeService {
   }
 
   // Gaming aesthetic effects
-  enableNeonEffects(): void {
+  public enableNeonEffects(): void {
     const body = this.document.body;
     this.renderer.addClass(body, 'neon-effects');
   }
 
-  disableNeonEffects(): void {
+  public disableNeonEffects(): void {
     const body = this.document.body;
     this.renderer.removeClass(body, 'neon-effects');
   }
 
-  toggleNeonEffects(): void {
+  public toggleNeonEffects(): void {
     const body = this.document.body;
     if (body.classList.contains('neon-effects')) {
       this.disableNeonEffects();

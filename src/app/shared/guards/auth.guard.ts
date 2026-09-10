@@ -7,10 +7,10 @@ import { AuthService } from '../../services/auth.service';
   providedIn: 'root'
 })
 export class AuthGuard implements CanActivate {
-  private authService = inject(AuthService);
-  private router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
-  canActivate(): Observable<boolean | UrlTree> {
+  public canActivate(): Observable<boolean | UrlTree> {
     // Wait for auth initialization to complete before checking state
     return this.authService.waitForInitialization().pipe(
       switchMap(() => this.authService.getAuthState()),

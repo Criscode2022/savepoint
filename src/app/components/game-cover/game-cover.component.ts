@@ -21,11 +21,11 @@ export class GameCoverComponent implements OnChanges {
   @Input() coverImage?: string | null;
   @Input() variant: CoverVariant = 'card';
 
-  showImage = false;
-  isLandscape = false;
-  placeholderMetrics: PlaceholderMetrics = { fontSize: '1.25rem', lineClamp: 4 };
+  protected showImage = false;
+  protected isLandscape = false;
+  protected placeholderMetrics: PlaceholderMetrics = { fontSize: '1.25rem', lineClamp: 4 };
 
-  ngOnChanges(changes: SimpleChanges): void {
+  public ngOnChanges(changes: SimpleChanges): void {
     if (changes['coverImage']) {
       this.isLandscape = false;
       const next = changes['coverImage'].currentValue as string | null | undefined;
@@ -40,12 +40,12 @@ export class GameCoverComponent implements OnChanges {
     );
   }
 
-  onImageLoad(event: Event): void {
+  protected onImageLoad(event: Event): void {
     const img = event.target as HTMLImageElement;
     this.isLandscape = img.naturalWidth > img.naturalHeight * 1.02;
   }
 
-  onImageError(): void {
+  protected onImageError(): void {
     this.showImage = false;
     this.isLandscape = false;
   }

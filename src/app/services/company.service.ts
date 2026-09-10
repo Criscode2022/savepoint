@@ -17,9 +17,9 @@ interface DbCompany {
   providedIn: 'root'
 })
 export class CompanyService {
-  private db = inject(DatabaseService);
+  private readonly db = inject(DatabaseService);
 
-  getCompanies(): Observable<Company[]> {
+  public getCompanies(): Observable<Company[]> {
     return this.db.select<DbCompany>('companies', { order: 'name.asc' }).pipe(
       map(companies => companies.map(c => ({
         id: c.id,
@@ -35,7 +35,7 @@ export class CompanyService {
     );
   }
 
-  getCompanyById(id: string): Observable<Company> {
+  public getCompanyById(id: string): Observable<Company> {
     return this.db.selectOne<DbCompany>('companies', id).pipe(
       map(company => {
         if (!company) {
@@ -56,7 +56,7 @@ export class CompanyService {
     );
   }
 
-  searchCompanies(query: string): Observable<Company[]> {
+  public searchCompanies(query: string): Observable<Company[]> {
     // PostgREST doesn't support ILIKE directly in eq filters
     // Would need a custom endpoint or use ilike operator
     return this.db.select<DbCompany>('companies', { 
@@ -80,7 +80,7 @@ export class CompanyService {
     );
   }
 
-  findOrCreateByName(name: string): Observable<string> {
+  public findOrCreateByName(name: string): Observable<string> {
     const trimmed = name.trim();
     if (!trimmed) {
       return throwError(() => new Error('Developer name is required'));

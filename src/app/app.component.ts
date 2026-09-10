@@ -10,7 +10,7 @@ import { ThemeService } from './services/theme.service';
   imports: [CommonModule, IonApp, IonRouterOutlet]
 })
 export class AppComponent {
-  private themeService = inject(ThemeService);
-  
-  title = 'GameVault';
+  private readonly themeService = inject(ThemeService);
+
+  private readonly title = 'GameVault';
 }

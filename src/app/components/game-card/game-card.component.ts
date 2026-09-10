@@ -41,52 +41,52 @@ export class GameCardComponent {
     });
   }
 
-  get countdown() {
+  protected get countdown() {
     void this.countdownTick;
     return formatReleaseCountdown(this.game);
   }
 
-  get isWishlistLocked(): boolean {
+  protected get isWishlistLocked(): boolean {
     void this.countdownTick;
     return this.game.status === 'wishlist' && !canAddWishlistToLibrary(this.game);
   }
 
-  handleStatusClick(event: Event): void {
+  protected handleStatusClick(event: Event): void {
     event.stopPropagation();
     event.preventDefault();
     this.onToggleCompleted.emit(this.game.id);
   }
 
-  handleMarkCompletedClick(event: Event): void {
+  protected handleMarkCompletedClick(event: Event): void {
     event.stopPropagation();
     event.preventDefault();
     this.onMarkCompleted.emit(this.game.id);
   }
 
-  showMarkCompleted(): boolean {
+  protected showMarkCompleted(): boolean {
     return this.game.status === 'playing' || this.game.status === 'paused';
   }
 
-  handleFooterClick(event: Event): void {
+  private handleFooterClick(event: Event): void {
     this.handleStatusClick(event);
   }
 
-  toggleCompleted(event: Event): void {
+  private toggleCompleted(event: Event): void {
     this.handleFooterClick(event);
   }
 
-  cycleStatus(event: Event): void {
+  private cycleStatus(event: Event): void {
     this.handleFooterClick(event);
   }
 
-  getStatusLabel(): string {
+  protected getStatusLabel(): string {
     if (this.game.status === 'wishlist') {
       return 'Add to Library';
     }
     return GAME_STATUS_LABELS[this.game.status];
   }
 
-  getStatusIcon(): string {
+  protected getStatusIcon(): string {
     const icons: Record<GamePlayStatus, string> = {
       not_started: 'ellipse-outline',
       playing: 'time-outline',
@@ -97,12 +97,12 @@ export class GameCardComponent {
     return icons[this.game.status];
   }
 
-  getPlaytime(): number | null {
+  protected getPlaytime(): number | null {
     const hours = this.game.playtimeHours ?? this.game.playtime;
     return hours != null && hours > 0 ? hours : null;
   }
 
-  getPlatformColor(): string {
+  protected getPlatformColor(): string {
     return this.game.platform.color || '#a855f7';
   }
 }

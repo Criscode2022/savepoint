@@ -51,13 +51,13 @@ import { RecommendationsService } from '../../services/recommendations.service';
   styleUrl: './recommendations.page.scss',
 })
 export class RecommendationsPage implements OnInit, OnDestroy {
-  loading = true;
-  result: RecommendationsResult | null = null;
-  games: Game[] = [];
+  protected loading = true;
+  protected result: RecommendationsResult | null = null;
+  private games: Game[] = [];
   /** `${externalId}:library` | `${externalId}:wishlist` while saving */
-  addingKey: string | null = null;
-  toastMessage = '';
-  toastColor: 'success' | 'danger' | 'warning' = 'success';
+  protected addingKey: string | null = null;
+  protected toastMessage = '';
+  protected toastColor: 'success' | 'danger' | 'warning' = 'success';
 
   private readonly destroy$ = new Subject<void>();
 
@@ -78,7 +78,7 @@ export class RecommendationsPage implements OnInit, OnDestroy {
     });
   }
 
-  ngOnInit(): void {
+  public ngOnInit(): void {
     this.gameService.games$.pipe(takeUntil(this.destroy$)).subscribe((games) => {
       this.games = games;
     });
@@ -98,16 +98,16 @@ export class RecommendationsPage implements OnInit, OnDestroy {
       });
   }
 
-  ngOnDestroy(): void {
+  public ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  reload(): void {
+  protected reload(): void {
     this.loadRecommendations();
   }
 
-  loadRecommendations(): void {
+  private loadRecommendations(): void {
     this.loading = true;
     this.recommendations
       .getRecommendations(this.games)
@@ -124,7 +124,7 @@ export class RecommendationsPage implements OnInit, OnDestroy {
       });
   }
 
-  sourceLabel(source: GameRecommendation['source']): string {
+  protected sourceLabel(source: GameRecommendation['source']): string {
     switch (source) {
       case 'similar':
         return 'Similar';
@@ -139,15 +139,15 @@ export class RecommendationsPage implements OnInit, OnDestroy {
     }
   }
 
-  isAdding(rec: GameRecommendation): boolean {
+  protected isAdding(rec: GameRecommendation): boolean {
     return this.addingKey?.startsWith(`${rec.externalId}:`) ?? false;
   }
 
-  addToLibrary(rec: GameRecommendation): void {
+  protected addToLibrary(rec: GameRecommendation): void {
     this.addRecommendation(rec, 'not_started', 'library');
   }
 
-  addToWishlist(rec: GameRecommendation): void {
+  protected addToWishlist(rec: GameRecommendation): void {
     this.addRecommendation(rec, 'wishlist', 'wishlist');
   }
 
@@ -205,7 +205,7 @@ export class RecommendationsPage implements OnInit, OnDestroy {
       });
   }
 
-  trackById(_i: number, rec: GameRecommendation): number {
+  private trackById(_i: number, rec: GameRecommendation): number {
     return rec.externalId;
   }
 

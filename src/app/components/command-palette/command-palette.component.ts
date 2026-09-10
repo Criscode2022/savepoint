@@ -74,21 +74,21 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private readonly rawgQuery$ = new Subject<string>();
 
-  @ViewChild('queryInput') queryInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('queryInput') private queryInput?: ElementRef<HTMLInputElement>;
 
-  open = false;
-  query = '';
-  activeId = '';
-  games: Game[] = [];
-  rawgSearching = false;
-  addingKey: string | null = null;
-  toastMessage = '';
-  toastColor: 'success' | 'danger' | 'warning' = 'success';
+  protected open = false;
+  protected query = '';
+  protected activeId = '';
+  private games: Game[] = [];
+  protected rawgSearching = false;
+  protected addingKey: string | null = null;
+  protected toastMessage = '';
+  protected toastColor: 'success' | 'danger' | 'warning' = 'success';
   private platforms: Platform[] = [];
   private rawgItems: PaletteItem[] = [];
   private allItems: PaletteItem[] = [];
-  flatItems: PaletteItem[] = [];
-  readonly groups: PaletteGroup[] = [
+  protected flatItems: PaletteItem[] = [];
+  protected readonly groups: PaletteGroup[] = [
     'Actions',
     'Collections',
     'Games',
@@ -114,7 +114,7 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnInit(): void {
+  public ngOnInit(): void {
     this.palette.open$.pipe(takeUntil(this.destroy$)).subscribe((open) => {
       this.open = open;
       if (open) {
@@ -174,13 +174,13 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
       });
   }
 
-  ngOnDestroy(): void {
+  public ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
 
   @HostListener('document:keydown', ['$event'])
-  onGlobalKey(event: KeyboardEvent): void {
+  public onGlobalKey(event: KeyboardEvent): void {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
       this.palette.toggle();
@@ -192,16 +192,16 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
     }
   }
 
-  close(): void {
+  protected close(): void {
     this.palette.close();
   }
 
-  onQueryChange(): void {
+  protected onQueryChange(): void {
     this.refreshItems();
     this.rawgQuery$.next(this.query);
   }
 
-  onKeydown(event: KeyboardEvent): void {
+  protected onKeydown(event: KeyboardEvent): void {
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       this.move(1);
@@ -217,11 +217,11 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
     }
   }
 
-  itemsForGroup(group: PaletteGroup): PaletteItem[] {
+  protected itemsForGroup(group: PaletteGroup): PaletteItem[] {
     return this.flatItems.filter((i) => i.group === group);
   }
 
-  run(item: PaletteItem): void {
+  protected run(item: PaletteItem): void {
     if (item.kind === 'rawg' && item.rawg) {
       this.addRawg(item.rawg, 'not_started');
       return;
@@ -230,17 +230,17 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
     this.close();
   }
 
-  addRawgToLibrary(hit: RawgGameSummary, event?: Event): void {
+  protected addRawgToLibrary(hit: RawgGameSummary, event?: Event): void {
     event?.stopPropagation();
     this.addRawg(hit, 'not_started');
   }
 
-  addRawgToWishlist(hit: RawgGameSummary, event?: Event): void {
+  protected addRawgToWishlist(hit: RawgGameSummary, event?: Event): void {
     event?.stopPropagation();
     this.addRawg(hit, 'wishlist');
   }
 
-  isAdding(hit: RawgGameSummary): boolean {
+  protected isAdding(hit: RawgGameSummary): boolean {
     return this.addingKey?.startsWith(`${hit.id}:`) ?? false;
   }
 

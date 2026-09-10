@@ -28,24 +28,24 @@ export class GameRatingComponent {
   @Output() ratingChange = new EventEmitter<number | null>();
   @Output() previewChange = new EventEmitter<number | null>();
 
-  previewRating: number | null = null;
+  private previewRating: number | null = null;
 
-  readonly formatRatingLabel = formatRatingLabel;
-  readonly isValidRating = isValidRating;
+  protected readonly formatRatingLabel = formatRatingLabel;
+  protected readonly isValidRating = isValidRating;
 
   constructor() {
     addIcons({ star, starOutline });
   }
 
-  get displayRating(): number | null | undefined {
+  protected get displayRating(): number | null | undefined {
     return this.previewRating ?? this.rating;
   }
 
-  get starStates(): boolean[] {
+  protected get starStates(): boolean[] {
     return getStarFillStates(this.displayRating);
   }
 
-  onStarClick(value: number, event: Event): void {
+  protected onStarClick(value: number, event: Event): void {
     if (this.readonly || this.disabled) {
       return;
     }
@@ -58,14 +58,14 @@ export class GameRatingComponent {
     this.setPreview(null);
   }
 
-  clearRating(event: Event): void {
+  protected clearRating(event: Event): void {
     event.stopPropagation();
     event.preventDefault();
     this.ratingChange.emit(null);
     this.setPreview(null);
   }
 
-  onStarHover(value: number): void {
+  protected onStarHover(value: number): void {
     if (this.readonly || this.disabled) {
       return;
     }
@@ -73,7 +73,7 @@ export class GameRatingComponent {
     this.setPreview(value);
   }
 
-  onStarsLeave(): void {
+  protected onStarsLeave(): void {
     this.setPreview(null);
   }
 
@@ -82,7 +82,7 @@ export class GameRatingComponent {
     this.previewChange.emit(value);
   }
 
-  onKeydown(event: KeyboardEvent): void {
+  protected onKeydown(event: KeyboardEvent): void {
     if (this.readonly || this.disabled) {
       return;
     }

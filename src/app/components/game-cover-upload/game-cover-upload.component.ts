@@ -68,18 +68,18 @@ export class GameCoverUploadComponent implements OnChanges, OnDestroy {
   @Input() coverImage: string | null | undefined;
   @Output() coverImageChange = new EventEmitter<string | null>();
 
-  readonly accept = COVER_IMAGE_ACCEPT;
-  readonly maxInputLabel = formatImageSize(COVER_IMAGE_MAX_INPUT_BYTES);
-  readonly rawgConfigured = this.rawg.isConfigured;
+  protected readonly accept = COVER_IMAGE_ACCEPT;
+  protected readonly maxInputLabel = formatImageSize(COVER_IMAGE_MAX_INPUT_BYTES);
+  protected readonly rawgConfigured = this.rawg.isConfigured;
 
-  uploading = false;
-  searching = false;
-  searched = false;
-  errorMessage = '';
-  searchError = '';
-  urlValue = '';
-  searchQuery = '';
-  candidates: RawgCoverCandidate[] = [];
+  protected uploading = false;
+  protected searching = false;
+  protected searched = false;
+  protected errorMessage = '';
+  protected searchError = '';
+  protected urlValue = '';
+  protected searchQuery = '';
+  protected candidates: RawgCoverCandidate[] = [];
 
   constructor() {
     addIcons({
@@ -124,7 +124,7 @@ export class GameCoverUploadComponent implements OnChanges, OnDestroy {
       });
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
+  public ngOnChanges(changes: SimpleChanges): void {
     if (this.coverImage && isHttpImageUrl(this.coverImage)) {
       this.urlValue = this.coverImage;
     } else if (!this.coverImage || isDataUrlImage(this.coverImage)) {
@@ -140,30 +140,30 @@ export class GameCoverUploadComponent implements OnChanges, OnDestroy {
     }
   }
 
-  ngOnDestroy(): void {
+  public ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  onSearchInput(): void {
+  protected onSearchInput(): void {
     this.searchSubject.next(this.searchQuery ?? '');
   }
 
-  searchNow(): void {
+  protected searchNow(): void {
     this.searchSubject.next(this.searchQuery?.trim() ?? '');
   }
 
-  selectCandidate(item: RawgCoverCandidate): void {
+  protected selectCandidate(item: RawgCoverCandidate): void {
     this.errorMessage = '';
     this.urlValue = item.imageUrl;
     this.coverImageChange.emit(item.imageUrl);
   }
 
-  trackByCandidate(_index: number, item: RawgCoverCandidate): string {
+  private trackByCandidate(_index: number, item: RawgCoverCandidate): string {
     return item.id;
   }
 
-  onFileSelected(event: Event): void {
+  protected onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
@@ -188,7 +188,7 @@ export class GameCoverUploadComponent implements OnChanges, OnDestroy {
     });
   }
 
-  onUrlInput(event: CustomEvent): void {
+  protected onUrlInput(event: CustomEvent): void {
     const value = (event.detail.value ?? '').trim();
     this.urlValue = value;
     this.errorMessage = '';
@@ -206,7 +206,7 @@ export class GameCoverUploadComponent implements OnChanges, OnDestroy {
     this.coverImageChange.emit(value);
   }
 
-  clearCover(): void {
+  protected clearCover(): void {
     this.urlValue = '';
     this.errorMessage = '';
     this.coverImageChange.emit(null);

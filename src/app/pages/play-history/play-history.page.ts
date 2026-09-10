@@ -41,10 +41,11 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
     IonIcon,
     IonSpinner,
   ],
-  templateUrl: './play-history.page.html',})
+  templateUrl: './play-history.page.html',
+})
 export class PlayHistoryPage implements OnInit, OnDestroy {
-  completedGames: Game[] = [];
-  loading = true;
+  protected completedGames: Game[] = [];
+  protected loading = true;
 
   private readonly destroy$ = new Subject<void>();
 
@@ -59,24 +60,24 @@ export class PlayHistoryPage implements OnInit, OnDestroy {
     });
   }
 
-  ngOnInit(): void {
+  public ngOnInit(): void {
     this.loadCompletedGames();
   }
 
-  ngOnDestroy(): void {
+  public ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  trackByGameId(_index: number, game: Game): string {
+  private trackByGameId(_index: number, game: Game): string {
     return game.id;
   }
 
-  getCompletedIso(game: Game): string {
+  protected getCompletedIso(game: Game): string {
     return game.completedAt || game.updatedAt;
   }
 
-  formatCompletedAt(game: Game): string {
+  protected formatCompletedAt(game: Game): string {
     const value = game.completedAt || game.updatedAt;
     if (!value) {
       return 'Date unknown';

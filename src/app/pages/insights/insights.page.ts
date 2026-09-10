@@ -47,8 +47,8 @@ import {
   styleUrl: './insights.page.scss',
 })
 export class InsightsPage implements OnInit, OnDestroy {
-  loading = true;
-  insights: LibraryInsights | null = null;
+  protected loading = true;
+  protected insights: LibraryInsights | null = null;
 
   private readonly destroy$ = new Subject<void>();
 
@@ -66,7 +66,7 @@ export class InsightsPage implements OnInit, OnDestroy {
     });
   }
 
-  ngOnInit(): void {
+  public ngOnInit(): void {
     this.gameService.games$.pipe(takeUntil(this.destroy$)).subscribe((games) => {
       this.insights = computeLibraryInsights(games);
       this.loading = false;
@@ -79,19 +79,19 @@ export class InsightsPage implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy(): void {
+  public ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  pct(count: number): number {
+  protected pct(count: number): number {
     if (!this.insights || this.insights.total === 0) {
       return 0;
     }
     return Math.min(100, Math.round((count / this.insights.total) * 100));
   }
 
-  statusLabel(status: string): string {
+  protected statusLabel(status: string): string {
     return status.replace(/_/g, ' ');
   }
 }

@@ -86,18 +86,18 @@ interface RawgScreenshotItem {
 export class RawgService {
   private readonly http = inject(HttpClient);
 
-  get isConfigured(): boolean {
+  public get isConfigured(): boolean {
     return !!this.apiKey;
   }
 
-  get apiKey(): string {
+  private get apiKey(): string {
     return ((environment as { rawgApiKey?: string }).rawgApiKey ?? '').trim();
   }
 
   /**
    * Search RAWG games and flatten cover + screenshot candidates for picker UI.
    */
-  searchCoverImages(query: string, limit = 8): Observable<RawgCoverCandidate[]> {
+  public searchCoverImages(query: string, limit = 8): Observable<RawgCoverCandidate[]> {
     const q = query.trim();
     if (!q || !this.apiKey) {
       return of([]);
@@ -139,7 +139,7 @@ export class RawgService {
     );
   }
 
-  searchGames(query: string, pageSize = 8): Observable<RawgGameSummary[]> {
+  public searchGames(query: string, pageSize = 8): Observable<RawgGameSummary[]> {
     const q = query.trim();
     if (!q || !this.apiKey) {
       return of([]);
@@ -160,7 +160,7 @@ export class RawgService {
   }
 
   /** Full game payload for auto-filling the add form. */
-  getGameDetails(gameId: number): Observable<RawgGameSummary | null> {
+  public getGameDetails(gameId: number): Observable<RawgGameSummary | null> {
     if (!this.apiKey || !gameId) {
       return of(null);
     }
@@ -179,7 +179,7 @@ export class RawgService {
    * Search → fetch details → map into form-ready import fields.
    * Uses the list hit immediately, then enriches from /games/:id when available.
    */
-  importGame(gameId: number, fallback?: RawgGameSummary): Observable<RawgGameImport | null> {
+  public importGame(gameId: number, fallback?: RawgGameSummary): Observable<RawgGameImport | null> {
     return this.getGameDetails(gameId).pipe(
       map((detail) => {
         const src = detail ?? fallback;
@@ -190,7 +190,7 @@ export class RawgService {
     );
   }
 
-  toImport(game: RawgGameSummary): RawgGameImport {
+  public toImport(game: RawgGameSummary): RawgGameImport {
     const year = this.yearFromReleased(game.released);
     const description = this.cleanDescription(game.description ?? null);
     const developerName = game.developers?.[0] ?? undefined;
@@ -215,7 +215,7 @@ export class RawgService {
   }
 
   /** Map RAWG platform label → local library platform id when possible. */
-  matchPlatformId(
+  public matchPlatformId(
     rawgPlatforms: string[],
     libraryPlatforms: Array<{ id: string; name: string }>,
   ): string | null {
@@ -258,7 +258,7 @@ export class RawgService {
     return null;
   }
 
-  getScreenshots(gameId: number): Observable<string[]> {
+  public getScreenshots(gameId: number): Observable<string[]> {
     if (!this.apiKey || !gameId) {
       return of([]);
     }
@@ -283,7 +283,7 @@ export class RawgService {
   }
 
   /** Shared list helper used by recommendations. */
-  listGames(query: Record<string, string>): Observable<RawgGameSummary[]> {
+  public listGames(query: Record<string, string>): Observable<RawgGameSummary[]> {
     if (!this.apiKey) {
       return of([]);
     }
@@ -301,7 +301,7 @@ export class RawgService {
       );
   }
 
-  getSuggested(gameId: number, pageSize = 12): Observable<RawgGameSummary[]> {
+  public getSuggested(gameId: number, pageSize = 12): Observable<RawgGameSummary[]> {
     if (!this.apiKey || !gameId) {
       return of([]);
     }

@@ -24,13 +24,13 @@ const STORAGE_KEY = 'gv_saved_collections';
 @Injectable({ providedIn: 'root' })
 export class CollectionsService {
   private readonly subject = new BehaviorSubject<SavedCollection[]>(this.read());
-  readonly collections$ = this.subject.asObservable();
+  public readonly collections$ = this.subject.asObservable();
 
-  list(): SavedCollection[] {
+  public list(): SavedCollection[] {
     return this.subject.value;
   }
 
-  add(name: string, filter: SavedCollection['filter'], tag?: string): SavedCollection {
+  public add(name: string, filter: SavedCollection['filter'], tag?: string): SavedCollection {
     const collection: SavedCollection = {
       id: `col_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       name: name.trim(),
@@ -43,7 +43,7 @@ export class CollectionsService {
     return collection;
   }
 
-  remove(id: string): void {
+  public remove(id: string): void {
     this.write(this.subject.value.filter((c) => c.id !== id));
   }
 

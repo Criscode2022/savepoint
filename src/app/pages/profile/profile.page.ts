@@ -34,20 +34,20 @@ import { GameCoverComponent } from '../../components/game-cover/game-cover.compo
   templateUrl: './profile.page.html',
 })
 export class ProfilePage implements OnInit {
-  user: AuthUser | null = null;
-  games: Game[] = [];
-  recentGames: Game[] = [];
-  avatarLoadFailed = false;
+  protected user: AuthUser | null = null;
+  private games: Game[] = [];
+  protected recentGames: Game[] = [];
+  protected avatarLoadFailed = false;
   
-  toastMessage = '';
-  toastColor: 'success' | 'danger' = 'success';
+  protected toastMessage = '';
+  protected toastColor: 'success' | 'danger' = 'success';
   
-  private destroy$ = new Subject<void>();
+  private readonly destroy$ = new Subject<void>();
 
   constructor(
-    private authService: AuthService,
-    private gameService: GameService,
-    private router: Router
+    private readonly authService: AuthService,
+    private readonly gameService: GameService,
+    private readonly router: Router,
   ) {
     addIcons({ 
       logOutOutline, personOutline, gameControllerOutline, 
@@ -56,7 +56,7 @@ export class ProfilePage implements OnInit {
     });
   }
 
-  ngOnInit(): void {
+  public ngOnInit(): void {
     this.user = this.authService.getCurrentUser();
     
     if (!this.user) {
@@ -67,12 +67,12 @@ export class ProfilePage implements OnInit {
     this.loadGames();
   }
 
-  ngOnDestroy(): void {
+  public ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  loadGames(): void {
+  private loadGames(): void {
     this.gameService.games$.pipe(takeUntil(this.destroy$))
       .subscribe(games => {
         this.games = games;
@@ -87,27 +87,27 @@ export class ProfilePage implements OnInit {
     this.gameService.getGames().pipe(takeUntil(this.destroy$)).subscribe();
   }
 
-  get totalGames(): number {
+  protected get totalGames(): number {
     return this.games.length;
   }
 
-  get completedGames(): number {
+  protected get completedGames(): number {
     return this.games.filter((g) => g.status === 'completed').length;
   }
 
-  get playingGames(): number {
+  private get playingGames(): number {
     return this.games.filter((g) => g.status === 'playing').length;
   }
 
-  getStatusLabel(status: GamePlayStatus): string {
+  protected getStatusLabel(status: GamePlayStatus): string {
     return GAME_STATUS_LABELS[status];
   }
 
-  get totalHours(): number {
+  protected get totalHours(): number {
     return this.games.reduce((sum, g) => sum + (g.playtime || 0), 0);
   }
 
-  get averageRating(): string {
+  protected get averageRating(): string {
     const ratedGames = this.games.filter(
       (g) => g.rating != null && g.status !== 'wishlist',
     );
@@ -120,25 +120,25 @@ export class ProfilePage implements OnInit {
     return avg.toFixed(1);
   }
 
-  get ratedGamesCount(): number {
+  private get ratedGamesCount(): number {
     return this.games.filter(
       (g) => g.rating != null && g.status !== 'wishlist',
     ).length;
   }
 
-  get completionRate(): number {
+  protected get completionRate(): number {
     if (this.totalGames === 0) return 0;
     return Math.round((this.completedGames / this.totalGames) * 100);
   }
 
-  get userLevel(): number {
+  protected get userLevel(): number {
     // Simple level calculation based on completed games and hours played
     const completedPoints = this.completedGames * 10;
     const hoursPoints = Math.floor(this.totalHours / 10);
     return Math.max(1, Math.floor((completedPoints + hoursPoints) / 50) + 1);
   }
 
-  logout(): void {
+  protected logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
   }

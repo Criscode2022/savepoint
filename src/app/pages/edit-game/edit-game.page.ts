@@ -27,28 +27,28 @@ import { GameService } from '../../services/game.service';
   styleUrl: './edit-game.page.scss',
 })
 export class EditGamePage implements OnInit {
-  platforms = PLATFORMS;
-  genres = GENRES;
-  currentYear = new Date().getFullYear();
+  protected readonly platforms = PLATFORMS;
+  protected readonly genres = GENRES;
+  protected readonly currentYear = new Date().getFullYear();
   
-  game: Game | null = null;
-  originalGame: Game | null = null;
-  selectedPlatformId = '';
-  developerName = '';
+  protected game: Game | null = null;
+  private originalGame: Game | null = null;
+  protected selectedPlatformId = '';
+  protected developerName = '';
   
-  isSubmitting = false;
-  toastMessage = '';
-  toastColor: 'success' | 'danger' = 'success';
+  protected isSubmitting = false;
+  protected toastMessage = '';
+  protected toastColor: 'success' | 'danger' = 'success';
 
   constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private gameService: GameService
+    private readonly route: ActivatedRoute,
+    private readonly router: Router,
+    private readonly gameService: GameService,
   ) {
     addIcons({ arrowBackOutline, saveOutline, imageOutline });
   }
 
-  ngOnInit(): void {
+  public ngOnInit(): void {
     const gameId = this.route.snapshot.paramMap.get('id');
     if (gameId) {
       this.loadGame(gameId);
@@ -57,7 +57,7 @@ export class EditGamePage implements OnInit {
     }
   }
 
-  loadGame(id: string): void {
+  private loadGame(id: string): void {
     this.gameService.getGameById(id).subscribe({
       next: (game) => {
         if (game) {
@@ -75,18 +75,18 @@ export class EditGamePage implements OnInit {
     });
   }
 
-  onPlatformChange(): void {
+  protected onPlatformChange(): void {
     const platform = this.platforms.find(p => p.id === this.selectedPlatformId);
     if (platform && this.game) {
       this.game.platform = platform;
     }
   }
 
-  isGenreSelected(genre: string): boolean {
+  protected isGenreSelected(genre: string): boolean {
     return this.game?.genre?.includes(genre) || false;
   }
 
-  toggleGenre(genre: string): void {
+  protected toggleGenre(genre: string): void {
     if (!this.game) return;
     
     if (!this.game.genre) {
@@ -100,7 +100,7 @@ export class EditGamePage implements OnInit {
     }
   }
 
-  onSubmit(): void {
+  protected onSubmit(): void {
     if (!this.game || !this.developerName) {
       this.showToast('Please fill in all required fields', 'danger');
       return;

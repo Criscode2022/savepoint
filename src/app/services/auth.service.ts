@@ -253,7 +253,7 @@ export class AuthService {
   /**
    * Wait for initialization to complete (for guards)
    */
-  waitForInitialization(): Observable<boolean> {
+  public waitForInitialization(): Observable<boolean> {
     return this.initialized.pipe(
       filter((initialized) => initialized),
       take(1),
@@ -335,7 +335,7 @@ export class AuthService {
   /**
    * Set session after successful Neon Auth login
    */
-  setNeonAuthSession(user: {
+  public setNeonAuthSession(user: {
     id: string;
     name?: string;
     email: string;
@@ -363,7 +363,7 @@ export class AuthService {
   /**
    * Login with email/password
    */
-  async login(credentials: LoginCredentials): Promise<void> {
+  public async login(credentials: LoginCredentials): Promise<void> {
     const { data, error } = await authClient.signIn(
       credentials.email,
       credentials.password,
@@ -388,7 +388,7 @@ export class AuthService {
   /**
    * Register with email/password
    */
-  async register(credentials: RegisterCredentials): Promise<void> {
+  public async register(credentials: RegisterCredentials): Promise<void> {
     const name = credentials.username || credentials.email.split("@")[0];
     const { data, error } = await authClient.signUp(
       credentials.email,
@@ -415,7 +415,7 @@ export class AuthService {
   /**
    * Verify session with Neon Auth
    */
-  async verifySession(): Promise<boolean> {
+  public async verifySession(): Promise<boolean> {
     // If we already have a session in memory (just logged in), trust it
     // This fixes iOS Safari cookie issues where getSession() fails immediately after login
     if (this.currentUser && this.isAuthenticated.value) {
@@ -464,7 +464,7 @@ export class AuthService {
   /**
    * Logout
    */
-  async logout(): Promise<void> {
+  public async logout(): Promise<void> {
     try {
       await authClient.signOut();
     } catch {
@@ -489,7 +489,7 @@ export class AuthService {
   /**
    * Get access token for HTTP requests
    */
-  async getAccessToken(): Promise<string | null> {
+  public async getAccessToken(): Promise<string | null> {
     if (this.isJwt(this.accessToken)) {
       return this.accessToken;
     }
@@ -513,14 +513,14 @@ export class AuthService {
   /**
    * Get current user
    */
-  getCurrentUser(): AuthUser | null {
+  public getCurrentUser(): AuthUser | null {
     return this.currentUser;
   }
 
   /**
    * Get token (synchronous)
    */
-  getToken(): string | null {
+  public getToken(): string | null {
     if (this.isJwt(this.accessToken)) {
       return this.accessToken;
     }
@@ -538,14 +538,14 @@ export class AuthService {
   /**
    * Check if authenticated
    */
-  isLoggedIn(): boolean {
+  public isLoggedIn(): boolean {
     return this.isAuthenticated.value;
   }
 
   /**
    * Get auth state observable
    */
-  getAuthState(): Observable<boolean> {
+  public getAuthState(): Observable<boolean> {
     return this.isAuthenticated.asObservable();
   }
 

@@ -4,21 +4,21 @@ import { BehaviorSubject } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class CommandPaletteService {
   private readonly openSubject = new BehaviorSubject<boolean>(false);
-  readonly open$ = this.openSubject.asObservable();
+  public readonly open$ = this.openSubject.asObservable();
 
-  get isOpen(): boolean {
+  public get isOpen(): boolean {
     return this.openSubject.value;
   }
 
-  open(): void {
+  public open(): void {
     this.openSubject.next(true);
   }
 
-  close(): void {
+  public close(): void {
     this.openSubject.next(false);
   }
 
-  toggle(): void {
+  public toggle(): void {
     this.openSubject.next(!this.openSubject.value);
   }
 }

@@ -14,7 +14,7 @@ import { AuthService } from "../../services/auth.service";
 export class NeonDataAuthInterceptor implements HttpInterceptor {
   private readonly authService = inject(AuthService);
 
-  intercept(
+  public intercept(
     req: HttpRequest<unknown>,
     next: HttpHandler,
   ): Observable<HttpEvent<unknown>> {

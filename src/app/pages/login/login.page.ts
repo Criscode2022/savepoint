@@ -72,13 +72,13 @@ export class LoginPage implements OnInit {
   private readonly toastCtrl = inject(ToastController);
   private readonly destroyRef = inject(DestroyRef);
 
-  isRegisterMode = signal(false);
-  isLoading = signal(false);
-  errorMessage = signal<string | null>(null);
-  showPassword = signal(false);
-  showConfirmPassword = signal(false);
-  submitted = signal(false);
-  focusedField = signal<string | null>(null);
+  protected readonly isRegisterMode = signal(false);
+  protected readonly isLoading = signal(false);
+  protected readonly errorMessage = signal<string | null>(null);
+  protected readonly showPassword = signal(false);
+  protected readonly showConfirmPassword = signal(false);
+  protected readonly submitted = signal(false);
+  protected readonly focusedField = signal<string | null>(null);
   private readonly revealedErrors = signal<ReadonlySet<string>>(new Set());
   private readonly authFields = [
     "username",
@@ -87,7 +87,7 @@ export class LoginPage implements OnInit {
     "confirmPassword",
   ] as const;
 
-  authForm: FormGroup = this.fb.group(
+  protected readonly authForm: FormGroup = this.fb.group(
     {
       username: [""],
       email: ["", [Validators.required, Validators.email]],
@@ -97,11 +97,11 @@ export class LoginPage implements OnInit {
     { validators: passwordMatchValidator() },
   );
 
-  passwordStrength = computed<PasswordStrength>(() =>
+  protected readonly passwordStrength = computed<PasswordStrength>(() =>
     getPasswordStrength(this.authForm.get("password")?.value ?? ""),
   );
 
-  strengthLabel = computed(() => {
+  protected readonly strengthLabel = computed(() => {
     const labels: Record<PasswordStrength, string> = {
       empty: "",
       weak: "Weak — add more characters and mix types",
@@ -112,7 +112,7 @@ export class LoginPage implements OnInit {
     return labels[this.passwordStrength()];
   });
 
-  strengthBars = computed(() => {
+  protected readonly strengthBars = computed(() => {
     const levels: Record<PasswordStrength, number> = {
       empty: 0,
       weak: 1,
@@ -136,7 +136,7 @@ export class LoginPage implements OnInit {
     });
   }
 
-  ngOnInit(): void {
+  public ngOnInit(): void {
     this.route.data.subscribe((data) => {
       const registerMode = data["authMode"] === "register";
       this.isRegisterMode.set(registerMode);
@@ -154,11 +154,11 @@ export class LoginPage implements OnInit {
       });
   }
 
-  onFieldFocus(controlName: string): void {
+  protected onFieldFocus(controlName: string): void {
     this.focusedField.set(controlName);
   }
 
-  onFieldBlur(controlName: string): void {
+  protected onFieldBlur(controlName: string): void {
     this.focusedField.update((current) =>
       current === controlName ? null : current,
     );
@@ -168,11 +168,11 @@ export class LoginPage implements OnInit {
     }
   }
 
-  isInvalid(controlName: string): boolean {
+  protected isInvalid(controlName: string): boolean {
     return this.revealedErrors().has(controlName);
   }
 
-  fieldError(controlName: string): string | null {
+  protected fieldError(controlName: string): string | null {
     const control = this.authForm.get(controlName);
     if (!control || !this.isInvalid(controlName)) {
       return null;
@@ -202,7 +202,7 @@ export class LoginPage implements OnInit {
     return null;
   }
 
-  hasPasswordMismatch(): boolean {
+  protected hasPasswordMismatch(): boolean {
     return (
       this.isRegisterMode() &&
       this.authForm.hasError("passwordMismatch") &&
@@ -210,15 +210,15 @@ export class LoginPage implements OnInit {
     );
   }
 
-  togglePasswordVisibility(): void {
+  protected togglePasswordVisibility(): void {
     this.showPassword.update((value) => !value);
   }
 
-  toggleConfirmPasswordVisibility(): void {
+  protected toggleConfirmPasswordVisibility(): void {
     this.showConfirmPassword.update((value) => !value);
   }
 
-  async onSubmit(): Promise<void> {
+  protected async onSubmit(): Promise<void> {
     this.submitted.set(true);
     this.authForm.markAllAsTouched();
     this.revealInvalidFields();

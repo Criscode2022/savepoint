@@ -122,22 +122,22 @@ interface DbPlaySession {
   providedIn: "root",
 })
 export class GameService {
-  private authService = inject(AuthService);
-  private db = inject(DatabaseService);
-  private companyService = inject(CompanyService);
-  private directorService = inject(DirectorService);
-  private platformService = inject(PlatformService);
+  private readonly authService = inject(AuthService);
+  private readonly db = inject(DatabaseService);
+  private readonly companyService = inject(CompanyService);
+  private readonly directorService = inject(DirectorService);
+  private readonly platformService = inject(PlatformService);
 
-  private gamesSubject = new BehaviorSubject<Game[]>([]);
-  games$ = this.gamesSubject.asObservable();
-  readonly filteredGames = signal<Game[]>([]);
-  readonly gamesLoading = signal(false);
+  private readonly gamesSubject = new BehaviorSubject<Game[]>([]);
+  public readonly games$ = this.gamesSubject.asObservable();
+  public readonly filteredGames = signal<Game[]>([]);
+  public readonly gamesLoading = signal(false);
   private lastFilters: GameFilters | undefined;
 
   /**
    * Get games with filters (returns GamesResponse with pagination)
    */
-  getGamesResponse(
+  public getGamesResponse(
     filter?: GameFilter,
     page = 1,
     limit = 20,
@@ -163,7 +163,7 @@ export class GameService {
   /**
    * Get games with filters (returns Game[] - for home page)
    */
-  getGames(filters?: GameFilters): Observable<Game[]> {
+  public getGames(filters?: GameFilters): Observable<Game[]> {
     this.lastFilters = filters;
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
@@ -404,14 +404,14 @@ export class GameService {
     };
   }
 
-  getCachedGameById(id: string): Game | undefined {
+  public getCachedGameById(id: string): Game | undefined {
     return (
       this.gamesSubject.value.find((game) => game.id === id) ??
       this.filteredGames().find((game) => game.id === id)
     );
   }
 
-  getGameById(id: string): Observable<Game> {
+  public getGameById(id: string): Observable<Game> {
     const select = "*";
 
     return this.db.selectOne<DbGame>("games", id, { select }).pipe(
@@ -485,7 +485,7 @@ export class GameService {
     }));
   }
 
-  createGame(game: CreateGameRequest): Observable<Game> {
+  public createGame(game: CreateGameRequest): Observable<Game> {
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
       return throwError(() => new Error("User not authenticated"));
@@ -553,19 +553,19 @@ export class GameService {
     );
   }
 
-  saveGameFromForm(payload: GameFormPayload): Observable<Game> {
+  public saveGameFromForm(payload: GameFormPayload): Observable<Game> {
     return this.resolveFormPayload(payload).pipe(
       switchMap((request) => this.createGame(request)),
     );
   }
 
-  updateGameFromForm(id: string, payload: GameFormPayload): Observable<Game> {
+  public updateGameFromForm(id: string, payload: GameFormPayload): Observable<Game> {
     return this.resolveFormPayload(payload).pipe(
       switchMap((request) => this.updateGame(id, request)),
     );
   }
 
-  addGame(payload: GameFormPayload): Observable<Game> {
+  public addGame(payload: GameFormPayload): Observable<Game> {
     return this.saveGameFromForm(payload);
   }
 
@@ -610,7 +610,7 @@ export class GameService {
     );
   }
 
-  updateGame(id: string, game: UpdateGameRequest): Observable<Game> {
+  public updateGame(id: string, game: UpdateGameRequest): Observable<Game> {
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
       return throwError(() => new Error("User not authenticated"));
@@ -745,7 +745,7 @@ export class GameService {
     );
   }
 
-  deleteGame(id: string): Observable<void> {
+  public deleteGame(id: string): Observable<void> {
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
       return throwError(() => new Error("User not authenticated"));
@@ -759,11 +759,11 @@ export class GameService {
     );
   }
 
-  toggleCompleted(gameId: string): Observable<Game> {
+  public toggleCompleted(gameId: string): Observable<Game> {
     return this.cycleStatus(gameId);
   }
 
-  cycleStatus(gameId: string): Observable<Game> {
+  public cycleStatus(gameId: string): Observable<Game> {
     const game = this.gamesSubject.value.find((g) => g.id === gameId);
     if (!game) {
       return throwError(() => new Error("Game not found"));
@@ -781,7 +781,7 @@ export class GameService {
     return this.setStatus(gameId, nextStatus);
   }
 
-  setStatus(id: string, status: GamePlayStatus, sourceGame?: Game): Observable<Game> {
+  public setStatus(id: string, status: GamePlayStatus, sourceGame?: Game): Observable<Game> {
     const game =
       sourceGame ??
       this.gamesSubject.value.find((g) => g.id === id) ??
@@ -862,11 +862,11 @@ export class GameService {
     );
   }
 
-  setCompleted(id: string, completed: boolean): Observable<Game> {
+  public setCompleted(id: string, completed: boolean): Observable<Game> {
     return this.setStatus(id, completed ? "completed" : "not_started");
   }
 
-  setRating(id: string, rating: number | null, sourceGame?: Game): Observable<Game> {
+  public setRating(id: string, rating: number | null, sourceGame?: Game): Observable<Game> {
     const game =
       sourceGame ??
       this.gamesSubject.value.find((g) => g.id === id) ??
@@ -893,7 +893,7 @@ export class GameService {
     );
   }
 
-  getPlaySessions(gameId: string): Observable<PlaySession[]> {
+  public getPlaySessions(gameId: string): Observable<PlaySession[]> {
     return this.db
       .select<DbPlaySession>("play_sessions", {
         filters: { game_id: gameId },
@@ -1031,7 +1031,7 @@ export class GameService {
       );
   }
 
-  getFilterOptions(): Observable<FilterOptions> {
+  public getFilterOptions(): Observable<FilterOptions> {
     return from(
       Promise.all([
         firstValueFrom(
@@ -1095,7 +1095,7 @@ export class GameService {
     );
   }
 
-  uploadCoverImage(file: File): Observable<string> {
+  public uploadCoverImage(file: File): Observable<string> {
     return from(processCoverImageFile(file)).pipe(
       catchError((error) =>
         throwError(
@@ -1108,11 +1108,11 @@ export class GameService {
     );
   }
 
-  searchGames(query: string, limit = 10): Observable<Game[]> {
+  public searchGames(query: string, limit = 10): Observable<Game[]> {
     return this.getGames({ search: query });
   }
 
-  getGenres(): Observable<string[]> {
+  public getGenres(): Observable<string[]> {
     const userId = this.authService.getCurrentUser()?.id;
     if (!userId) {
       return of([]);
@@ -1131,7 +1131,7 @@ export class GameService {
       );
   }
 
-  getPlatforms(): Observable<string[]> {
+  public getPlatforms(): Observable<string[]> {
     const userId = this.authService.getCurrentUser()?.id;
     if (!userId) {
       return of([]);
@@ -1164,7 +1164,7 @@ export class GameService {
       );
   }
 
-  getYears(): Observable<number[]> {
+  public getYears(): Observable<number[]> {
     const userId = this.authService.getCurrentUser()?.id;
     if (!userId) {
       return of([]);
@@ -1188,7 +1188,7 @@ export class GameService {
       );
   }
 
-  getDevelopers(): Observable<string[]> {
+  public getDevelopers(): Observable<string[]> {
     const userId = this.authService.getCurrentUser()?.id;
     if (!userId) {
       return of([]);
@@ -1285,7 +1285,7 @@ export class GameService {
   /**
    * Add playtime hours and refresh last played (ritual quick-log).
    */
-  logPlaytime(gameId: string, hours: number): Observable<Game> {
+  public logPlaytime(gameId: string, hours: number): Observable<Game> {
     const game =
       this.gamesSubject.value.find((g) => g.id === gameId) ??
       this.filteredGames().find((g) => g.id === gameId);
@@ -1319,7 +1319,7 @@ export class GameService {
   /**
    * Import games from parsed JSON drafts (sequential to reduce API race risk).
    */
-  importGames(drafts: ImportGameDraft[]): Observable<{ created: number; failed: number }> {
+  public importGames(drafts: ImportGameDraft[]): Observable<{ created: number; failed: number }> {
     if (!drafts.length) {
       return of({ created: 0, failed: 0 });
     }

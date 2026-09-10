@@ -38,39 +38,39 @@ import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils'
   templateUrl: './game-detail.page.html',
 })
 export class GameDetailPage implements OnInit, ViewWillEnter {
-  @ViewChild('statusSelect') statusSelect?: IonSelect;
+  @ViewChild('statusSelect') private statusSelect?: IonSelect;
 
-  game: Game | null = null;
-  playSessions: PlaySession[] = [];
-  statusSheetOptions = {
+  protected game: Game | null = null;
+  protected playSessions: PlaySession[] = [];
+  protected readonly statusSheetOptions = {
     header: 'Change status',
     cssClass: 'app-status-sheet',
   };
-  toastMessage = '';
-  toastColor: 'success' | 'danger' | 'warning' = 'success';
-  ratingSaving = false;
-  ratingPreview: number | null = null;
-  logHours: number | null = 1;
-  loggingPlaytime = false;
+  protected toastMessage = '';
+  protected toastColor: 'success' | 'danger' | 'warning' = 'success';
+  protected ratingSaving = false;
+  protected ratingPreview: number | null = null;
+  protected logHours: number | null = 1;
+  protected loggingPlaytime = false;
 
-  get heroCoverImage(): string | null {
+  protected get heroCoverImage(): string | null {
     const cover = this.game?.coverImage?.trim();
     return cover || null;
   }
 
-  hasCoverImage(): boolean {
+  protected hasCoverImage(): boolean {
     return !!this.heroCoverImage;
   }
 
-  getHeroBackgroundImage(): string {
+  protected getHeroBackgroundImage(): string {
     return this.heroCoverImage ? `url("${this.heroCoverImage}")` : 'none';
   }
 
   constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private gameService: GameService,
-    private alertController: AlertController
+    private readonly route: ActivatedRoute,
+    private readonly router: Router,
+    private readonly gameService: GameService,
+    private readonly alertController: AlertController,
   ) {
     addIcons({
       arrowBackOutline, starOutline, timeOutline, calendarOutline,
@@ -80,21 +80,21 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     });
   }
 
-  ngOnInit(): void {
+  public ngOnInit(): void {
     const gameId = this.route.snapshot.paramMap.get('id');
     if (gameId) {
       this.loadGame(gameId);
     }
   }
 
-  ionViewWillEnter(): void {
+  public ionViewWillEnter(): void {
     const gameId = this.route.snapshot.paramMap.get('id');
     if (gameId) {
       this.loadGame(gameId);
     }
   }
 
-  loadGame(id: string): void {
+  private loadGame(id: string): void {
     const cached = this.gameService.getCachedGameById(id);
     if (cached) {
       this.game = { ...cached };
@@ -115,7 +115,7 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     });
   }
 
-  loadPlaySessions(gameId: string): void {
+  private loadPlaySessions(gameId: string): void {
     this.gameService.getPlaySessions(gameId).subscribe({
       next: (sessions) => {
         this.playSessions = sessions;
@@ -123,7 +123,7 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     });
   }
 
-  openStatusSelect(event: Event, statusSelect: IonSelect): void {
+  protected openStatusSelect(event: Event, statusSelect: IonSelect): void {
     if (this.isWishlistLocked()) {
       return;
     }
@@ -131,16 +131,16 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     statusSelect.open(event as UIEvent);
   }
 
-  isWishlistLocked(): boolean {
+  protected isWishlistLocked(): boolean {
     return !!this.game && this.game.status === 'wishlist' && !canAddWishlistToLibrary(this.game);
   }
 
-  canLogHours(): boolean {
+  protected canLogHours(): boolean {
     const n = Number(this.logHours);
     return Number.isFinite(n) && n > 0;
   }
 
-  logPlaytime(): void {
+  protected logPlaytime(): void {
     if (!this.game || !this.canLogHours() || this.loggingPlaytime) {
       return;
     }
@@ -160,7 +160,7 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     });
   }
 
-  async onStatusSelect(event: CustomEvent): Promise<void> {
+  protected async onStatusSelect(event: CustomEvent): Promise<void> {
     const status = event.detail.value as GamePlayStatus;
     const previousStatus = this.game?.status;
 
@@ -207,7 +207,7 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     });
   }
 
-  getAvailableStatusOptions(): GamePlayStatus[] {
+  protected getAvailableStatusOptions(): GamePlayStatus[] {
     if (this.game?.status === 'wishlist') {
       if (this.isWishlistLocked()) {
         return ['wishlist'];
@@ -219,7 +219,7 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     return ['not_started', 'playing', 'paused', 'completed'];
   }
 
-  setStatus(status: GamePlayStatus): void {
+  private setStatus(status: GamePlayStatus): void {
     void this.applyStatusWithConfirmation(status);
   }
 
@@ -236,11 +236,11 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     this.applyStatus(status);
   }
 
-  getStatusLabel(status: GamePlayStatus): string {
+  protected getStatusLabel(status: GamePlayStatus): string {
     return GAME_STATUS_LABELS[status];
   }
 
-  getStatusIcon(status: GamePlayStatus): string {
+  protected getStatusIcon(status: GamePlayStatus): string {
     const icons: Record<GamePlayStatus, string> = {
       not_started: 'ellipse-outline',
       playing: 'time-outline',
@@ -251,7 +251,7 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     return icons[status];
   }
 
-  getFormattedReleaseDate(): string {
+  protected getFormattedReleaseDate(): string {
     if (!this.game?.releaseDate) {
       return '';
     }
@@ -268,21 +268,21 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     });
   }
 
-  getPlaytime(): number | null {
+  protected getPlaytime(): number | null {
     if (!this.game) return null;
     const hours = this.game.playtimeHours ?? this.game.playtime;
     return hours != null && hours > 0 ? hours : null;
   }
 
-  canShowRating(): boolean {
+  protected canShowRating(): boolean {
     return canRateGame(this.game?.status);
   }
 
-  getRatingDisplay(): string {
+  protected getRatingDisplay(): string {
     return formatRatingLabel(this.ratingPreview ?? this.game?.rating);
   }
 
-  onRatingChange(rating: number | null): void {
+  protected onRatingChange(rating: number | null): void {
     if (!this.game || !this.canShowRating()) {
       return;
     }
@@ -305,12 +305,12 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     });
   }
 
-  getPlaytimeDisplay(): string {
+  protected getPlaytimeDisplay(): string {
     const hours = this.getPlaytime();
     return hours != null ? `${hours}h` : '0h';
   }
 
-  getTrackedMinutesDisplay(): string {
+  protected getTrackedMinutesDisplay(): string {
     const totalMinutes = this.playSessions.reduce(
       (sum, session) => sum + (session.durationMinutes ?? 0),
       0,
@@ -329,7 +329,7 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
   }
 
-  getTimelineEvents(): Array<{ label: string; date: string; icon: string }> {
+  protected getTimelineEvents(): Array<{ label: string; date: string; icon: string }> {
     if (!this.game) {
       return [];
     }
@@ -398,7 +398,7 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     );
   }
 
-  async removeCoverImage(): Promise<void> {
+  protected async removeCoverImage(): Promise<void> {
     if (!this.game) {
       return;
     }
@@ -444,7 +444,7 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     });
   }
 
-  async deleteGame(): Promise<void> {
+  protected async deleteGame(): Promise<void> {
     if (!this.game) return;
 
     const alert = await this.alertController.create({

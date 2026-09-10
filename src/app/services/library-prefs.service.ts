@@ -15,18 +15,18 @@ export class LibraryPrefsService {
     this.readSidebarCollapsed(),
   );
 
-  readonly viewMode$ = this.viewSubject.asObservable();
-  readonly sidebarCollapsed$ = this.sidebarCollapsedSubject.asObservable();
+  public readonly viewMode$ = this.viewSubject.asObservable();
+  public readonly sidebarCollapsed$ = this.sidebarCollapsedSubject.asObservable();
 
-  get viewMode(): LibraryViewMode {
+  public get viewMode(): LibraryViewMode {
     return this.viewSubject.value;
   }
 
-  get sidebarCollapsed(): boolean {
+  public get sidebarCollapsed(): boolean {
     return this.sidebarCollapsedSubject.value;
   }
 
-  setViewMode(mode: LibraryViewMode): void {
+  public setViewMode(mode: LibraryViewMode): void {
     this.viewSubject.next(mode);
     try {
       localStorage.setItem(VIEW_KEY, mode);
@@ -35,11 +35,11 @@ export class LibraryPrefsService {
     }
   }
 
-  toggleSidebar(): void {
+  public toggleSidebar(): void {
     this.setSidebarCollapsed(!this.sidebarCollapsed);
   }
 
-  setSidebarCollapsed(collapsed: boolean): void {
+  public setSidebarCollapsed(collapsed: boolean): void {
     this.sidebarCollapsedSubject.next(collapsed);
     try {
       localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0');

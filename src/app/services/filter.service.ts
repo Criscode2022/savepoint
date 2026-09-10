@@ -8,28 +8,28 @@ import { GameFilter, FilterOptions, Platform, Company, Director } from '../model
   providedIn: 'root'
 })
 export class FilterService {
-  private platformService = inject(PlatformService);
-  private companyService = inject(CompanyService);
-  private directorService = inject(DirectorService);
+  private readonly platformService = inject(PlatformService);
+  private readonly companyService = inject(CompanyService);
+  private readonly directorService = inject(DirectorService);
 
   // Signals for filter state
-  readonly filters = signal<GameFilter>({});
-  readonly filterOptions = signal<FilterOptions>({
+  public readonly filters = signal<GameFilter>({});
+  public readonly filterOptions = signal<FilterOptions>({
     platforms: [],
     developers: [],
     directors: [],
     genres: [],
     years: []
   });
-  readonly isLoading = signal<boolean>(false);
-  readonly error = signal<string | null>(null);
+  public readonly isLoading = signal<boolean>(false);
+  public readonly error = signal<string | null>(null);
 
   // Computed years range (from 1980 to current year)
-  readonly availableYears = signal<number[]>(
+  public readonly availableYears = signal<number[]>(
     Array.from({ length: new Date().getFullYear() - 1979 }, (_, i) => 1980 + i).reverse()
   );
 
-  readonly commonGenres = signal<string[]>([
+  public readonly commonGenres = signal<string[]>([
     'Action',
     'Adventure',
     'RPG',
@@ -51,7 +51,7 @@ export class FilterService {
     this.loadFilterOptions();
   }
 
-  async loadFilterOptions(): Promise<void> {
+  public async loadFilterOptions(): Promise<void> {
     this.isLoading.set(true);
     this.error.set(null);
 
@@ -103,30 +103,30 @@ export class FilterService {
     });
   }
 
-  setFilter(key: keyof GameFilter, value: any): void {
+  public setFilter(key: keyof GameFilter, value: any): void {
     this.filters.update(current => ({
       ...current,
       [key]: value
     }));
   }
 
-  removeFilter(key: keyof GameFilter): void {
+  public removeFilter(key: keyof GameFilter): void {
     this.filters.update(current => {
       const { [key]: _, ...rest } = current;
       return rest;
     });
   }
 
-  clearFilters(): void {
+  public clearFilters(): void {
     this.filters.set({});
   }
 
-  hasActiveFilters(): boolean {
+  public hasActiveFilters(): boolean {
     const current = this.filters();
     return Object.keys(current).length > 0;
   }
 
-  getActiveFilterCount(): number {
+  public getActiveFilterCount(): number {
     const current = this.filters();
     return Object.keys(current).filter(key => {
       const value = current[key as keyof GameFilter];
