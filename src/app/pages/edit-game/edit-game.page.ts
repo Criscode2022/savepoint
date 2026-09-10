@@ -24,7 +24,7 @@ import { GameService } from '../../services/game.service';
     IonTextarea, IonToggle, IonToast
   ],
   templateUrl: './edit-game.page.html',
-  styles: [],
+  styleUrl: './edit-game.page.scss',
 })
 export class EditGamePage implements OnInit {
   platforms = PLATFORMS;
