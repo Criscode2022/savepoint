@@ -1,5 +1,4 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { Injectable, signal } from '@angular/core';
 import { LibraryCollection } from '../shared/library-collections';
 
 export interface SavedCollection {
@@ -16,12 +15,8 @@ const STORAGE_KEY = 'gv_saved_collections';
 
 @Injectable({ providedIn: 'root' })
 export class CollectionsService {
-  private readonly subject = new BehaviorSubject<SavedCollection[]>(this.read());
-  public readonly collections$ = this.subject.asObservable();
-
-  public list(): SavedCollection[] {
-    return this.subject.value;
-  }
+  private readonly _collections = signal<SavedCollection[]>(this.read());
+  public readonly collections = this._collections.asReadonly();
 
   public add(name: string, filter: SavedCollection['filter'], tag?: string): SavedCollection {
     const collection: SavedCollection = {
@@ -31,13 +26,12 @@ export class CollectionsService {
       tag: tag?.trim() || undefined,
       createdAt: new Date().toISOString(),
     };
-    const next = [...this.subject.value, collection];
-    this.write(next);
+    this.write([...this._collections(), collection]);
     return collection;
   }
 
   public remove(id: string): void {
-    this.write(this.subject.value.filter((c) => c.id !== id));
+    this.write(this._collections().filter((c) => c.id !== id));
   }
 
   private read(): SavedCollection[] {
@@ -54,7 +48,7 @@ export class CollectionsService {
   }
 
   private write(items: SavedCollection[]): void {
-    this.subject.next(items);
+    this._collections.set(items);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     } catch {

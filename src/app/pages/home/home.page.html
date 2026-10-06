@@ -1,6 +1,6 @@
 <ion-content class="home-content">
   <div class="content-wrapper vault-home">
-    @if (gamesLoading() && libraryIsEmpty) {
+    @if (gamesLoading() && libraryIsEmpty()) {
       <div class="games-loading" aria-busy="true" aria-label="Loading your library">
         <div class="games-grid" aria-hidden="true">
           @for (_ of skeletonGridItems; track $index) {
@@ -18,7 +18,7 @@
           }
         </div>
       </div>
-    } @else if (libraryIsEmpty) {
+    } @else if (libraryIsEmpty()) {
       <div class="empty-state empty-state--hero">
         <div class="empty-icon" aria-hidden="true">
           <ion-icon name="game-controller-outline"></ion-icon>
@@ -33,15 +33,15 @@
             <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
             Add your first game
           </a>
-          <button type="button" class="btn btn--ghost" (click)="importFileInput.click()" [disabled]="importing">
+          <button type="button" class="btn btn--ghost" (click)="importFileInput.click()" [disabled]="importing()">
             <ion-icon name="document-attach-outline" aria-hidden="true"></ion-icon>
-            {{ importing ? 'Importing…' : 'Import a JSON backup' }}
+            {{ importing() ? 'Importing…' : 'Import a JSON backup' }}
           </button>
         </div>
       </div>
     } @else {
       <!-- Continue -->
-      @if (showContinueRail) {
+      @if (showContinueRail()) {
         <section class="continue-section" aria-labelledby="continue-title">
           <div class="section-header">
             <div>
@@ -50,7 +50,7 @@
             </div>
           </div>
           <div class="continue-rail">
-            @for (game of continuePlaying; track game.id) {
+            @for (game of continuePlaying(); track game.id) {
               <a class="continue-card" [routerLink]="['/game', game.id]">
                 <div class="continue-card__cover">
                   <app-game-cover [title]="game.title" [coverImage]="game.coverImage" variant="card" />
@@ -73,22 +73,22 @@
       <section class="library-section" aria-labelledby="library-title">
         <div class="library-head">
           <div class="library-head__title">
-            <h1 class="library-title" id="library-title">{{ collectionMeta[collection].title }}</h1>
-            <span class="section-count" aria-label="games in this view">{{ collectionGames.length }}</span>
+            <h1 class="library-title" id="library-title">{{ collectionMeta[collection()].title }}</h1>
+            <span class="section-count" aria-label="games in this view">{{ collectionGames().length }}</span>
           </div>
 
           <div class="library-head__actions">
             <div class="segmented" role="group" aria-label="Layout">
-              <button type="button" class="segmented__btn" [class.segmented__btn--active]="viewMode === 'grid'"
-                [attr.aria-pressed]="viewMode === 'grid'" (click)="setViewMode('grid')" aria-label="Grid" title="Grid">
+              <button type="button" class="segmented__btn" [class.segmented__btn--active]="viewMode() === 'grid'"
+                [attr.aria-pressed]="viewMode() === 'grid'" (click)="setViewMode('grid')" aria-label="Grid" title="Grid">
                 <ion-icon name="grid-outline" aria-hidden="true"></ion-icon>
               </button>
-              <button type="button" class="segmented__btn" [class.segmented__btn--active]="viewMode === 'list'"
-                [attr.aria-pressed]="viewMode === 'list'" (click)="setViewMode('list')" aria-label="List" title="List">
+              <button type="button" class="segmented__btn" [class.segmented__btn--active]="viewMode() === 'list'"
+                [attr.aria-pressed]="viewMode() === 'list'" (click)="setViewMode('list')" aria-label="List" title="List">
                 <ion-icon name="list-outline" aria-hidden="true"></ion-icon>
               </button>
-              <button type="button" class="segmented__btn" [class.segmented__btn--active]="viewMode === 'shelf'"
-                [attr.aria-pressed]="viewMode === 'shelf'" (click)="setViewMode('shelf')" aria-label="Shelf" title="Shelf">
+              <button type="button" class="segmented__btn" [class.segmented__btn--active]="viewMode() === 'shelf'"
+                [attr.aria-pressed]="viewMode() === 'shelf'" (click)="setViewMode('shelf')" aria-label="Shelf" title="Shelf">
                 <ion-icon name="albums-outline" aria-hidden="true"></ion-icon>
               </button>
             </div>
@@ -105,9 +105,9 @@
                     Export library…
                   </button>
                   <button type="button" role="menuitem" class="menu-list__item" (click)="importFileInput.click()"
-                    [disabled]="importing">
+                    [disabled]="importing()">
                     <ion-icon name="document-attach-outline" aria-hidden="true"></ion-icon>
-                    {{ importing ? 'Importing…' : 'Import from JSON…' }}
+                    {{ importing() ? 'Importing…' : 'Import from JSON…' }}
                   </button>
                 </div>
               </ng-template>
@@ -122,12 +122,12 @@
               type="button"
               role="tab"
               class="collection-chip"
-              [class.collection-chip--active]="collection === key"
-              [attr.aria-selected]="collection === key"
+              [class.collection-chip--active]="collection() === key"
+              [attr.aria-selected]="collection() === key"
               (click)="setCollection(key)"
             >
               {{ collectionMeta[key].label }}
-              <span class="collection-chip__count">{{ collectionCount(key) }}</span>
+              <span class="collection-chip__count">{{ collectionCounts()[key] }}</span>
             </button>
           }
         </div>
@@ -137,8 +137,8 @@
           <div class="search-field">
             <ion-icon name="search-outline" class="search-field__icon" aria-hidden="true"></ion-icon>
             <ion-input
-              [(ngModel)]="searchQuery"
-              (ionInput)="onSearch($event)"
+              [value]="searchInput()"
+              (ionInput)="onSearch($event.detail.value)"
               placeholder="Filter by title…"
               aria-label="Filter by title"
               class="search-field__input"
@@ -151,22 +151,22 @@
             <button
               type="button"
               class="toolbar-btn"
-              [class.toolbar-btn--active]="showFilters || panelFilterCount > 0"
-              [attr.aria-expanded]="showFilters"
+              [class.toolbar-btn--active]="showFilters() || panelFilterCount() > 0"
+              [attr.aria-expanded]="showFilters()"
               aria-controls="filters-panel"
-              (click)="showFilters = !showFilters"
+              (click)="showFilters.set(!showFilters())"
             >
               <ion-icon name="filter-outline" aria-hidden="true"></ion-icon>
               <span>Filters</span>
-              @if (panelFilterCount > 0) {
-                <span class="toolbar-btn__badge">{{ panelFilterCount }}</span>
+              @if (panelFilterCount() > 0) {
+                <span class="toolbar-btn__badge">{{ panelFilterCount() }}</span>
               }
             </button>
 
             <div class="sort-control">
               <ion-select
-                [(ngModel)]="sortBy"
-                (ionChange)="onSortChange()"
+                [value]="sortBy()"
+                (ionChange)="onSortChange($event.detail.value)"
                 interface="popover"
                 class="sort-control__select"
                 aria-label="Sort by"
@@ -182,23 +182,23 @@
                 type="button"
                 class="sort-control__dir"
                 (click)="toggleSortOrder()"
-                [attr.aria-label]="'Sort direction: ' + sortOrderLabel"
-                [title]="sortOrderLabel"
+                [attr.aria-label]="'Sort direction: ' + sortOrderLabel()"
+                [title]="sortOrderLabel()"
               >
-                <ion-icon [name]="sortOrder === 'asc' ? 'arrow-up-outline' : 'arrow-down-outline'" aria-hidden="true"></ion-icon>
+                <ion-icon [name]="sortOrder() === 'asc' ? 'arrow-up-outline' : 'arrow-down-outline'" aria-hidden="true"></ion-icon>
               </button>
             </div>
           </div>
         </div>
 
         <!-- Filters panel -->
-        @if (showFilters) {
+        @if (showFilters()) {
           <div class="filters-panel" id="filters-panel">
             <div class="filters-columns">
               <div class="filter-group">
                 <span class="filter-group__label" id="filter-platform">Platform</span>
                 <div class="filter-chips" role="group" aria-labelledby="filter-platform">
-                  @for (platform of filterOptions.platforms; track platform) {
+                  @for (platform of filterOptions().platforms; track platform) {
                     <ion-chip [class.selected]="isPlatformSelected(platform)" (click)="togglePlatform(platform)"
                       [attr.aria-pressed]="isPlatformSelected(platform)">
                       {{ platform }}
@@ -210,7 +210,7 @@
               <div class="filter-group">
                 <span class="filter-group__label" id="filter-year">Release year</span>
                 <div class="filter-chips" role="group" aria-labelledby="filter-year">
-                  @for (year of filterOptions.years; track year) {
+                  @for (year of filterOptions().years; track year) {
                     <ion-chip [class.selected]="isYearSelected(year)" (click)="toggleYear(year)"
                       [attr.aria-pressed]="isYearSelected(year)">
                       {{ year }}
@@ -219,11 +219,11 @@
                 </div>
               </div>
 
-              @if (filterOptions.genres.length) {
+              @if (filterOptions().genres.length) {
                 <div class="filter-group">
                   <span class="filter-group__label" id="filter-genre">Genre</span>
                   <div class="filter-chips" role="group" aria-labelledby="filter-genre">
-                    @for (genre of filterOptions.genres; track genre) {
+                    @for (genre of filterOptions().genres; track genre) {
                       <ion-chip [class.selected]="isGenreSelected(genre)" (click)="toggleGenre(genre)"
                         [attr.aria-pressed]="isGenreSelected(genre)">
                         {{ genre }}
@@ -236,20 +236,20 @@
               <div class="filter-group">
                 <span class="filter-group__label" id="filter-developer">Developer</span>
                 <ion-select
-                  [(ngModel)]="selectedDevelopers"
+                  [value]="activeFilters().developers"
                   [multiple]="true"
                   placeholder="Any developer"
                   interface="popover"
                   class="gaming-select"
                   aria-labelledby="filter-developer"
-                  (ionChange)="applyFilters()"
+                  (ionChange)="setDevelopers($event.detail.value)"
                   [interfaceOptions]="{ cssClass: 'app-select-popover' }"
                 >
-                  @for (dev of filterOptions.developers; track dev) {
+                  @for (dev of filterOptions().developers; track dev) {
                     <ion-select-option [value]="dev">{{ dev }}</ion-select-option>
                   }
                 </ion-select>
-                @if (!filterOptions.tags.length) {
+                @if (!filterOptions().tags.length) {
                   <p class="filter-group__hint">Tip: add tags like “coop” on a game’s edit screen to filter by them.</p>
                 }
               </div>
@@ -258,13 +258,13 @@
         }
 
         <!-- Tags + saved views -->
-        @if (filterOptions.tags.length) {
+        @if (filterOptions().tags.length) {
           <div class="tag-rail" role="toolbar" aria-label="Filter by tag">
-            <button type="button" class="tag-rail__chip" [class.tag-rail__chip--active]="selectedTags.length === 0"
+            <button type="button" class="tag-rail__chip" [class.tag-rail__chip--active]="activeFilters().tags.length === 0"
               (click)="clearTagFilters()">
               All tags
             </button>
-            @for (tag of filterOptions.tags; track tag) {
+            @for (tag of filterOptions().tags; track tag) {
               <button type="button" class="tag-rail__chip" [class.tag-rail__chip--active]="isTagSelected(tag)"
                 [attr.aria-pressed]="isTagSelected(tag)" (click)="toggleTag(tag)">
                 #{{ tag }}
@@ -273,13 +273,13 @@
           </div>
         }
 
-        @if (savedCollections.length || canSaveView) {
+        @if (savedCollections().length || canSaveView()) {
           <div class="saved-views" aria-label="Saved views">
-            @if (savedCollections.length) {
+            @if (savedCollections().length) {
               <span class="saved-views__label">Saved</span>
             }
-            @for (col of savedCollections; track col.id) {
-              <span class="saved-view" [class.saved-view--active]="activeSavedCollectionId === col.id">
+            @for (col of savedCollections(); track col.id) {
+              <span class="saved-view" [class.saved-view--active]="activeSavedCollectionId() === col.id">
                 <button type="button" class="saved-view__apply" (click)="applySavedCollection(col)">
                   <ion-icon name="bookmark-outline" aria-hidden="true"></ion-icon>
                   {{ col.name }}
@@ -290,7 +290,7 @@
                 </button>
               </span>
             }
-            @if (canSaveView) {
+            @if (canSaveView()) {
               <button type="button" class="saved-views__add" (click)="saveCurrentView()">
                 <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
                 Save this view
@@ -303,10 +303,10 @@
         @if (hasActiveFilters()) {
           <div class="filter-results-bar" role="status">
             <p class="filter-results-bar__count">
-              <strong>{{ filteredResultsCount }}</strong> {{ filteredResultsCount === 1 ? 'match' : 'matches' }}
+              <strong>{{ filteredResultsCount() }}</strong> {{ filteredResultsCount() === 1 ? 'match' : 'matches' }}
             </p>
             <div class="active-filters">
-              @for (chip of activeFilterChips; track chip.type + ':' + chip.value) {
+              @for (chip of activeFilterChips(); track chip.type + ':' + chip.value) {
                 <button type="button" class="active-filter-chip" (click)="removeFilter(chip)"
                   [attr.aria-label]="'Remove filter ' + chip.label">
                   <span>{{ chip.label }}</span>
@@ -316,7 +316,7 @@
             </div>
             <div class="filter-results-bar__actions">
               <button type="button" class="text-btn" (click)="clearFilters()">Clear all</button>
-              <button type="button" class="text-btn" (click)="openExportDialog('filtered')" [disabled]="filteredResultsCount === 0">
+              <button type="button" class="text-btn" (click)="openExportDialog('filtered')" [disabled]="filteredResultsCount() === 0">
                 <ion-icon name="download-outline" aria-hidden="true"></ion-icon>
                 Download
               </button>
@@ -338,27 +338,27 @@
               }
             </div>
           </div>
-        } @else if (collectionGames.length) {
-          <ng-container *ngTemplateOutlet="gameCollection; context: { $implicit: collectionGames }"></ng-container>
+        } @else if (collectionGames().length) {
+          <ng-container *ngTemplateOutlet="gameCollection; context: { $implicit: collectionGames() }"></ng-container>
         } @else if (hasActiveFilters()) {
           <div class="empty-state">
             <div class="empty-icon" aria-hidden="true"><ion-icon name="search-outline"></ion-icon></div>
             <h2>No games match</h2>
-            <p>Nothing in {{ collectionMeta[collection].title | lowercase }} fits these filters.</p>
+            <p>Nothing in {{ collectionMeta[collection()].title | lowercase }} fits these filters.</p>
             <button type="button" class="btn btn--ghost" (click)="clearFilters()">Clear filters</button>
           </div>
         } @else {
           <div class="empty-state empty-state--compact">
             <div class="empty-icon" aria-hidden="true">
-              <ion-icon [name]="collectionMeta[collection].icon"></ion-icon>
+              <ion-icon [name]="collectionMeta[collection()].icon"></ion-icon>
             </div>
-            <p>{{ collectionMeta[collection].empty }}</p>
-            @if (collection === 'wishlist') {
+            <p>{{ collectionMeta[collection()].empty }}</p>
+            @if (collection() === 'wishlist') {
               <a routerLink="/wishlist/add" class="btn btn--ghost">
                 <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
                 Add to wishlist
               </a>
-            } @else if (collection === 'playing' && collectionCount('not_started') > 0) {
+            } @else if (collection() === 'playing' && collectionCounts().not_started > 0) {
               <button type="button" class="btn btn--ghost" (click)="setCollection('not_started')">Open backlog</button>
             }
           </div>
@@ -366,12 +366,12 @@
       </section>
 
       <!-- Wishlist (on the "All" view) -->
-      @if (showWishlistSection && !gamesLoading()) {
+      @if (showWishlistSection() && !gamesLoading()) {
         <section class="library-section" aria-labelledby="wishlist-title">
           <div class="section-header">
             <div class="library-head__title">
               <h2 class="section-title" id="wishlist-title">Wishlist</h2>
-              <span class="section-count">{{ wishlistGames.length }}</span>
+              <span class="section-count">{{ wishlistGames().length }}</span>
             </div>
             <a routerLink="/wishlist/add" class="section-add-btn">
               <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
@@ -379,8 +379,8 @@
             </a>
           </div>
 
-          @if (wishlistGames.length) {
-            <ng-container *ngTemplateOutlet="gameCollection; context: { $implicit: wishlistGames }"></ng-container>
+          @if (wishlistGames().length) {
+            <ng-container *ngTemplateOutlet="gameCollection; context: { $implicit: wishlistGames() }"></ng-container>
           } @else {
             <p class="section-empty">{{ collectionMeta.wishlist.empty }}</p>
           }
@@ -392,26 +392,25 @@
   </div>
 
   <ion-toast
-    [isOpen]="!!toastMessage"
-    [message]="toastMessage"
-    [color]="toastColor"
+    [isOpen]="toast.isOpen()"
+    [message]="toast.message()"
+    [color]="toast.color()"
     duration="3000"
     position="bottom"
     cssClass="app-toast"
-    (didDismiss)="toastMessage = ''"
+    (didDismiss)="toast.dismiss()"
   ></ion-toast>
 </ion-content>
 
 <!-- One renderer for every collection, in the user's chosen layout -->
 <ng-template #gameCollection let-games>
-  @switch (viewMode) {
+  @switch (viewMode()) {
     @case ('grid') {
       <div class="games-grid">
         @for (game of games; track game.id) {
           <app-game-card
             class="game-card-wrapper"
             [game]="game"
-            [countdownTick]="countdownTick"
             (advanceStatus)="advanceStatus($event)"
             (markCompleted)="markCompleted($event)"
             (deleteGame)="deleteGame($event)"
@@ -519,16 +518,16 @@
   }
 </ng-template>
 
-@if (showExportDialog) {
+@if (showExportDialog()) {
   <div class="export-dialog-backdrop" role="presentation"
     (click)="$event.target === $event.currentTarget && closeExportDialog()"
     (keydown.escape)="closeExportDialog()">
     <div class="export-dialog" role="dialog" aria-labelledby="export-dialog-title" aria-modal="true">
       <div class="export-dialog__head">
-        <h2 id="export-dialog-title">{{ exportDialogTitle }}</h2>
-        <p>{{ exportDialogMessage }}</p>
+        <h2 id="export-dialog-title">{{ exportDialogTitle() }}</h2>
+        <p>{{ exportDialogMessage() }}</p>
       </div>
-      @if (showWishlistExportOption) {
+      @if (showWishlistExportOption()) {
         <label class="export-dialog__checkbox">
           <input type="checkbox" [(ngModel)]="includeWishlistInExport" />
           <span>Include wishlist</span>

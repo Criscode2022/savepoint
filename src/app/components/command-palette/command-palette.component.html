@@ -1,4 +1,4 @@
-@if (open) {
+@if (isOpen()) {
   <div
     class="cmd-backdrop"
     role="presentation"
@@ -14,11 +14,11 @@
       <div class="cmd-search">
         <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
         <input
-          #queryInput
+          appAutofocus
           type="search"
           class="cmd-input"
-          [(ngModel)]="query"
-          (ngModelChange)="onQueryChange()"
+          [ngModel]="query()"
+          (ngModelChange)="onQueryChange($event)"
           (keydown)="onKeydown($event)"
           placeholder="Find a game, page or action…"
           aria-label="Search games, pages and actions"
@@ -29,68 +29,66 @@
       </div>
 
       <div class="cmd-results" role="listbox">
-        @for (group of groups; track group) {
-          @if (itemsForGroup(group).length) {
-            <div class="cmd-group-label">{{ group }}</div>
-            @for (item of itemsForGroup(group); track item.id) {
-              @if (item.kind === 'rawg' && item.rawg) {
-                <div
-                  class="cmd-item cmd-item--rawg"
-                  role="option"
-                  [class.cmd-item--active]="item.id === activeId"
-                  [attr.aria-selected]="item.id === activeId"
-                  (mouseenter)="activeId = item.id"
-                >
-                  <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
-                  <span class="cmd-item__label">{{ item.label }}</span>
-                  @if (item.hint) {
-                    <span class="cmd-item__hint">{{ item.hint }}</span>
-                  }
-                  <span class="cmd-item__actions">
-                    <button
-                      type="button"
-                      class="cmd-mini"
-                      [disabled]="isAdding(item.rawg)"
-                      (click)="addRawgToLibrary(item.rawg, $event)"
-                    >
-                      {{ addingKey === item.rawg.id + ':library' ? 'Adding…' : 'Library' }}
-                    </button>
-                    <button
-                      type="button"
-                      class="cmd-mini cmd-mini--wish"
-                      [disabled]="isAdding(item.rawg)"
-                      (click)="addRawgToWishlist(item.rawg, $event)"
-                    >
-                      {{ addingKey === item.rawg.id + ':wishlist' ? 'Adding…' : 'Wishlist' }}
-                    </button>
-                  </span>
-                </div>
-              } @else {
-                <button
-                  type="button"
-                  class="cmd-item"
-                  role="option"
-                  [class.cmd-item--active]="item.id === activeId"
-                  [attr.aria-selected]="item.id === activeId"
-                  (click)="run(item)"
-                  (mouseenter)="activeId = item.id"
-                >
-                  <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
-                  <span class="cmd-item__label">{{ item.label }}</span>
-                  @if (item.hint) {
-                    <span class="cmd-item__hint">{{ item.hint }}</span>
-                  }
-                </button>
-              }
+        @for (section of sections(); track section.group) {
+          <div class="cmd-group-label">{{ section.group }}</div>
+          @for (item of section.items; track item.id) {
+            @if (item.rawg; as hit) {
+              <div
+                class="cmd-item cmd-item--rawg"
+                role="option"
+                [class.cmd-item--active]="item.id === activeItemId()"
+                [attr.aria-selected]="item.id === activeItemId()"
+                (mouseenter)="activeId.set(item.id)"
+              >
+                <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
+                <span class="cmd-item__label">{{ item.label }}</span>
+                @if (item.hint) {
+                  <span class="cmd-item__hint">{{ item.hint }}</span>
+                }
+                <span class="cmd-item__actions">
+                  <button
+                    type="button"
+                    class="cmd-mini"
+                    [disabled]="isAdding(hit)"
+                    (click)="addRawgToLibrary(hit, $event)"
+                  >
+                    {{ addingKey() === hit.id + ':library' ? 'Adding…' : 'Library' }}
+                  </button>
+                  <button
+                    type="button"
+                    class="cmd-mini cmd-mini--wish"
+                    [disabled]="isAdding(hit)"
+                    (click)="addRawgToWishlist(hit, $event)"
+                  >
+                    {{ addingKey() === hit.id + ':wishlist' ? 'Adding…' : 'Wishlist' }}
+                  </button>
+                </span>
+              </div>
+            } @else {
+              <button
+                type="button"
+                class="cmd-item"
+                role="option"
+                [class.cmd-item--active]="item.id === activeItemId()"
+                [attr.aria-selected]="item.id === activeItemId()"
+                (click)="run(item)"
+                (mouseenter)="activeId.set(item.id)"
+              >
+                <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
+                <span class="cmd-item__label">{{ item.label }}</span>
+                @if (item.hint) {
+                  <span class="cmd-item__hint">{{ item.hint }}</span>
+                }
+              </button>
             }
           }
         }
 
-        @if (rawgSearching && query.trim().length >= 2) {
+        @if (rawgSearching() && query().trim().length >= 2) {
           <p class="cmd-rawg-status">Searching RAWG…</p>
         }
 
-        @if (!flatItems.length && !rawgSearching) {
+        @if (!items().length && !rawgSearching()) {
           <p class="cmd-empty">No matches</p>
         }
       </div>
@@ -99,11 +97,11 @@
 }
 
 <ion-toast
-  [isOpen]="!!toastMessage"
-  [message]="toastMessage"
-  [color]="toastColor"
+  [isOpen]="toast.isOpen()"
+  [message]="toast.message()"
+  [color]="toast.color()"
   [duration]="2200"
   position="bottom"
   cssClass="app-toast"
-  (didDismiss)="toastMessage = ''"
+  (didDismiss)="toast.dismiss()"
 ></ion-toast>

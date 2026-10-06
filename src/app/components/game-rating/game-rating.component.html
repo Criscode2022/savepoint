@@ -1,9 +1,9 @@
 <div
   class="game-rating"
-  [class.game-rating--readonly]="readonly"
-  [class.game-rating--sm]="size === 'sm'"
-  [class.game-rating--md]="size === 'md'"
-  [class.game-rating--lg]="size === 'lg'"
+  [class.game-rating--readonly]="readonly()"
+  [class.game-rating--sm]="size() === 'sm'"
+  [class.game-rating--md]="size() === 'md'"
+  [class.game-rating--lg]="size() === 'lg'"
 >
   <div class="game-rating__row">
     <div
@@ -11,18 +11,18 @@
       role="slider"
       [attr.aria-valuemin]="0"
       [attr.aria-valuemax]="10"
-      [attr.aria-valuenow]="displayRating ?? 0"
-      [attr.aria-label]="readonly ? 'Rating ' + formatRatingLabel(rating) : 'Rate this game from 1 to 10'"
-      [attr.tabindex]="readonly ? -1 : 0"
+      [attr.aria-valuenow]="displayRating() ?? 0"
+      [attr.aria-label]="readonly() ? 'Rating ' + formatRatingLabel(rating()) : 'Rate this game from 1 to 10'"
+      [attr.tabindex]="readonly() ? -1 : 0"
       (keydown)="onKeydown($event)"
       (mouseleave)="onStarsLeave()"
     >
-      @for (filled of starStates; track $index) {
+      @for (filled of starStates(); track $index) {
         <button
           type="button"
           class="game-rating__star"
           [class.game-rating__star--filled]="filled"
-          [disabled]="readonly || disabled"
+          [disabled]="readonly() || disabled()"
           [attr.aria-label]="'Rate ' + ($index + 1) + ' out of 10'"
           (click)="onStarClick($index + 1, $event)"
           (mouseenter)="onStarHover($index + 1)"
@@ -32,7 +32,7 @@
       }
     </div>
 
-    @if (showClear && !readonly && isValidRating(rating)) {
+    @if (showClear() && !readonly() && isValidRating(rating())) {
       <ion-button
         fill="outline"
         size="small"
@@ -44,7 +44,7 @@
     }
   </div>
 
-  @if (showValue) {
-    <span class="game-rating__value">{{ formatRatingLabel(displayRating) }}</span>
+  @if (showValue()) {
+    <span class="game-rating__value">{{ formatRatingLabel(displayRating()) }}</span>
   }
 </div>

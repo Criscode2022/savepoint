@@ -1,8 +1,8 @@
 <div class="cover-upload">
   <div class="cover-upload__preview">
     <app-game-cover
-      [title]="title || 'Game cover'"
-      [coverImage]="coverImage"
+      [title]="title() || 'Game cover'"
+      [coverImage]="coverImage()"
       variant="card"
     ></app-game-cover>
   </div>
@@ -16,17 +16,17 @@
       (change)="onFileSelected($event)"
     />
 
-    <button type="button" class="btn btn--ghost btn--sm" [disabled]="uploading" (click)="fileInput.click()">
-      @if (uploading) {
+    <button type="button" class="btn btn--ghost btn--sm" [disabled]="uploading()" (click)="fileInput.click()">
+      @if (uploading()) {
         <ion-spinner name="crescent"></ion-spinner>
       } @else {
         <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon>
       }
-      {{ uploading ? 'Processing…' : coverImage ? 'Replace image' : 'Upload image' }}
+      {{ uploading() ? 'Processing…' : coverImage() ? 'Replace image' : 'Upload image' }}
     </button>
 
-    @if (coverImage) {
-      <button type="button" class="btn btn--danger btn--sm" [disabled]="uploading" (click)="clearCover()">
+    @if (coverImage()) {
+      <button type="button" class="btn btn--danger btn--sm" [disabled]="uploading()" (click)="clearCover()">
         <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
         Remove
       </button>
@@ -48,21 +48,21 @@
         <ion-item class="form-item cover-upload__rawg-input" lines="none">
           <ion-input
             id="cover-rawg-query"
-            [(ngModel)]="searchQuery"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="onSearchInput($event)"
             name="rawgCoverQuery"
             type="search"
             placeholder="Search by game title…"
-            (ionInput)="onSearchInput()"
             (keyup.enter)="searchNow()"
           ></ion-input>
         </ion-item>
         <button
           type="button"
           class="cover-upload__search-btn"
-          [disabled]="searching || !searchQuery.trim()"
+          [disabled]="searching() || !searchQuery().trim()"
           (click)="searchNow()"
         >
-          @if (searching) {
+          @if (searching()) {
             <ion-spinner name="crescent"></ion-spinner>
           } @else {
             <span>Search</span>
@@ -70,30 +70,30 @@
         </button>
       </div>
 
-      @if (searchError) {
-        <p class="cover-upload__rawg-status">{{ searchError }}</p>
+      @if (searchError()) {
+        <p class="cover-upload__rawg-status">{{ searchError() }}</p>
       }
-      @if (!searching && searched && !candidates.length && !searchError) {
+      @if (!searching() && searched() && !candidates().length && !searchError()) {
         <p class="cover-upload__rawg-status">
           No images found. Try a shorter title or upload manually.
         </p>
       }
 
-      @if (candidates.length) {
+      @if (candidates().length) {
         <div class="cover-upload__grid" role="listbox" aria-label="Cover image results">
-          @for (item of candidates; track item.imageUrl) {
+          @for (item of candidates(); track item.imageUrl) {
             <button
               type="button"
               class="cover-pick"
               role="option"
-              [class.cover-pick--selected]="coverImage === item.imageUrl"
-              [attr.aria-selected]="coverImage === item.imageUrl"
+              [class.cover-pick--selected]="coverImage() === item.imageUrl"
+              [attr.aria-selected]="coverImage() === item.imageUrl"
               [attr.title]="item.gameName + (item.releaseYear ? ' (' + item.releaseYear + ')' : '')"
               (click)="selectCandidate(item)"
             >
               <img [src]="item.imageUrl" [alt]="item.gameName" loading="lazy" />
               <span class="cover-pick__badge">{{ item.kind === 'cover' ? 'Cover' : 'Shot' }}</span>
-              @if (coverImage === item.imageUrl) {
+              @if (coverImage() === item.imageUrl) {
                 <span class="cover-pick__check" aria-hidden="true">
                   <ion-icon name="checkmark-circle-outline"></ion-icon>
                 </span>
@@ -116,8 +116,8 @@
     </p>
   }
 
-  @if (errorMessage) {
-    <p class="cover-upload__error">{{ errorMessage }}</p>
+  @if (errorMessage()) {
+    <p class="cover-upload__error">{{ errorMessage() }}</p>
   }
 
   <div class="cover-upload__url">
@@ -128,7 +128,7 @@
     <ion-item class="form-item" lines="none">
       <ion-input
         id="cover-image-url"
-        [value]="urlValue"
+        [value]="urlValue()"
         type="url"
         placeholder="https://..."
         (ionInput)="onUrlInput($event)"

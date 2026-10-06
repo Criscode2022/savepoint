@@ -1,8 +1,9 @@
-import { Component, ElementRef, OnInit, OnDestroy, Signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { LowerCasePipe, NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, debounceTime } from 'rxjs';
 import {
   IonContent, IonIcon, IonInput, IonChip,
   IonSelect, IonSelectOption, IonToast, IonPopover,
@@ -26,13 +27,15 @@ import {
   statusChangeClearsPlayHistory,
   statusChangeMessage,
 } from '../../shared/utils/game-status.utils';
+import { ClockService } from '../../services/clock.service';
 import { GameService } from '../../services/game.service';
 import { GameCardComponent } from '../../components/game-card/game-card.component';
 import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
 import { exportLibrary, LibraryExportFormat } from '../../shared/utils/library-export.utils';
 import { parseLibraryImportJson } from '../../shared/utils/library-import.utils';
-import { collectFilterOptions, LibraryFilterOptions } from '../../shared/utils/filter-options.utils';
-import { DEFAULT_SORT_ORDER, GameSortField, SortOrder } from '../../shared/utils/game-sort.utils';
+import { collectFilterOptions } from '../../shared/utils/filter-options.utils';
+import { matchesFilters } from '../../shared/utils/game-filters.utils';
+import { DEFAULT_SORT_ORDER, GameSortField, SortOrder, sortGames } from '../../shared/utils/game-sort.utils';
 import { LibraryPrefsService, LibraryViewMode } from '../../services/library-prefs.service';
 import { CollectionsService, SavedCollection } from '../../services/collections.service';
 import {
@@ -43,8 +46,17 @@ import {
 } from '../../shared/library-collections';
 import { APP_NAME } from '../../shared/brand';
 import { isRated } from '../../shared/utils/rating.utils';
+import { ToastState } from '../../shared/toast-state';
 
-type ToastColor = 'success' | 'danger' | 'warning';
+addIcons({
+  gameControllerOutline, addOutline, searchOutline, filterOutline,
+  gridOutline, listOutline, albumsOutline, starOutline, timeOutline,
+  checkmarkCircleOutline, closeOutline, heartOutline, ellipseOutline,
+  pauseCircleOutline, playCircleOutline, downloadOutline, playOutline, pauseOutline,
+  documentAttachOutline, bookmarkOutline, ellipsisHorizontal, arrowDownOutline,
+  arrowUpOutline, layersOutline, createOutline, trashOutline, star,
+});
+
 type FilterType = 'search' | 'platform' | 'year' | 'developer' | 'genre' | 'tag';
 
 interface ActiveFilterChip {
@@ -53,32 +65,33 @@ interface ActiveFilterChip {
   label: string;
 }
 
+/** The filters that actually apply: selections that still exist in the library, plus the search */
+type ActiveFilters = Required<Pick<GameFilters, 'search' | 'platforms' | 'years' | 'developers' | 'genres' | 'tags'>>;
+
+const CHIP_COLLECTIONS: LibraryCollection[] = ['all', ...STATUS_COLLECTIONS];
+
 @Component({
   selector: 'app-home',
-  standalone: true,
   imports: [
-    CommonModule, FormsModule, RouterLink, GameCardComponent, GameCoverComponent,
+    FormsModule, LowerCasePipe, NgTemplateOutlet, RouterLink, GameCardComponent, GameCoverComponent,
     IonContent, IonIcon, IonInput, IonChip,
     IonSelect, IonSelectOption, IonToast, IonPopover,
   ],
   templateUrl: './home.page.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
+export class HomePage implements ViewWillEnter {
   private readonly gameService = inject(GameService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly alertController = inject(AlertController);
   private readonly prefs = inject(LibraryPrefsService);
   private readonly collections = inject(CollectionsService);
+  private readonly clock = inject(ClockService);
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
 
-  /** Full library (all statuses) — drives filter options, continue rail, empty state */
-  private games: Game[] = [];
-  protected readonly filteredGames: Signal<Game[]> = this.gameService.filteredGames;
-  protected readonly gamesLoading: Signal<boolean> = this.gameService.gamesLoading;
-
   protected readonly collectionMeta = LIBRARY_COLLECTIONS;
-  protected readonly chipCollections: LibraryCollection[] = ['all', ...STATUS_COLLECTIONS];
+  protected readonly chipCollections = CHIP_COLLECTIONS;
   protected readonly getStatusAction = getStatusAction;
   protected readonly appName = APP_NAME;
   protected readonly isRated = isRated;
@@ -91,134 +104,171 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     { value: 'playtimeHours', label: 'Playtime' },
   ];
 
-  protected viewMode: LibraryViewMode = 'grid';
-  protected searchQuery = '';
-  private readonly searchSubject = new Subject<string>();
-
-  protected showFilters = false;
-  protected filterOptions: LibraryFilterOptions = {
-    platforms: [], years: [], developers: [], genres: [], tags: [],
-  };
-
-  private selectedPlatforms: string[] = [];
-  private selectedYears: number[] = [];
-  protected selectedDevelopers: string[] = [];
-  private selectedGenres: string[] = [];
-  protected selectedTags: string[] = [];
-  /** Tag that arrived through the URL (saved views); cleared again when the URL drops it */
-  private urlTag: string | null = null;
-
-  protected sortBy: GameSortField = 'createdAt';
-  protected sortOrder: SortOrder = DEFAULT_SORT_ORDER.createdAt;
-
-  protected collection: LibraryCollection = 'all';
-
-  protected toastMessage = '';
-  protected toastColor: ToastColor = 'success';
-  protected countdownTick = 0;
-
-  protected showExportDialog = false;
-  protected includeWishlistInExport = true;
-  private exportScope: 'library' | 'filtered' = 'library';
-  protected importing = false;
-
-  protected savedCollections: SavedCollection[] = [];
-  protected activeSavedCollectionId: string | null = null;
-
   protected readonly skeletonGridItems = Array.from({ length: 12 });
   protected readonly skeletonShelfItems = Array.from({ length: 18 });
   protected readonly skeletonListItems = Array.from({ length: 6 });
 
-  private readonly destroy$ = new Subject<void>();
-  private countdownInterval?: ReturnType<typeof setInterval>;
+  /** Full library (all statuses) — drives filter options, continue rail, empty state */
+  private readonly games = this.gameService.games;
+  protected readonly gamesLoading = this.gameService.gamesLoading;
+  protected readonly viewMode = this.prefs.viewMode;
+  protected readonly savedCollections = this.collections.collections;
+  protected readonly toast = new ToastState();
 
-  public ngOnInit(): void {
-    addIcons({
-      gameControllerOutline, addOutline, searchOutline, filterOutline,
-      gridOutline, listOutline, albumsOutline, starOutline, timeOutline,
-      checkmarkCircleOutline, closeOutline, heartOutline, ellipseOutline,
-      pauseCircleOutline, playCircleOutline, downloadOutline, playOutline, pauseOutline,
-      documentAttachOutline, bookmarkOutline, ellipsisHorizontal, arrowDownOutline,
-      arrowUpOutline, layersOutline, createOutline, trashOutline, star,
-    });
+  // ── View state ───────────────────────────────────────────
 
-    this.viewMode = this.prefs.viewMode;
-    this.prefs.viewMode$.pipe(takeUntil(this.destroy$)).subscribe((mode) => {
-      this.viewMode = mode;
-    });
+  /** What's typed in the search box; `searchQuery` follows it after a short debounce */
+  protected readonly searchInput = signal('');
+  private readonly searchQuery = signal('');
+  private readonly search$ = new Subject<string>();
 
-    this.gameService.games$.pipe(takeUntil(this.destroy$)).subscribe((games) => {
-      this.games = games;
-      this.filterOptions = collectFilterOptions(games);
-      this.pruneInvalidFilterSelections();
-      this.applyFilters();
-    });
+  protected readonly showFilters = signal(false);
+  private readonly selectedPlatforms = signal<string[]>([]);
+  private readonly selectedYears = signal<number[]>([]);
+  private readonly selectedDevelopers = signal<string[]>([]);
+  private readonly selectedGenres = signal<string[]>([]);
+  private readonly selectedTags = signal<string[]>([]);
+  /** Tag that arrived through the URL (saved views); cleared again when the URL drops it */
+  private readonly urlTag = signal<string | null>(null);
 
-    this.searchSubject
-      .pipe(debounceTime(200), distinctUntilChanged(), takeUntil(this.destroy$))
-      .subscribe(() => this.applyFilters());
+  protected readonly sortBy = signal<GameSortField>('createdAt');
+  protected readonly sortOrder = signal<SortOrder>(DEFAULT_SORT_ORDER.createdAt);
 
-    this.collections.collections$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((items) => (this.savedCollections = items));
+  protected readonly collection = signal<LibraryCollection>('all');
+  protected readonly activeSavedCollectionId = signal<string | null>(null);
 
-    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
-      this.collection = parseCollection(params.get('collection'));
+  protected readonly showExportDialog = signal(false);
+  protected readonly includeWishlistInExport = signal(true);
+  private readonly exportScope = signal<'library' | 'filtered'>('library');
+  protected readonly importing = signal(false);
+
+  // ── Derived state ────────────────────────────────────────
+
+  protected readonly filterOptions = computed(() => collectFilterOptions(this.games()));
+
+  protected readonly activeFilters = computed<ActiveFilters>(() => {
+    const { platforms, years, developers, genres, tags } = this.filterOptions();
+    const urlTag = this.urlTag();
+    return {
+      search: this.searchQuery().trim(),
+      platforms: this.selectedPlatforms().filter((p) => platforms.includes(p)),
+      years: this.selectedYears().filter((y) => years.includes(y)),
+      developers: this.selectedDevelopers().filter((d) => developers.includes(d)),
+      genres: this.selectedGenres().filter((g) => genres.includes(g)),
+      // Keep a URL tag even before the library has loaded
+      tags: this.selectedTags().filter((t) => tags.includes(t) || t === urlTag),
+    };
+  });
+
+  /** Every game that passes the filters, in the chosen order — collections slice this list */
+  private readonly matchingGames = computed(() => {
+    const filters = this.activeFilters();
+    const matches = this.games().filter((game) => matchesFilters(game, filters));
+    return sortGames(matches, this.sortBy(), this.sortOrder());
+  });
+
+  protected readonly collectionGames = computed(() =>
+    this.matchingGames().filter(LIBRARY_COLLECTIONS[this.collection()].matches),
+  );
+
+  protected readonly wishlistGames = computed(() =>
+    this.matchingGames().filter(LIBRARY_COLLECTIONS.wishlist.matches),
+  );
+
+  protected readonly collectionCounts = computed(() => {
+    const games = this.matchingGames();
+    return Object.fromEntries(
+      CHIP_COLLECTIONS.map((key) => [key, games.filter(LIBRARY_COLLECTIONS[key].matches).length]),
+    ) as Record<LibraryCollection, number>;
+  });
+
+  protected readonly libraryIsEmpty = computed(() => this.games().length === 0);
+
+  /** Filters that live inside the Filters panel (search and tags have their own controls) */
+  protected readonly panelFilterCount = computed(() => {
+    const { platforms, years, developers, genres } = this.activeFilters();
+    return platforms.length + years.length + developers.length + genres.length;
+  });
+
+  protected readonly hasActiveFilters = computed(
+    () => this.panelFilterCount() > 0 || this.activeFilters().tags.length > 0 || !!this.activeFilters().search,
+  );
+
+  protected readonly activeFilterChips = computed<ActiveFilterChip[]>(() => {
+    const { search, platforms, years, developers, genres, tags } = this.activeFilters();
+    return [
+      ...(search ? [{ type: 'search' as const, value: search, label: `“${search}”` }] : []),
+      ...platforms.map((p) => ({ type: 'platform' as const, value: p, label: p })),
+      ...years.map((y) => ({ type: 'year' as const, value: y, label: String(y) })),
+      ...developers.map((d) => ({ type: 'developer' as const, value: d, label: d })),
+      ...genres.map((g) => ({ type: 'genre' as const, value: g, label: g })),
+      ...tags.map((t) => ({ type: 'tag' as const, value: t, label: `#${t}` })),
+    ];
+  });
+
+  protected readonly sortOrderLabel = computed(() => (this.sortOrder() === 'asc' ? 'Ascending' : 'Descending'));
+
+  protected readonly continuePlaying = computed(() =>
+    this.games()
+      .filter((g) => g.status === 'playing')
+      .sort((a, b) => Date.parse(b.lastPlayedAt ?? '0') - Date.parse(a.lastPlayedAt ?? '0'))
+      .slice(0, 8),
+  );
+
+  protected readonly showContinueRail = computed(
+    () => this.collection() === 'all' && !this.hasActiveFilters() && this.continuePlaying().length > 0,
+  );
+
+  protected readonly showWishlistSection = computed(
+    () => this.collection() === 'all' && (this.wishlistGames().length > 0 || !this.hasActiveFilters()),
+  );
+
+  protected readonly canSaveView = computed(
+    () => this.collection() !== 'all' || this.activeFilters().tags.length > 0,
+  );
+
+  private readonly filteredExportGames = computed(() =>
+    this.collection() === 'all'
+      ? [...this.collectionGames(), ...this.wishlistGames()]
+      : this.collectionGames(),
+  );
+
+  protected readonly filteredResultsCount = computed(() => this.filteredExportGames().length);
+
+  protected readonly exportDialogTitle = computed(() =>
+    this.exportScope() === 'filtered' ? 'Download these results' : 'Download your library',
+  );
+
+  protected readonly exportDialogMessage = computed(() => {
+    if (this.exportScope() === 'filtered') {
+      const count = this.filteredResultsCount();
+      return `${count} ${count === 1 ? 'game' : 'games'} matching your filters.`;
+    }
+    return 'A full backup you can re-import later (JSON) or open in a spreadsheet (Excel).';
+  });
+
+  protected readonly showWishlistExportOption = computed(
+    () => this.exportScope() === 'library' || this.collection() === 'all',
+  );
+
+  constructor() {
+    this.search$
+      .pipe(debounceTime(200), takeUntilDestroyed())
+      .subscribe((query) => this.searchQuery.set(query));
+
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+      this.collection.set(parseCollection(params.get('collection')));
       this.revealActiveChip();
-      this.activeSavedCollectionId = params.get('saved');
+      this.activeSavedCollectionId.set(params.get('saved'));
       this.syncUrlTag(params.get('tag'));
     });
-
-    this.countdownInterval = setInterval(() => this.countdownTick++, 60000);
   }
 
   public ionViewWillEnter(): void {
-    // Other pages reload the library without filters; restore this page's view.
-    this.applyFilters();
     this.consumeNavigationToast();
   }
 
-  public ngOnDestroy(): void {
-    clearInterval(this.countdownInterval);
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
   // ── Collections ──────────────────────────────────────────
-
-  protected get collectionGames(): Game[] {
-    return this.filteredGames().filter(LIBRARY_COLLECTIONS[this.collection].matches);
-  }
-
-  protected get wishlistGames(): Game[] {
-    return this.filteredGames().filter(LIBRARY_COLLECTIONS.wishlist.matches);
-  }
-
-  protected collectionCount(collection: LibraryCollection): number {
-    return this.filteredGames().filter(LIBRARY_COLLECTIONS[collection].matches).length;
-  }
-
-  protected get libraryIsEmpty(): boolean {
-    return this.games.length === 0;
-  }
-
-  protected get showWishlistSection(): boolean {
-    return (
-      this.collection === 'all' &&
-      (this.wishlistGames.length > 0 || !this.hasActiveFilters())
-    );
-  }
-
-  protected get continuePlaying(): Game[] {
-    return this.games
-      .filter((g) => g.status === 'playing')
-      .sort((a, b) => Date.parse(b.lastPlayedAt ?? '0') - Date.parse(a.lastPlayedAt ?? '0'))
-      .slice(0, 8);
-  }
-
-  protected get showContinueRail(): boolean {
-    return this.collection === 'all' && !this.hasActiveFilters() && this.continuePlaying.length > 0;
-  }
 
   /** On phones the chip rail scrolls; keep the selected collection visible. */
   private revealActiveChip(): void {
@@ -237,182 +287,122 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
 
   // ── Search, filters & sort ───────────────────────────────
 
-  protected onSearch(event: Event): void {
-    const detail = (event as CustomEvent<{ value?: string | null }>).detail;
-    this.searchQuery = detail?.value ?? '';
-    this.searchSubject.next(this.searchQuery);
+  protected onSearch(value: string | null | undefined): void {
+    this.searchInput.set(value ?? '');
+    this.search$.next(value ?? '');
   }
 
-  protected applyFilters(): void {
-    const filters: GameFilters = {
-      search: this.searchQuery,
-      platforms: this.selectedPlatforms.length ? this.selectedPlatforms : undefined,
-      years: this.selectedYears.length ? this.selectedYears : undefined,
-      developers: this.selectedDevelopers.length ? this.selectedDevelopers : undefined,
-      genres: this.selectedGenres.length ? this.selectedGenres : undefined,
-      tags: this.selectedTags.length ? this.selectedTags : undefined,
-      sortBy: this.sortBy,
-      sortOrder: this.sortOrder,
-    };
-    this.gameService.filterGames(filters);
-  }
-
-  protected onSortChange(): void {
-    this.sortOrder = DEFAULT_SORT_ORDER[this.sortBy];
-    this.applyFilters();
+  protected onSortChange(field: GameSortField): void {
+    this.sortBy.set(field);
+    this.sortOrder.set(DEFAULT_SORT_ORDER[field]);
   }
 
   protected toggleSortOrder(): void {
-    this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
-    this.applyFilters();
-  }
-
-  protected get sortOrderLabel(): string {
-    return this.sortOrder === 'asc' ? 'Ascending' : 'Descending';
+    this.sortOrder.update((order) => (order === 'asc' ? 'desc' : 'asc'));
   }
 
   protected isPlatformSelected(platform: string): boolean {
-    return this.selectedPlatforms.includes(platform);
+    return this.activeFilters().platforms.includes(platform);
   }
 
   protected togglePlatform(platform: string): void {
-    this.selectedPlatforms = this.toggleValue(this.selectedPlatforms, platform);
-    this.applyFilters();
+    this.selectedPlatforms.update((values) => toggleValue(values, platform));
   }
 
   protected isYearSelected(year: number): boolean {
-    return this.selectedYears.includes(year);
+    return this.activeFilters().years.includes(year);
   }
 
   protected toggleYear(year: number): void {
-    this.selectedYears = this.toggleValue(this.selectedYears, year);
-    this.applyFilters();
+    this.selectedYears.update((values) => toggleValue(values, year));
   }
 
   protected isGenreSelected(genre: string): boolean {
-    return this.selectedGenres.includes(genre);
+    return this.activeFilters().genres.includes(genre);
   }
 
   protected toggleGenre(genre: string): void {
-    this.selectedGenres = this.toggleValue(this.selectedGenres, genre);
-    this.applyFilters();
+    this.selectedGenres.update((values) => toggleValue(values, genre));
+  }
+
+  protected setDevelopers(developers: string[] | null): void {
+    this.selectedDevelopers.set(developers ?? []);
   }
 
   protected isTagSelected(tag: string): boolean {
-    return this.selectedTags.includes(tag);
+    return this.activeFilters().tags.includes(tag);
   }
 
   protected toggleTag(tag: string): void {
-    this.selectedTags = this.toggleValue(this.selectedTags, tag);
-    this.activeSavedCollectionId = null;
-    this.applyFilters();
+    this.selectedTags.update((values) => toggleValue(values, tag));
+    this.activeSavedCollectionId.set(null);
   }
 
   protected clearTagFilters(): void {
-    if (!this.selectedTags.length) return;
-    this.selectedTags = [];
-    this.activeSavedCollectionId = null;
-    this.applyFilters();
-  }
-
-  protected hasActiveFilters(): boolean {
-    return this.panelFilterCount > 0 || this.selectedTags.length > 0 || !!this.searchQuery.trim();
-  }
-
-  /** Filters that live inside the Filters panel (search and tags have their own controls) */
-  protected get panelFilterCount(): number {
-    return (
-      this.selectedPlatforms.length +
-      this.selectedYears.length +
-      this.selectedDevelopers.length +
-      this.selectedGenres.length
-    );
-  }
-
-  protected get activeFilterChips(): ActiveFilterChip[] {
-    const chips: ActiveFilterChip[] = [];
-    if (this.searchQuery.trim()) {
-      chips.push({ type: 'search', value: this.searchQuery, label: `“${this.searchQuery.trim()}”` });
-    }
-    this.selectedPlatforms.forEach((p) => chips.push({ type: 'platform', value: p, label: p }));
-    this.selectedYears.forEach((y) => chips.push({ type: 'year', value: y, label: String(y) }));
-    this.selectedDevelopers.forEach((d) => chips.push({ type: 'developer', value: d, label: d }));
-    this.selectedGenres.forEach((g) => chips.push({ type: 'genre', value: g, label: g }));
-    this.selectedTags.forEach((t) => chips.push({ type: 'tag', value: t, label: `#${t}` }));
-    return chips;
+    if (!this.selectedTags().length) return;
+    this.selectedTags.set([]);
+    this.activeSavedCollectionId.set(null);
   }
 
   protected removeFilter(chip: ActiveFilterChip): void {
+    const without = <T>(values: T[]) => values.filter((v) => v !== chip.value);
     switch (chip.type) {
       case 'search':
-        this.searchQuery = '';
+        this.clearSearch();
         break;
       case 'platform':
-        this.selectedPlatforms = this.selectedPlatforms.filter((p) => p !== chip.value);
+        this.selectedPlatforms.update(without);
         break;
       case 'year':
-        this.selectedYears = this.selectedYears.filter((y) => y !== chip.value);
+        this.selectedYears.update(without);
         break;
       case 'developer':
-        this.selectedDevelopers = this.selectedDevelopers.filter((d) => d !== chip.value);
+        this.selectedDevelopers.update(without);
         break;
       case 'genre':
-        this.selectedGenres = this.selectedGenres.filter((g) => g !== chip.value);
+        this.selectedGenres.update(without);
         break;
       case 'tag':
-        this.selectedTags = this.selectedTags.filter((t) => t !== chip.value);
+        this.selectedTags.update(without);
         break;
     }
-    this.applyFilters();
   }
 
   protected clearFilters(): void {
-    this.searchQuery = '';
-    this.selectedPlatforms = [];
-    this.selectedYears = [];
-    this.selectedDevelopers = [];
-    this.selectedGenres = [];
-    this.selectedTags = [];
-    this.applyFilters();
+    this.clearSearch();
+    this.selectedPlatforms.set([]);
+    this.selectedYears.set([]);
+    this.selectedDevelopers.set([]);
+    this.selectedGenres.set([]);
+    this.selectedTags.set([]);
   }
 
-  private toggleValue<T>(values: T[], value: T): T[] {
-    return values.includes(value) ? values.filter((v) => v !== value) : [...values, value];
+  private clearSearch(): void {
+    this.searchInput.set('');
+    this.searchQuery.set('');
+    // Also reset the debounced stream so a pending keystroke can't bring the old query back
+    this.search$.next('');
   }
 
   private syncUrlTag(tag: string | null): void {
-    if (tag === this.urlTag) return;
-    if (this.urlTag) {
-      this.selectedTags = this.selectedTags.filter((t) => t !== this.urlTag);
-    }
+    const previous = this.urlTag();
+    if (tag === previous) return;
     if (tag) {
-      this.selectedTags = [tag];
+      this.selectedTags.set([tag]);
+    } else if (previous) {
+      this.selectedTags.update((tags) => tags.filter((t) => t !== previous));
     }
-    this.urlTag = tag;
-    this.applyFilters();
-  }
-
-  private pruneInvalidFilterSelections(): void {
-    const { platforms, years, developers, genres, tags } = this.filterOptions;
-    this.selectedPlatforms = this.selectedPlatforms.filter((p) => platforms.includes(p));
-    this.selectedYears = this.selectedYears.filter((y) => years.includes(y));
-    this.selectedDevelopers = this.selectedDevelopers.filter((d) => developers.includes(d));
-    this.selectedGenres = this.selectedGenres.filter((g) => genres.includes(g));
-    // Keep a URL tag even before the library has loaded
-    this.selectedTags = this.selectedTags.filter((t) => tags.includes(t) || t === this.urlTag);
+    this.urlTag.set(tag);
   }
 
   // ── Saved views ──────────────────────────────────────────
 
-  protected get canSaveView(): boolean {
-    return this.collection !== 'all' || this.selectedTags.length > 0;
-  }
-
   protected async saveCurrentView(): Promise<void> {
-    const tag = this.selectedTags[0];
+    const collection = this.collection();
+    const tag = this.activeFilters().tags[0];
     const alert = await this.alertController.create({
       header: 'Save this view',
-      message: `Saves “${LIBRARY_COLLECTIONS[this.collection].title}”${tag ? ` with #${tag}` : ''} so it's one tap away.`,
+      message: `Saves “${LIBRARY_COLLECTIONS[collection].title}”${tag ? ` with #${tag}` : ''} so it's one tap away.`,
       cssClass: 'app-alert',
       inputs: [
         {
@@ -430,12 +420,12 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
           handler: (data: { name?: string }) => {
             const name = (data?.name || '').trim();
             if (!name) {
-              this.showToast('Give the view a name first', 'warning');
+              this.toast.show('Give the view a name first', 'warning');
               return false;
             }
-            const saved = this.collections.add(name, this.collection, tag);
-            this.activeSavedCollectionId = saved.id;
-            this.showToast(`Saved “${saved.name}”`);
+            const saved = this.collections.add(name, collection, tag);
+            this.activeSavedCollectionId.set(saved.id);
+            this.toast.show(`Saved “${saved.name}”`);
             return true;
           },
         },
@@ -456,10 +446,10 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
 
   protected removeSavedCollection(col: SavedCollection): void {
     this.collections.remove(col.id);
-    if (this.activeSavedCollectionId === col.id) {
-      this.activeSavedCollectionId = null;
+    if (this.activeSavedCollectionId() === col.id) {
+      this.activeSavedCollectionId.set(null);
     }
-    this.showToast(`Removed “${col.name}”`);
+    this.toast.show(`Removed “${col.name}”`);
   }
 
   // ── Status actions ───────────────────────────────────────
@@ -472,14 +462,13 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     return game.status === 'playing' || game.status === 'paused';
   }
 
+  /** Reads the shared clock, so wishlist rows re-render as release day approaches */
   protected isWishlistLocked(game: Game): boolean {
-    void this.countdownTick;
-    return game.status === 'wishlist' && !canAddWishlistToLibrary(game);
+    return game.status === 'wishlist' && !canAddWishlistToLibrary(game, this.clock.now());
   }
 
   protected getCountdownLabel(game: Game): string {
-    void this.countdownTick;
-    return formatReleaseCountdown(game).label;
+    return formatReleaseCountdown(game, this.clock.now()).label;
   }
 
   protected onQuickAction(event: Event, game: Game): void {
@@ -499,7 +488,7 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     if (!game) return;
 
     if (this.isWishlistLocked(game)) {
-      this.showToast(`${game.title} isn't out yet — you can add it once it releases.`, 'warning');
+      this.toast.show(`${game.title} isn't out yet — you can add it once it releases.`, 'warning');
       return;
     }
 
@@ -513,16 +502,16 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
 
   private performAdvance(game: Game): void {
     this.gameService.cycleStatus(game.id).subscribe({
-      next: (updated) => this.showToast(statusChangeMessage(updated.title, updated.status)),
-      error: () => this.showToast(`Couldn't update ${game.title}. Try again.`, 'danger'),
+      next: (updated) => this.toast.show(statusChangeMessage(updated.title, updated.status)),
+      error: () => this.toast.show(`Couldn't update ${game.title}. Try again.`, 'danger'),
     });
   }
 
   protected markCompleted(gameId: string): void {
     const game = this.findGame(gameId);
     this.gameService.setStatus(gameId, 'completed').subscribe({
-      next: (updated) => this.showToast(statusChangeMessage(updated.title, 'completed')),
-      error: () => this.showToast(`Couldn't update ${game?.title ?? 'the game'}. Try again.`, 'danger'),
+      next: (updated) => this.toast.show(statusChangeMessage(updated.title, 'completed')),
+      error: () => this.toast.show(`Couldn't update ${game?.title ?? 'the game'}. Try again.`, 'danger'),
     });
   }
 
@@ -547,13 +536,13 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
 
   private performDelete(gameId: string, title: string): void {
     this.gameService.deleteGame(gameId).subscribe({
-      next: () => this.showToast(`${title} removed from your library`),
-      error: () => this.showToast(`Couldn't remove ${title}. Try again.`, 'danger'),
+      next: () => this.toast.show(`${title} removed from your library`),
+      error: () => this.toast.show(`Couldn't remove ${title}. Try again.`, 'danger'),
     });
   }
 
   private findGame(gameId: string): Game | undefined {
-    return this.games.find((g) => g.id === gameId);
+    return this.games().find((g) => g.id === gameId);
   }
 
   // ── Import / export ──────────────────────────────────────
@@ -564,89 +553,64 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     input.value = '';
     if (!file) return;
 
-    this.importing = true;
+    this.importing.set(true);
     const reader = new FileReader();
     reader.onload = () => {
       const parsed = parseLibraryImportJson(String(reader.result || ''));
       if (!parsed.games.length) {
-        this.importing = false;
-        this.showToast(parsed.errors[0] || 'No games found in that file', 'warning');
+        this.importing.set(false);
+        this.toast.show(parsed.errors[0] || 'No games found in that file', 'warning');
         return;
       }
 
       this.gameService.importGames(parsed.games).subscribe({
         next: (result) => {
-          this.importing = false;
+          this.importing.set(false);
           const failed = result.failed ? `, ${result.failed} failed` : '';
-          this.showToast(
+          this.toast.show(
             `Imported ${result.created} game${result.created === 1 ? '' : 's'}${failed}`,
             result.created > 0 ? 'success' : 'warning',
           );
         },
         error: () => {
-          this.importing = false;
-          this.showToast('Import failed. Check the file and try again.', 'danger');
+          this.importing.set(false);
+          this.toast.show('Import failed. Check the file and try again.', 'danger');
         },
       });
     };
     reader.onerror = () => {
-      this.importing = false;
-      this.showToast("Couldn't read that file", 'danger');
+      this.importing.set(false);
+      this.toast.show("Couldn't read that file", 'danger');
     };
     reader.readAsText(file);
   }
 
-  private get filteredExportGames(): Game[] {
-    return this.collection === 'all'
-      ? [...this.collectionGames, ...this.wishlistGames]
-      : [...this.collectionGames];
-  }
-
-  protected get filteredResultsCount(): number {
-    return this.filteredExportGames.length;
-  }
-
-  protected get exportDialogTitle(): string {
-    return this.exportScope === 'filtered' ? 'Download these results' : 'Download your library';
-  }
-
-  protected get exportDialogMessage(): string {
-    if (this.exportScope === 'filtered') {
-      const count = this.filteredResultsCount;
-      return `${count} ${count === 1 ? 'game' : 'games'} matching your filters.`;
-    }
-    return 'A full backup you can re-import later (JSON) or open in a spreadsheet (Excel).';
-  }
-
-  protected get showWishlistExportOption(): boolean {
-    return this.exportScope === 'library' || this.collection === 'all';
-  }
-
   protected openExportDialog(scope: 'library' | 'filtered'): void {
-    const games = scope === 'filtered' ? this.filteredExportGames : this.games;
+    const games = scope === 'filtered' ? this.filteredExportGames() : this.games();
     if (!games.length) {
-      this.showToast('Nothing to export yet', 'warning');
+      this.toast.show('Nothing to export yet', 'warning');
       return;
     }
-    this.exportScope = scope;
-    this.includeWishlistInExport = true;
-    this.showExportDialog = true;
+    this.exportScope.set(scope);
+    this.includeWishlistInExport.set(true);
+    this.showExportDialog.set(true);
   }
 
   protected closeExportDialog(): void {
-    this.showExportDialog = false;
+    this.showExportDialog.set(false);
   }
 
   protected exportAndClose(format: LibraryExportFormat): void {
-    const games = this.exportScope === 'filtered' ? this.filteredExportGames : this.games;
+    const scope = this.exportScope();
+    const games = scope === 'filtered' ? this.filteredExportGames() : this.games();
     try {
       exportLibrary(games, format, {
-        includeWishlist: this.includeWishlistInExport,
-        scope: this.exportScope,
+        includeWishlist: this.includeWishlistInExport(),
+        scope,
       });
-      this.showToast('Download started');
+      this.toast.show('Download started');
     } catch {
-      this.showToast('No games to export with those options', 'warning');
+      this.toast.show('No games to export with those options', 'warning');
     }
     this.closeExportDialog();
   }
@@ -656,13 +620,8 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   private consumeNavigationToast(): void {
     const state = history.state as { toast?: string } | null;
     if (!state?.toast) return;
-    this.showToast(state.toast);
+    this.toast.show(state.toast);
     history.replaceState({ ...state, toast: undefined }, '');
-  }
-
-  private showToast(message: string, color: ToastColor = 'success'): void {
-    this.toastMessage = message;
-    this.toastColor = color;
   }
 
   protected statusLabel(status: GamePlayStatus): string {
@@ -676,4 +635,8 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   protected platformLabel(game: Game): string {
     return game.platform.name === 'Unknown' ? '' : game.platform.name;
   }
+}
+
+function toggleValue<T>(values: T[], value: T): T[] {
+  return values.includes(value) ? values.filter((v) => v !== value) : [...values, value];
 }

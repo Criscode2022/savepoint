@@ -1,7 +1,5 @@
-import { Injectable, inject } from "@angular/core";
+import { Injectable, computed, inject, signal } from "@angular/core";
 import { Router } from "@angular/router";
-import { BehaviorSubject, Observable, filter, take } from "rxjs";
-import { map } from "rxjs/operators";
 import { authClient } from "../../lib/auth";
 import {
   AuthUser,
@@ -20,16 +18,20 @@ const SESSION_STORAGE_KEY = "neon_auth_session_fallback";
 export class AuthService {
   private readonly router = inject(Router);
 
-  private isAuthenticated = new BehaviorSubject<boolean>(false);
-  private initialized = new BehaviorSubject<boolean>(false);
-  private currentUser: AuthUser | null = null;
+  /** Signed-in user, or null. Every auth decision derives from this one signal. */
+  private readonly _user = signal<AuthUser | null>(null);
+  public readonly user = this._user.asReadonly();
+  public readonly isAuthenticated = computed(() => this._user() !== null);
+
+  /** Bearer token for the Data API — plumbing, not UI state, so a plain field. */
   private accessToken: string | null = null;
   private handlingUnauthorized = false;
 
   private readonly jwtRegex =
     /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
-  private readonly authInitialized = this.initializeAuth();
+  /** Resolves once the stored session has been checked; guards await it. */
+  public readonly ready: Promise<void> = this.initializeAuth();
 
   /**
    * Check if string is a valid JWT (has 3 parts)
@@ -203,23 +205,21 @@ export class AuthService {
             this.accessToken = tokenResult.token;
           } else if (!tokenResult.ok && tokenResult.unauthorized) {
             this.redirectToLogin();
-            this.initialized.next(true);
             return;
           }
         }
 
-        this.currentUser = {
+        const user: AuthUser = {
           id: data!.user!.id,
           email: data!.user!.email,
           username: data!.user!.name || data!.user!.email,
           avatarUrl: data!.user!.avatarUrl,
           accessToken: this.accessToken,
         };
-        this.isAuthenticated.next(true);
+        this._user.set(user);
 
         // Save to localStorage as iOS fallback
-        this.saveToLocalStorage(this.currentUser);
-        this.initialized.next(true);
+        this.saveToLocalStorage(user);
         return;
       }
     } catch {
@@ -230,32 +230,17 @@ export class AuthService {
     if (this.restoreFromLocalStorage()) {
       const tokenResult = await authClient.getJWTToken();
       if (tokenResult.ok && this.isJwt(tokenResult.token)) {
-        this.accessToken = tokenResult.token;
-        if (this.currentUser) {
-          this.currentUser.accessToken = tokenResult.token;
-        }
-        this.initialized.next(true);
+        const token = tokenResult.token;
+        this.accessToken = token;
+        this._user.update((user) => (user ? { ...user, accessToken: token } : user));
         return;
       }
 
       if (!tokenResult.ok && tokenResult.unauthorized) {
         this.redirectToLogin();
-        this.initialized.next(true);
         return;
       }
     }
-
-    this.initialized.next(true);
-  }
-
-  /**
-   * Wait for initialization to complete (for guards)
-   */
-  public waitForInitialization(): Observable<boolean> {
-    return this.initialized.pipe(
-      filter((initialized) => initialized),
-      take(1),
-    );
   }
 
   /**
@@ -301,17 +286,15 @@ export class AuthService {
         return false;
       }
 
-      this.currentUser = {
+      this.accessToken = this.isJwt(sessionData.accessToken)
+        ? sessionData.accessToken
+        : null;
+      this._user.set({
         id: sessionData.id,
         username: sessionData.username,
         email: sessionData.email || "",
         accessToken: null,
-      };
-
-      this.accessToken = this.isJwt(sessionData.accessToken)
-        ? sessionData.accessToken
-        : null;
-      this.isAuthenticated.next(true);
+      });
       return true;
     } catch {
       this.clearLocalStorage();
@@ -340,22 +323,20 @@ export class AuthService {
     avatarUrl?: string;
     accessToken?: string | null;
   }): void {
-    this.currentUser = {
+    if (this.isJwt(user.accessToken)) {
+      this.accessToken = user.accessToken;
+    }
+    const sessionUser: AuthUser = {
       id: user.id,
       username: user.name || user.email,
       email: user.email,
       avatarUrl: user.avatarUrl,
-      accessToken: null,
+      accessToken: this.isJwt(user.accessToken) ? user.accessToken : null,
     };
-
-    if (this.isJwt(user.accessToken)) {
-      this.accessToken = user.accessToken;
-      this.currentUser.accessToken = this.accessToken;
-    }
-    this.isAuthenticated.next(true);
+    this._user.set(sessionUser);
 
     // Save to localStorage as fallback for iOS Safari
-    this.saveToLocalStorage(this.currentUser);
+    this.saveToLocalStorage(sessionUser);
   }
 
   /**
@@ -416,7 +397,7 @@ export class AuthService {
   public async verifySession(): Promise<boolean> {
     // If we already have a session in memory (just logged in), trust it
     // This fixes iOS Safari cookie issues where getSession() fails immediately after login
-    if (this.currentUser && this.isAuthenticated.value) {
+    if (this.isAuthenticated()) {
       return true;
     }
 
@@ -437,16 +418,16 @@ export class AuthService {
         this.accessToken;
 
       // Update current user from session data
-      this.currentUser = {
+      const user: AuthUser = {
         id: data!.user!.id,
         email: data!.user!.email,
         username: data!.user!.name || data!.user!.email,
         avatarUrl: data!.user!.avatarUrl,
         accessToken: this.accessToken,
       };
-      this.isAuthenticated.next(true);
+      this._user.set(user);
       // Also update localStorage in case it was stale
-      this.saveToLocalStorage(this.currentUser);
+      this.saveToLocalStorage(user);
 
       return true;
     } catch {
@@ -478,9 +459,8 @@ export class AuthService {
    * Clear session
    */
   private clearSession(): void {
-    this.currentUser = null;
     this.accessToken = null;
-    this.isAuthenticated.next(false);
+    this._user.set(null);
     this.clearLocalStorage();
   }
 
@@ -500,19 +480,12 @@ export class AuthService {
     }
 
     const jwt = await this.fetchJwtFromSdk();
-    if (jwt === null && !this.isAuthenticated.value) {
+    if (jwt === null && !this.isAuthenticated()) {
       return null;
     }
 
     this.accessToken = jwt;
     return jwt;
-  }
-
-  /**
-   * Get current user
-   */
-  public getCurrentUser(): AuthUser | null {
-    return this.currentUser;
   }
 
   /**
@@ -531,26 +504,5 @@ export class AuthService {
     }
 
     return null;
-  }
-
-  /**
-   * Check if authenticated
-   */
-  public isLoggedIn(): boolean {
-    return this.isAuthenticated.value;
-  }
-
-  /**
-   * Get auth state observable
-   */
-  public getAuthState(): Observable<boolean> {
-    return this.isAuthenticated.asObservable();
-  }
-
-  /**
-   * Get current user observable
-   */
-  getCurrentUser$(): Observable<AuthUser | null> {
-    return this.isAuthenticated.pipe(map(() => this.currentUser));
   }
 }

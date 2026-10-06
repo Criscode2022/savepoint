@@ -1,16 +1,17 @@
 <ion-content class="recs-content">
+  @let picks = result();
   <div class="recs-wrap">
     <app-page-header
       title="For you"
       subtitle="Picks matched to the genres, platforms and games you rate highest."
     >
-      <button pageActions type="button" class="btn btn--ghost btn--sm" (click)="reload()" [disabled]="loading">
+      <button pageActions type="button" class="btn btn--ghost btn--sm" (click)="reload()" [disabled]="loading()">
         <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon>
         Shuffle picks
       </button>
     </app-page-header>
 
-    @if (result?.profile; as profile) {
+    @if (picks?.profile; as profile) {
       <section class="taste-panel">
         <h2 class="taste-panel__title">Based on your taste</h2>
         @if (profile.topGenres.length) {
@@ -40,14 +41,14 @@
       </section>
     }
 
-    @if (loading) {
+    @if (loading()) {
       <div class="recs-loading">
         <ion-spinner name="crescent"></ion-spinner>
         <p>Reading your library and finding matches…</p>
       </div>
     }
 
-    @if (!loading && result && !result.configured) {
+    @if (!loading() && picks && !picks.configured) {
       <div class="recs-banner recs-banner--warn">
         <ion-icon name="bulb-outline" aria-hidden="true"></ion-icon>
         <div>
@@ -61,13 +62,13 @@
       </div>
     }
 
-    @if (!loading && result?.error && result?.configured) {
+    @if (!loading() && picks?.error && picks?.configured) {
       <div class="recs-banner">
-        <p>{{ result?.error }}</p>
+        <p>{{ picks?.error }}</p>
       </div>
     }
 
-    @if (!loading && result?.configured && !result?.items?.length && !result?.error) {
+    @if (!loading() && picks?.configured && !picks?.items?.length && !picks?.error) {
       <div class="recs-empty">
         <ion-icon name="game-controller-outline"></ion-icon>
         <h2>No fresh picks yet</h2>
@@ -75,9 +76,9 @@
       </div>
     }
 
-    @if (!loading && result?.items?.length) {
+    @if (!loading() && picks?.items?.length) {
       <div class="recs-grid">
-        @for (rec of result!.items; track rec.externalId) {
+        @for (rec of picks!.items; track rec.externalId) {
           <article class="rec-card">
             <div
               class="rec-card__art"
@@ -120,7 +121,7 @@
                   [disabled]="isAdding(rec)"
                 >
                   <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
-                  {{ addingKey === rec.externalId + ':library' ? 'Adding…' : 'Own it' }}
+                  {{ addingKey() === rec.externalId + ':library' ? 'Adding…' : 'Own it' }}
                 </button>
                 <button
                   type="button"
@@ -129,7 +130,7 @@
                   [disabled]="isAdding(rec)"
                 >
                   <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
-                  {{ addingKey === rec.externalId + ':wishlist' ? 'Adding…' : 'Want it' }}
+                  {{ addingKey() === rec.externalId + ':wishlist' ? 'Adding…' : 'Want it' }}
                 </button>
                 <a
                   class="rec-btn rec-btn--ghost"
@@ -149,12 +150,12 @@
   </div>
 
   <ion-toast
-    [isOpen]="!!toastMessage"
-    [message]="toastMessage"
-    [color]="toastColor"
+    [isOpen]="toast.isOpen()"
+    [message]="toast.message()"
+    [color]="toast.color()"
     duration="3200"
     position="bottom"
     cssClass="app-toast"
-    (didDismiss)="toastMessage = ''"
+    (didDismiss)="toast.dismiss()"
   ></ion-toast>
 </ion-content>

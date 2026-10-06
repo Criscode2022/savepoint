@@ -1,24 +1,15 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { Injectable, signal } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class CommandPaletteService {
-  private readonly openSubject = new BehaviorSubject<boolean>(false);
-  public readonly open$ = this.openSubject.asObservable();
-
-  public get isOpen(): boolean {
-    return this.openSubject.value;
-  }
+  private readonly _isOpen = signal(false);
+  public readonly isOpen = this._isOpen.asReadonly();
 
   public open(): void {
-    this.openSubject.next(true);
+    this._isOpen.set(true);
   }
 
   public close(): void {
-    this.openSubject.next(false);
-  }
-
-  public toggle(): void {
-    this.openSubject.next(!this.openSubject.value);
+    this._isOpen.set(false);
   }
 }

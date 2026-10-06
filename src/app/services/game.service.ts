@@ -1,6 +1,5 @@
 import { Injectable, inject, signal } from "@angular/core";
 import {
-  BehaviorSubject,
   Observable,
   from,
   of,
@@ -12,7 +11,6 @@ import {
   CreateGameRequest,
   deriveGameStatus,
   Game,
-  GameFilters,
   GameFormPayload,
   GamePlayStatus,
   GAME_STATUS_CYCLE,
@@ -35,7 +33,6 @@ import {
 import { normalizeGenres } from "../shared/utils/genre.utils";
 import { normalizeTags } from "../shared/utils/tag.utils";
 import { platformColor } from "../shared/utils/platform.utils";
-import { sortGames } from "../shared/utils/game-sort.utils";
 import { normalizeCoverImage, processCoverImageFile } from "../shared/utils/image.utils";
 import type { ImportGameDraft } from "../shared/utils/library-import.utils";
 
@@ -124,41 +121,36 @@ export class GameService {
   private readonly directorService = inject(DirectorService);
   private readonly platformService = inject(PlatformService);
 
-  private readonly gamesSubject = new BehaviorSubject<Game[]>([]);
-  public readonly games$ = this.gamesSubject.asObservable();
-  public readonly filteredGames = signal<Game[]>([]);
-  public readonly gamesLoading = signal(false);
-  private lastFilters: GameFilters | undefined;
+  /** The whole library (every status). Pages derive their views from it with computed(). */
+  private readonly _games = signal<Game[]>([]);
+  public readonly games = this._games.asReadonly();
 
-  /**
-   * Load the whole library, then apply filters client-side.
-   * `games$` always carries the full library (sidebar counts, tags, stats);
-   * `filteredGames` carries what the current filters let through.
-   */
-  public getGames(filters?: GameFilters): Observable<Game[]> {
-    this.lastFilters = filters;
-    const currentUser = this.authService.getCurrentUser();
+  private readonly _gamesLoading = signal(false);
+  public readonly gamesLoading = this._gamesLoading.asReadonly();
+
+  /** Fetch the library from the server and replace the cached copy. */
+  public loadGames(): Observable<Game[]> {
+    const currentUser = this.authService.user();
     if (!currentUser) {
       return throwError(() => new Error("User not authenticated"));
     }
 
-    this.gamesLoading.set(true);
+    this._gamesLoading.set(true);
     return from(this.fetchGames(currentUser.id)).pipe(
-      tap((games) => this.gamesSubject.next(games)),
-      map(() => this.filterGames(filters)),
-      finalize(() => this.gamesLoading.set(false)),
+      tap((games) => this._games.set(games)),
+      finalize(() => this._gamesLoading.set(false)),
       catchError((error) => this.handleError(error, "Failed to fetch games")),
     );
   }
 
-  /** Re-filter and sort the cached library without a network round-trip. */
-  public filterGames(filters?: GameFilters): Game[] {
-    this.lastFilters = filters;
-    const visible = this.gamesSubject.value.filter((game) =>
-      this.shouldIncludeGame(game, filters),
+  private findGame(id: string): Game | undefined {
+    return this._games().find((game) => game.id === id);
+  }
+
+  private replaceGame(updated: Game): void {
+    this._games.update((games) =>
+      games.map((game) => (game.id === updated.id ? updated : game)),
     );
-    this.filteredGames.set(sortGames(visible, filters?.sortBy, filters?.sortOrder));
-    return this.filteredGames();
   }
 
   private fetchGames(userId: string): Promise<Game[]> {
@@ -246,10 +238,7 @@ export class GameService {
   }
 
   public getCachedGameById(id: string): Game | undefined {
-    return (
-      this.gamesSubject.value.find((game) => game.id === id) ??
-      this.filteredGames().find((game) => game.id === id)
-    );
+    return this.findGame(id);
   }
 
   public getGameById(id: string): Observable<Game> {
@@ -327,7 +316,7 @@ export class GameService {
   }
 
   public createGame(game: CreateGameRequest): Observable<Game> {
-    const currentUser = this.authService.getCurrentUser();
+    const currentUser = this.authService.user();
     if (!currentUser) {
       return throwError(() => new Error("User not authenticated"));
     }
@@ -381,10 +370,7 @@ export class GameService {
     return this.db.insert<DbGame>("games", data).pipe(
       switchMap((result: DbGame) => this.getGameById(result.id)),
       tap((createdGame) => {
-        this.gamesSubject.next(
-          this.mergeGameIntoList(this.gamesSubject.value, createdGame),
-        );
-        this.filterGames(this.lastFilters);
+        this._games.update((games) => this.mergeGameIntoList(games, createdGame));
       }),
       catchError((error) => this.handleError(error, "Failed to create game")),
     );
@@ -448,7 +434,7 @@ export class GameService {
   }
 
   public updateGame(id: string, game: UpdateGameRequest): Observable<Game> {
-    const currentUser = this.authService.getCurrentUser();
+    const currentUser = this.authService.user();
     if (!currentUser) {
       return throwError(() => new Error("User not authenticated"));
     }
@@ -470,9 +456,7 @@ export class GameService {
     if (game.tags !== undefined) {
       data["tags"] = normalizeTags(game.tags);
     }
-    const existing =
-      this.gamesSubject.value.find((g) => g.id === id) ??
-      this.filteredGames().find((g) => g.id === id);
+    const existing = this.findGame(id);
     const nextStatus = game.status ?? existing?.status;
 
     if (!canRateGame(nextStatus)) {
@@ -570,35 +554,28 @@ export class GameService {
           : updatedGame,
       ),
       tap((normalizedGame) => {
-        const games = this.gamesSubject.value.map((game) =>
-          game.id === normalizedGame.id ? normalizedGame : game,
-        );
-        this.gamesSubject.next(games);
-        this.filterGames(this.lastFilters);
+        this.replaceGame(normalizedGame);
       }),
       catchError((error) => this.handleError(error, "Failed to update game")),
     );
   }
 
   public deleteGame(id: string): Observable<void> {
-    const currentUser = this.authService.getCurrentUser();
+    const currentUser = this.authService.user();
     if (!currentUser) {
       return throwError(() => new Error("User not authenticated"));
     }
 
     return this.db.deleteById("games", id).pipe(
       map(() => {
-        this.gamesSubject.next(
-          this.gamesSubject.value.filter((game) => game.id !== id),
-        );
-        this.filterGames(this.lastFilters);
+        this._games.update((games) => games.filter((game) => game.id !== id));
       }),
       catchError((error) => this.handleError(error, "Failed to delete game")),
     );
   }
 
   public cycleStatus(gameId: string): Observable<Game> {
-    const game = this.gamesSubject.value.find((g) => g.id === gameId);
+    const game = this.findGame(gameId);
     if (!game) {
       return throwError(() => new Error("Game not found"));
     }
@@ -616,10 +593,7 @@ export class GameService {
   }
 
   public setStatus(id: string, status: GamePlayStatus, sourceGame?: Game): Observable<Game> {
-    const game =
-      sourceGame ??
-      this.gamesSubject.value.find((g) => g.id === id) ??
-      this.filteredGames().find((g) => g.id === id);
+    const game = sourceGame ?? this.findGame(id);
 
     if (
       game &&
@@ -701,10 +675,7 @@ export class GameService {
   }
 
   public setRating(id: string, rating: number | null, sourceGame?: Game): Observable<Game> {
-    const game =
-      sourceGame ??
-      this.gamesSubject.value.find((g) => g.id === id) ??
-      this.filteredGames().find((g) => g.id === id);
+    const game = sourceGame ?? this.findGame(id);
 
     if (game && !canRateGame(game.status)) {
       return throwError(() => new Error("Wishlist games cannot be rated"));
@@ -759,9 +730,7 @@ export class GameService {
     request: UpdateGameRequest,
     data: Record<string, any>,
   ): void {
-    const existing =
-      this.gamesSubject.value.find((g) => g.id === id) ??
-      this.filteredGames().find((g) => g.id === id);
+    const existing = this.findGame(id);
     const now = new Date().toISOString();
 
     if (status === "playing") {
@@ -804,7 +773,7 @@ export class GameService {
     game: Game,
     status: GamePlayStatus,
   ): Observable<void> {
-    const currentUser = this.authService.getCurrentUser();
+    const currentUser = this.authService.user();
     if (!currentUser) {
       return of(undefined);
     }
@@ -883,69 +852,11 @@ export class GameService {
     return throwError(() => new Error(message));
   }
 
-  private shouldIncludeGame(
-    game: Game,
-    filters: GameFilters | undefined,
-  ): boolean {
-    if (!filters) {
-      return true;
-    }
-
-    if (filters.search?.trim()) {
-      const query = filters.search.trim().toLowerCase();
-      if (!game.title.toLowerCase().includes(query)) {
-        return false;
-      }
-    }
-
-    if (filters.platforms?.length) {
-      if (
-        !game.platform?.name ||
-        !filters.platforms.includes(game.platform.name)
-      ) {
-        return false;
-      }
-    }
-
-    if (filters.years?.length) {
-      if (!game.releaseYear || !filters.years.includes(game.releaseYear)) {
-        return false;
-      }
-    }
-
-    if (filters.developers?.length) {
-      if (
-        !game.developer?.name ||
-        !filters.developers.includes(game.developer.name)
-      ) {
-        return false;
-      }
-    }
-
-    if (filters.genres?.length) {
-      const genres = game.genre ?? [];
-      if (!filters.genres.some((genre) => genres.includes(genre))) {
-        return false;
-      }
-    }
-
-    if (filters.tags?.length) {
-      const tags = (game.tags ?? []).map((t) => t.toLowerCase());
-      if (!filters.tags.some((tag) => tags.includes(tag.toLowerCase()))) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
   /**
    * Add playtime hours and refresh last played (ritual quick-log).
    */
   public logPlaytime(gameId: string, hours: number): Observable<Game> {
-    const game =
-      this.gamesSubject.value.find((g) => g.id === gameId) ??
-      this.filteredGames().find((g) => g.id === gameId);
+    const game = this.findGame(gameId);
 
     if (!game) {
       return throwError(() => new Error("Game not found"));
@@ -1021,7 +932,7 @@ export class GameService {
       }
     }
 
-    await firstValueFrom(this.getGames(this.lastFilters));
+    await firstValueFrom(this.loadGames());
     return { created, failed };
   }
 

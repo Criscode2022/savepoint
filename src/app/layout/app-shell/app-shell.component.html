@@ -1,9 +1,9 @@
 <div
   class="shell"
-  [class.shell--collapsed]="sidebarCollapsed"
-  [class.shell--drawer-open]="mobileDrawerOpen"
+  [class.shell--collapsed]="sidebarCollapsed()"
+  [class.shell--drawer-open]="mobileDrawerOpen()"
 >
-  @if (mobileDrawerOpen) {
+  @if (mobileDrawerOpen()) {
     <div class="shell-scrim" (click)="closeDrawer()" role="presentation"></div>
   }
 
@@ -11,7 +11,7 @@
     <div class="shell-brand">
       <a routerLink="/home" class="shell-brand__link" [attr.aria-label]="appName + ' home'">
         <app-brand-mark [size]="30" />
-        @if (showLabels) {
+        @if (showLabels()) {
           <span class="shell-brand__name brand-font">{{ appName }}</span>
         }
       </a>
@@ -19,25 +19,25 @@
         type="button"
         class="shell-collapse-btn"
         (click)="toggleSidebar()"
-        [attr.aria-label]="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-        [title]="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        [attr.aria-label]="sidebarCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+        [title]="sidebarCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
       >
-        <ion-icon [name]="sidebarCollapsed ? 'chevron-forward-outline' : 'chevron-back-outline'" aria-hidden="true"></ion-icon>
+        <ion-icon [name]="sidebarCollapsed() ? 'chevron-forward-outline' : 'chevron-back-outline'" aria-hidden="true"></ion-icon>
       </button>
     </div>
 
     <nav class="shell-nav">
       <div class="shell-nav__section">
-        @for (item of primaryNav; track item.label) {
+        @for (item of primaryNav(); track item.label) {
           <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item, exact: item.link === '/home' }"></ng-container>
         }
       </div>
 
       <div class="shell-nav__section">
-        @if (showLabels) {
+        @if (showLabels()) {
           <span class="shell-nav__label">Collections</span>
         }
-        @for (item of collectionNav; track item.label) {
+        @for (item of collectionNav(); track item.label) {
           <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item, exact: true }"></ng-container>
         }
       </div>
@@ -49,7 +49,7 @@
         routerLink="/profile"
         routerLinkActive="shell-nav__item--active"
         (click)="closeDrawer()"
-        [attr.title]="showLabels ? null : 'Profile'"
+        [attr.title]="showLabels() ? null : 'Profile'"
       >
         <ion-icon name="person-circle-outline" aria-hidden="true"></ion-icon>
         <span class="shell-nav__text">Profile</span>
@@ -58,7 +58,7 @@
         type="button"
         class="shell-nav__item"
         (click)="logout()"
-        [attr.title]="showLabels ? null : 'Log out'"
+        [attr.title]="showLabels() ? null : 'Log out'"
       >
         <ion-icon name="log-out-outline" aria-hidden="true"></ion-icon>
         <span class="shell-nav__text">Log out</span>
@@ -71,8 +71,8 @@
       <button
         type="button"
         class="shell-icon-btn shell-menu-btn"
-        (click)="mobileDrawerOpen = !mobileDrawerOpen"
-        [attr.aria-expanded]="mobileDrawerOpen"
+        (click)="toggleDrawer()"
+        [attr.aria-expanded]="mobileDrawerOpen()"
         aria-label="Open menu"
       >
         <ion-icon name="menu-outline" aria-hidden="true"></ion-icon>
@@ -155,7 +155,7 @@
     routerLinkActive="shell-nav__item--active"
     [routerLinkActiveOptions]="exact ? { exact: true, queryParams: 'exact' } : { exact: false }"
     (click)="closeDrawer()"
-    [attr.title]="showLabels ? null : item.label"
+    [attr.title]="showLabels() ? null : item.label"
   >
     <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
     <span class="shell-nav__text">{{ item.label }}</span>

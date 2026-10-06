@@ -1,9 +1,7 @@
-import { CommonModule } from "@angular/common";
-import { Component, computed, DestroyRef, inject, OnInit, signal } from "@angular/core";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from "@angular/core";
+import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import {
   FormBuilder,
-  FormGroup,
   ReactiveFormsModule,
   Validators,
 } from "@angular/forms";
@@ -45,13 +43,21 @@ import {
 import { BrandMarkComponent } from "../../components/brand-mark/brand-mark.component";
 import { APP_NAME, APP_TAGLINE } from "../../shared/brand";
 
+addIcons({
+  mailOutline,
+  lockClosedOutline,
+  personOutline,
+  arrowForward,
+  eyeOutline,
+  eyeOffOutline,
+  alertCircleOutline,
+});
+
 @Component({
   selector: "app-login",
   templateUrl: "./login.page.html",
   styleUrl: "./login.page.scss",
-  standalone: true,
   imports: [
-    CommonModule,
     RouterLink,
     ReactiveFormsModule,
     IonContent,
@@ -65,14 +71,14 @@ import { APP_NAME, APP_TAGLINE } from "../../shared/brand";
     IonSpinner,
     BrandMarkComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LoginPage implements OnInit {
+export class LoginPage {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly toastCtrl = inject(ToastController);
-  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly appName = APP_NAME;
   protected readonly tagline = APP_TAGLINE;
@@ -91,7 +97,7 @@ export class LoginPage implements OnInit {
     "confirmPassword",
   ] as const;
 
-  protected readonly authForm: FormGroup = this.fb.group(
+  protected readonly authForm = this.fb.nonNullable.group(
     {
       username: [""],
       email: ["", [Validators.required, Validators.email]],
@@ -101,8 +107,13 @@ export class LoginPage implements OnInit {
     { validators: passwordMatchValidator() },
   );
 
+  /** The form isn't signal-based, so bridge the password field in for the strength meter */
+  private readonly password = toSignal(this.authForm.controls.password.valueChanges, {
+    initialValue: this.authForm.controls.password.value,
+  });
+
   protected readonly passwordStrength = computed<PasswordStrength>(() =>
-    getPasswordStrength(this.authForm.get("password")?.value ?? ""),
+    getPasswordStrength(this.password()),
   );
 
   protected readonly strengthLabel = computed(() => {
@@ -127,18 +138,8 @@ export class LoginPage implements OnInit {
     return levels[this.passwordStrength()];
   });
 
-  public ngOnInit(): void {
-    addIcons({
-      mailOutline,
-      lockClosedOutline,
-      personOutline,
-      arrowForward,
-      eyeOutline,
-      eyeOffOutline,
-      alertCircleOutline,
-    });
-
-    this.route.data.subscribe((data) => {
+  constructor() {
+    this.route.data.pipe(takeUntilDestroyed()).subscribe((data) => {
       const registerMode = data["authMode"] === "register";
       this.isRegisterMode.set(registerMode);
       this.applyModeValidators(registerMode);
@@ -149,10 +150,8 @@ export class LoginPage implements OnInit {
     });
 
     this.authForm.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        this.syncVisibleErrors();
-      });
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.syncVisibleErrors());
   }
 
   protected onFieldFocus(controlName: string): void {
@@ -231,7 +230,7 @@ export class LoginPage implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    const { email, password, username } = this.authForm.value;
+    const { email, password, username } = this.authForm.getRawValue();
 
     try {
       if (this.isRegisterMode()) {

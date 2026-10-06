@@ -1,115 +1,62 @@
-import { Injectable, inject, signal, RendererFactory2 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { toObservable } from '@angular/core/rxjs-interop';
-import { Observable } from 'rxjs';
+import { Injectable, RendererFactory2, inject, signal } from '@angular/core';
 
 export type Theme = 'dark' | 'light' | 'system';
 
-@Injectable({
-  providedIn: 'root'
-})
+const STORAGE_KEY = 'gamevault_theme';
+const THEME_COLORS = { dark: '#070b17', light: '#f5f8ff' } as const;
+
+/** Applies the stored theme class to <body> and keeps the browser theme-color in sync. */
+@Injectable({ providedIn: 'root' })
 export class ThemeService {
   private readonly document = inject(DOCUMENT);
-  private readonly rendererFactory = inject(RendererFactory2);
-  private readonly renderer = this.rendererFactory.createRenderer(null, null);
+  private readonly renderer = inject(RendererFactory2).createRenderer(null, null);
 
-  private readonly STORAGE_KEY = 'gamevault_theme';
-  
-  public readonly currentTheme = signal<Theme>(this.getStoredTheme());
-  public readonly isDarkMode = signal<boolean>(true);
-  public readonly isDarkMode$: Observable<boolean> = toObservable(this.isDarkMode);
+  private readonly _theme = signal<Theme>(readStoredTheme());
+  public readonly theme = this._theme.asReadonly();
 
-  private readonly themeInitialized = this.bootstrapTheme();
+  private readonly _isDarkMode = signal(true);
+  public readonly isDarkMode = this._isDarkMode.asReadonly();
 
-  private getStoredTheme(): Theme {
-    if (typeof window === 'undefined') return 'dark';
-    return (localStorage.getItem(this.STORAGE_KEY) as Theme) || 'dark';
-  }
-
-  private storeTheme(theme: Theme): void {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(this.STORAGE_KEY, theme);
-  }
-
-  private initializeTheme(): void {
-    this.applyTheme(this.currentTheme());
-  }
-
-  private bootstrapTheme(): void {
-    this.initializeTheme();
-
+  constructor() {
+    this.applyTheme(this._theme());
     if (typeof window !== 'undefined') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      mediaQuery.addEventListener('change', () => {
-        if (this.currentTheme() === 'system') {
-          this.applyTheme('system');
-        }
-      });
+      window
+        .matchMedia('(prefers-color-scheme: dark)')
+        .addEventListener('change', () => this._theme() === 'system' && this.applyTheme('system'));
     }
   }
 
   public setTheme(theme: Theme): void {
-    this.currentTheme.set(theme);
-    this.storeTheme(theme);
+    this._theme.set(theme);
+    try {
+      localStorage.setItem(STORAGE_KEY, theme);
+    } catch {
+      /* storage unavailable */
+    }
     this.applyTheme(theme);
   }
 
-  public toggleTheme(): void {
-    const newTheme = this.isDarkMode() ? 'light' : 'dark';
-    this.setTheme(newTheme);
-  }
-
   private applyTheme(theme: Theme): void {
-    const body = this.document.body;
-    
-    if (theme === 'system') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      this.isDarkMode.set(prefersDark);
-      
-      if (prefersDark) {
-        this.renderer.addClass(body, 'dark');
-        this.renderer.removeClass(body, 'light');
-      } else {
-        this.renderer.addClass(body, 'light');
-        this.renderer.removeClass(body, 'dark');
-      }
-    } else {
-      this.isDarkMode.set(theme === 'dark');
-      
-      if (theme === 'dark') {
-        this.renderer.addClass(body, 'dark');
-        this.renderer.removeClass(body, 'light');
-      } else {
-        this.renderer.addClass(body, 'light');
-        this.renderer.removeClass(body, 'dark');
-      }
-    }
+    const dark =
+      theme === 'system' ? window.matchMedia('(prefers-color-scheme: dark)').matches : theme === 'dark';
+    this._isDarkMode.set(dark);
 
-    // Update meta theme-color
-    const metaThemeColor = this.document.querySelector('meta[name="theme-color"]');
-    if (metaThemeColor) {
-      const color = this.isDarkMode() ? '#0a0a0f' : '#f8fafc';
-      metaThemeColor.setAttribute('content', color);
-    }
+    const body = this.document.body;
+    this.renderer.addClass(body, dark ? 'dark' : 'light');
+    this.renderer.removeClass(body, dark ? 'light' : 'dark');
+
+    this.document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute('content', dark ? THEME_COLORS.dark : THEME_COLORS.light);
   }
+}
 
-  // Gaming aesthetic effects
-  public enableNeonEffects(): void {
-    const body = this.document.body;
-    this.renderer.addClass(body, 'neon-effects');
-  }
-
-  public disableNeonEffects(): void {
-    const body = this.document.body;
-    this.renderer.removeClass(body, 'neon-effects');
-  }
-
-  public toggleNeonEffects(): void {
-    const body = this.document.body;
-    if (body.classList.contains('neon-effects')) {
-      this.disableNeonEffects();
-    } else {
-      this.enableNeonEffects();
-    }
+function readStoredTheme(): Theme {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored === 'light' || stored === 'system' ? stored : 'dark';
+  } catch {
+    return 'dark';
   }
 }

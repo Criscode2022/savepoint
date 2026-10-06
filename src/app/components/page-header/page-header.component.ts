@@ -1,7 +1,9 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { IonBackButton } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline } from 'ionicons/icons';
+
+addIcons({ arrowBackOutline });
 
 /**
  * In-page title row shared by every routed page.
@@ -10,18 +12,14 @@ import { arrowBackOutline } from 'ionicons/icons';
  */
 @Component({
   selector: 'app-page-header',
-  standalone: true,
   imports: [IonBackButton],
   templateUrl: './page-header.component.html',
   styleUrl: './page-header.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PageHeaderComponent implements OnInit {
-  @Input() title = '';
-  @Input() subtitle = '';
-  @Input() backHref?: string;
-  @Input() backLabel = '';
-
-  public ngOnInit(): void {
-    addIcons({ arrowBackOutline });
-  }
+export class PageHeaderComponent {
+  public readonly title = input('');
+  public readonly subtitle = input('');
+  public readonly backHref = input<string>();
+  public readonly backLabel = input('');
 }
