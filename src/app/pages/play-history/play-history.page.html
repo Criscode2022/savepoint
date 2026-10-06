@@ -1,12 +1,12 @@
 <ion-content class="history-content">
   <div class="history-container">
-    <app-page-header title="Play history" [subtitle]="subtitle" />
+    <app-page-header title="Play history" [subtitle]="subtitle()" />
 
-    @if (gamesLoading() && !completedCount) {
+    @if (gamesLoading() && !completedCount()) {
       <div class="history-loading" aria-busy="true" aria-label="Loading play history">
         <ion-spinner name="crescent"></ion-spinner>
       </div>
-    } @else if (!completedCount) {
+    } @else if (!completedCount()) {
       <div class="empty-state">
         <div class="empty-icon" aria-hidden="true"><ion-icon name="trophy-outline"></ion-icon></div>
         <h2>No credits rolled yet</h2>
@@ -14,7 +14,7 @@
         <a routerLink="/home" [queryParams]="{ collection: 'playing' }" class="btn btn--ghost">See what you’re playing</a>
       </div>
     } @else {
-      @for (group of years; track group.year) {
+      @for (group of years(); track group.year) {
         <section class="history-year" [attr.aria-labelledby]="'year-' + group.year">
           <h2 class="history-year__title" [id]="'year-' + group.year">
             {{ group.year }}

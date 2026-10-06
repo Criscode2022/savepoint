@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { AuthGuard } from './shared/guards/auth.guard';
+import { authGuard } from './shared/guards/auth.guard';
 import { loginGuard } from './shared/guards/login.guard';
 
 export const routes: Routes = [
@@ -28,7 +28,7 @@ export const routes: Routes = [
       import('./layout/app-shell/app-shell.component').then(
         (m) => m.AppShellComponent,
       ),
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
     children: [
       {
         path: 'home',

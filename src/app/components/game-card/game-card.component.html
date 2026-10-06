@@ -1,66 +1,66 @@
-<article class="game-card" [attr.data-status]="game.status">
-  <a class="game-card__link" [routerLink]="['/game', game.id]" [attr.aria-label]="game.title">
+<article class="game-card" [attr.data-status]="game().status">
+  <a class="game-card__link" [routerLink]="['/game', game().id]" [attr.aria-label]="game().title">
     <div class="card-image-wrapper">
-      <app-game-cover [title]="game.title" [coverImage]="game.coverImage" variant="card" />
+      <app-game-cover [title]="game().title" [coverImage]="game().coverImage" variant="card" />
 
-      @if (game.status !== 'not_started') {
+      @if (game().status !== 'not_started') {
         <span class="cover-status">
-          <ion-icon [name]="statusIcons[game.status]" aria-hidden="true"></ion-icon>
-          {{ statusLabels[game.status] }}
+          <ion-icon [name]="statusIcons[game().status]" aria-hidden="true"></ion-icon>
+          {{ statusLabels[game().status] }}
         </span>
       }
 
-      @if (game.status === 'wishlist') {
+      @if (game().status === 'wishlist') {
         <span
           class="countdown-badge"
-          [class.countdown-badge--released]="countdown.isReleased"
-          [class.countdown-badge--unknown]="countdown.isUnknown"
+          [class.countdown-badge--released]="countdown().isReleased"
+          [class.countdown-badge--unknown]="countdown().isUnknown"
         >
           <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
-          {{ countdown.label }}
+          {{ countdown().label }}
         </span>
-      } @else if (hasPlatform) {
-        <span class="platform-chip" [style.--platform-color]="game.platform.color" [attr.title]="game.platform.name">
-          {{ game.platform.name }}
+      } @else if (hasPlatform()) {
+        <span class="platform-chip" [style.--platform-color]="game().platform.color" [attr.title]="game().platform.name">
+          {{ game().platform.name }}
         </span>
       }
     </div>
 
     <div class="game-card__body">
-      <h3 class="game-title">{{ game.title }}</h3>
+      <h3 class="game-title">{{ game().title }}</h3>
       <p class="game-meta">
-        @if (game.developer.name && game.developer.name !== 'Unknown') {
-          <span class="developer">{{ game.developer.name }}</span>
+        @if (game().developer.name && game().developer.name !== 'Unknown') {
+          <span class="developer">{{ game().developer.name }}</span>
         }
-        @if (game.status === 'wishlist') {
-          @if (hasPlatform) {
-            <span>{{ game.platform.name }}</span>
+        @if (game().status === 'wishlist') {
+          @if (hasPlatform()) {
+            <span>{{ game().platform.name }}</span>
           }
-        } @else if (game.releaseYear) {
-          <span>{{ game.releaseYear }}</span>
+        } @else if (game().releaseYear) {
+          <span>{{ game().releaseYear }}</span>
         }
       </p>
 
-      @if (showRating || playtime) {
+      @if (showRating() || playtime()) {
         <div class="game-stats">
-          @if (showRating) {
-            <span class="stat" [attr.aria-label]="'Rated ' + game.rating + ' out of 10'">
+          @if (showRating()) {
+            <span class="stat" [attr.aria-label]="'Rated ' + game().rating + ' out of 10'">
               <ion-icon name="star" class="stat-icon stat-icon--rating" aria-hidden="true"></ion-icon>
-              {{ game.rating }}<span class="stat__unit">/10</span>
+              {{ game().rating }}<span class="stat__unit">/10</span>
             </span>
           }
-          @if (playtime) {
+          @if (playtime()) {
             <span class="stat">
               <ion-icon name="time-outline" class="stat-icon" aria-hidden="true"></ion-icon>
-              {{ playtime }}h
+              {{ playtime() }}h
             </span>
           }
         </div>
       }
 
-      @if (game.genre?.length) {
+      @if (game().genre?.length) {
         <ul class="game-genres" aria-label="Genres">
-          @for (genre of (game.genre || []).slice(0, 3); track genre) {
+          @for (genre of (game().genre || []).slice(0, 3); track genre) {
             <li class="genre-chip">{{ genre }}</li>
           }
         </ul>
@@ -69,39 +69,39 @@
   </a>
 
   <div class="card-actions" aria-label="Game actions">
-    <a class="card-actions__btn" [routerLink]="['/edit', game.id]" [attr.aria-label]="'Edit ' + game.title" title="Edit">
+    <a class="card-actions__btn" [routerLink]="['/edit', game().id]" [attr.aria-label]="'Edit ' + game().title" title="Edit">
       <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
     </a>
     <button type="button" class="card-actions__btn card-actions__btn--danger" (click)="emit($event, deleteGame)"
-      [attr.aria-label]="'Remove ' + game.title" title="Remove">
+      [attr.aria-label]="'Remove ' + game().title" title="Remove">
       <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
     </button>
   </div>
 
   <div class="card-footer">
-    @if (action; as next) {
+    @if (action(); as next) {
       <button
         type="button"
         class="card-btn"
-        [disabled]="isWishlistLocked"
-        [title]="isWishlistLocked ? 'Available on release day' : next.label"
+        [disabled]="isWishlistLocked()"
+        [title]="isWishlistLocked() ? 'Available on release day' : next.label"
         (click)="emit($event, advanceStatus)"
       >
         <ion-icon [name]="next.icon" aria-hidden="true"></ion-icon>
-        {{ isWishlistLocked ? 'Not released yet' : next.label }}
+        {{ isWishlistLocked() ? 'Not released yet' : next.label }}
       </button>
     }
-    @if (canMarkCompleted) {
+    @if (canMarkCompleted()) {
       <button type="button" class="card-btn card-btn--complete" (click)="emit($event, markCompleted)">
         <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
         Complete
       </button>
     }
-    @if (game.status === 'completed') {
+    @if (game().status === 'completed') {
       <p class="card-footer__note">
         <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
-        @if (game.completedAt) {
-          Finished {{ game.completedAt | date: 'MMM y' }}
+        @if (game().completedAt) {
+          Finished {{ game().completedAt | date: 'MMM y' }}
         } @else {
           Finished
         }

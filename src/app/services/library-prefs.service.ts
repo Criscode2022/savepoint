@@ -1,70 +1,55 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { Injectable, signal } from '@angular/core';
 
 export type LibraryViewMode = 'grid' | 'list' | 'shelf';
 
 const VIEW_KEY = 'gv_library_view';
 const SIDEBAR_KEY = 'gv_sidebar_collapsed';
 
+/** Per-device UI preferences, persisted to localStorage when they change. */
 @Injectable({ providedIn: 'root' })
 export class LibraryPrefsService {
-  private readonly viewSubject = new BehaviorSubject<LibraryViewMode>(
-    this.readView(),
-  );
-  private readonly sidebarCollapsedSubject = new BehaviorSubject<boolean>(
-    this.readSidebarCollapsed(),
-  );
+  private readonly _viewMode = signal<LibraryViewMode>(readView());
+  public readonly viewMode = this._viewMode.asReadonly();
 
-  public readonly viewMode$ = this.viewSubject.asObservable();
-  public readonly sidebarCollapsed$ = this.sidebarCollapsedSubject.asObservable();
-
-  public get viewMode(): LibraryViewMode {
-    return this.viewSubject.value;
-  }
-
-  public get sidebarCollapsed(): boolean {
-    return this.sidebarCollapsedSubject.value;
-  }
+  private readonly _sidebarCollapsed = signal(readFlag(SIDEBAR_KEY));
+  public readonly sidebarCollapsed = this._sidebarCollapsed.asReadonly();
 
   public setViewMode(mode: LibraryViewMode): void {
-    this.viewSubject.next(mode);
-    try {
-      localStorage.setItem(VIEW_KEY, mode);
-    } catch {
-      /* ignore */
-    }
+    this._viewMode.set(mode);
+    persist(VIEW_KEY, mode);
   }
 
   public toggleSidebar(): void {
-    this.setSidebarCollapsed(!this.sidebarCollapsed);
+    const collapsed = !this._sidebarCollapsed();
+    this._sidebarCollapsed.set(collapsed);
+    persist(SIDEBAR_KEY, collapsed ? '1' : '0');
   }
+}
 
-  public setSidebarCollapsed(collapsed: boolean): void {
-    this.sidebarCollapsedSubject.next(collapsed);
-    try {
-      localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0');
-    } catch {
-      /* ignore */
+function readView(): LibraryViewMode {
+  try {
+    const value = localStorage.getItem(VIEW_KEY);
+    if (value === 'grid' || value === 'list' || value === 'shelf') {
+      return value;
     }
+  } catch {
+    /* storage unavailable */
   }
+  return 'grid';
+}
 
-  private readView(): LibraryViewMode {
-    try {
-      const v = localStorage.getItem(VIEW_KEY);
-      if (v === 'grid' || v === 'list' || v === 'shelf') {
-        return v;
-      }
-    } catch {
-      /* ignore */
-    }
-    return 'grid';
+function readFlag(key: string): boolean {
+  try {
+    return localStorage.getItem(key) === '1';
+  } catch {
+    return false;
   }
+}
 
-  private readSidebarCollapsed(): boolean {
-    try {
-      return localStorage.getItem(SIDEBAR_KEY) === '1';
-    } catch {
-      return false;
-    }
+function persist(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* storage unavailable or full */
   }
 }

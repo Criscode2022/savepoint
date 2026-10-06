@@ -2,11 +2,11 @@
   <div class="insights-wrap">
     <app-page-header title="Insights" subtitle="How your library is actually played — streaks, completion and taste." />
 
-    @if (!insights || (gamesLoading() && !insights.total)) {
+    @if (gamesLoading() && !insights().total) {
       <div class="insights-loading" aria-busy="true" aria-label="Loading insights">
         <ion-spinner name="crescent"></ion-spinner>
       </div>
-    } @else if (insights.total === 0) {
+    } @else if (insights().total === 0) {
       <div class="empty-state">
         <div class="empty-icon" aria-hidden="true"><ion-icon name="stats-chart-outline"></ion-icon></div>
         <h2>No data to crunch yet</h2>
@@ -21,25 +21,25 @@
         <div class="stat-strip__item">
           <span class="stat-strip__value">
             <ion-icon name="flame-outline" class="insights-icon insights-icon--streak" aria-hidden="true"></ion-icon>
-            {{ insights.currentStreakDays }}d
+            {{ insights().currentStreakDays }}d
           </span>
           <span class="stat-strip__label">Current streak</span>
-          <span class="stat-strip__sub">Best {{ insights.longestStreakDays }}d</span>
+          <span class="stat-strip__sub">Best {{ insights().longestStreakDays }}d</span>
         </div>
         <div class="stat-strip__item">
-          <span class="stat-strip__value">{{ insights.totalHours }}h</span>
+          <span class="stat-strip__value">{{ insights().totalHours }}h</span>
           <span class="stat-strip__label">Total playtime</span>
         </div>
         <div class="stat-strip__item">
-          <span class="stat-strip__value">{{ insights.completionRate }}%</span>
+          <span class="stat-strip__value">{{ insights().completionRate }}%</span>
           <span class="stat-strip__label">Completion rate</span>
-          <span class="stat-strip__sub">{{ insights.completedCount }} of {{ insights.libraryCount }} games</span>
+          <span class="stat-strip__sub">{{ insights().completedCount }} of {{ insights().libraryCount }} games</span>
         </div>
         <div class="stat-strip__item">
-          <span class="stat-strip__value">{{ insights.averageRating ?? '—' }}</span>
+          <span class="stat-strip__value">{{ insights().averageRating ?? '—' }}</span>
           <span class="stat-strip__label">Avg rating</span>
-          @if (insights.ratedCount) {
-            <span class="stat-strip__sub">{{ insights.ratedCount }} rated</span>
+          @if (insights().ratedCount) {
+            <span class="stat-strip__sub">{{ insights().ratedCount }} rated</span>
           }
         </div>
       </section>
@@ -47,14 +47,14 @@
       <section class="panel">
         <h2 class="panel__title">Where everything stands</h2>
         <ul class="bar-list">
-          @for (row of statusRows; track row.collection) {
+          @for (row of statusRows(); track row.collection) {
             <li class="bar-list__row" [attr.data-status]="row.status">
               <a class="bar-list__label" routerLink="/home" [queryParams]="{ collection: row.collection }">
                 <ion-icon [name]="row.icon" aria-hidden="true"></ion-icon>
                 {{ row.label }}
               </a>
               <span class="bar-list__track" [attr.title]="row.count + ' ' + row.label.toLowerCase()">
-                <span class="bar-list__fill" [style.width.%]="share(row.count, insights.total)"></span>
+                <span class="bar-list__fill" [style.width.%]="share(row.count, insights().total)"></span>
               </span>
               <span class="bar-list__value">{{ row.count }}</span>
             </li>
@@ -65,20 +65,20 @@
       <div class="insights-grid">
         <section class="panel">
           <h2 class="panel__title">By platform</h2>
-          <ng-container *ngTemplateOutlet="buckets; context: { $implicit: insights.byPlatform }"></ng-container>
+          <ng-container *ngTemplateOutlet="buckets; context: { $implicit: insights().byPlatform }"></ng-container>
         </section>
 
         <section class="panel">
           <h2 class="panel__title">By genre</h2>
-          <ng-container *ngTemplateOutlet="buckets; context: { $implicit: insights.byGenre }"></ng-container>
+          <ng-container *ngTemplateOutlet="buckets; context: { $implicit: insights().byGenre }"></ng-container>
         </section>
       </div>
 
-      @if (insights.recentActivity.length) {
+      @if (insights().recentActivity.length) {
         <section class="panel">
           <h2 class="panel__title">Recent activity</h2>
           <div class="insights-activity">
-            @for (game of insights.recentActivity; track game.id) {
+            @for (game of insights().recentActivity; track game.id) {
               <a class="insights-activity__item" [routerLink]="['/game', game.id]">
                 <div class="insights-activity__cover">
                   <app-game-cover [title]="game.title" [coverImage]="game.coverImage" variant="thumbnail" />

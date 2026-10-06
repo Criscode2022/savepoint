@@ -31,6 +31,10 @@ module.exports = defineConfig([
           style: "kebab-case",
         },
       ],
+      // Keep the app on signals + OnPush (it runs zoneless, so non-signal state won't re-render)
+      "@angular-eslint/prefer-on-push-component-change-detection": "error",
+      "@angular-eslint/prefer-signals": "error",
+      "@angular-eslint/prefer-output-emitter-ref": "error",
     },
   },
   {

@@ -1,32 +1,33 @@
 <ion-content class="profile-content">
-  @if (user) {
+  @if (user(); as user) {
+    @let stats = profileStats();
     <div class="profile-container">
       <app-page-header title="Profile" />
 
       <section class="panel profile-header">
         <div class="profile-avatar" aria-hidden="true">
-          @if (user.avatarUrl && !avatarLoadFailed) {
-            <img [src]="user.avatarUrl" alt="" (error)="avatarLoadFailed = true" />
+          @if (user.avatarUrl && !avatarLoadFailed()) {
+            <img [src]="user.avatarUrl" alt="" (error)="avatarLoadFailed.set(true)" />
           } @else {
-            <span class="profile-avatar__initials">{{ initials }}</span>
+            <span class="profile-avatar__initials">{{ initials() }}</span>
           }
         </div>
 
         <div class="profile-info">
-          <h2 class="profile-name">{{ displayName }}</h2>
+          <h2 class="profile-name">{{ displayName() }}</h2>
           <p class="profile-email">{{ user.email }}</p>
 
           <div class="level">
             <div class="level__head">
               <span class="level__badge">
                 <ion-icon name="trophy-outline" aria-hidden="true"></ion-icon>
-                Level {{ level }} · {{ levelTitle }}
+                Level {{ stats.level }} · {{ stats.levelTitle }}
               </span>
-              <span class="level__xp">{{ levelXp }} / {{ xpPerLevel }} XP</span>
+              <span class="level__xp">{{ stats.levelXp }} / {{ xpPerLevel }} XP</span>
             </div>
-            <div class="meter" role="progressbar" [attr.aria-valuenow]="levelXp" aria-valuemin="0"
-              [attr.aria-valuemax]="xpPerLevel" [attr.aria-label]="'Progress to level ' + (level + 1)">
-              <span class="meter__fill" [style.width.%]="(levelXp / xpPerLevel) * 100"></span>
+            <div class="meter" role="progressbar" [attr.aria-valuenow]="stats.levelXp" aria-valuemin="0"
+              [attr.aria-valuemax]="xpPerLevel" [attr.aria-label]="'Progress to level ' + (stats.level + 1)">
+              <span class="meter__fill" [style.width.%]="(stats.levelXp / xpPerLevel) * 100"></span>
             </div>
             <p class="level__hint">Finish games and log hours to level up.</p>
           </div>
@@ -35,19 +36,19 @@
 
       <section class="panel stat-strip" aria-label="Library totals">
         <div class="stat-strip__item">
-          <span class="stat-strip__value">{{ totalGames }}</span>
+          <span class="stat-strip__value">{{ stats.totalGames }}</span>
           <span class="stat-strip__label">In library</span>
         </div>
         <div class="stat-strip__item">
-          <span class="stat-strip__value">{{ completedGames }}</span>
+          <span class="stat-strip__value">{{ stats.completedGames }}</span>
           <span class="stat-strip__label">Completed</span>
         </div>
         <div class="stat-strip__item">
-          <span class="stat-strip__value">{{ totalHours }}h</span>
+          <span class="stat-strip__value">{{ stats.totalHours }}h</span>
           <span class="stat-strip__label">Played</span>
         </div>
         <div class="stat-strip__item">
-          <span class="stat-strip__value">{{ averageRating }}</span>
+          <span class="stat-strip__value">{{ stats.averageRating }}</span>
           <span class="stat-strip__label">Avg rating</span>
         </div>
       </section>
@@ -55,15 +56,15 @@
       <section class="panel">
         <div class="panel__head">
           <h2 class="panel__title">Completion</h2>
-          <span class="progress-value">{{ completedGames }} of {{ totalGames }} · {{ completionRate }}%</span>
+          <span class="progress-value">{{ stats.completedGames }} of {{ stats.totalGames }} · {{ stats.completionRate }}%</span>
         </div>
         <div class="meter meter--success" role="progressbar"
-          [attr.aria-valuenow]="completionRate" aria-valuemin="0" aria-valuemax="100" aria-label="Completion rate">
-          <span class="meter__fill" [style.width.%]="completionRate"></span>
+          [attr.aria-valuenow]="stats.completionRate" aria-valuemin="0" aria-valuemax="100" aria-label="Completion rate">
+          <span class="meter__fill" [style.width.%]="stats.completionRate"></span>
         </div>
         <p class="panel__note">
-          @if (wishlistCount) {
-            Wishlist games ({{ wishlistCount }}) aren’t counted until they join your library.
+          @if (stats.wishlistCount) {
+            Wishlist games ({{ stats.wishlistCount }}) aren’t counted until they join your library.
           }
           <a routerLink="/insights" class="panel__link">See all insights →</a>
         </p>
@@ -71,9 +72,9 @@
 
       <section class="panel">
         <h2 class="panel__title">Recently added</h2>
-        @if (recentGames.length) {
+        @if (stats.recentGames.length) {
           <ul class="recent-games-list">
-            @for (game of recentGames; track game.id) {
+            @for (game of stats.recentGames; track game.id) {
               <li>
                 <a class="recent-game-row" [routerLink]="['/game', game.id]" [attr.data-status]="game.status">
                   <div class="recent-game-row__thumb">

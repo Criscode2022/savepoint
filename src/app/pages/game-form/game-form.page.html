@@ -1,8 +1,8 @@
 <ion-content class="form-content">
   <div class="form-container">
-    <app-page-header [title]="pageTitle" [subtitle]="pageSubtitle" [backHref]="cancelHref" />
+    <app-page-header [title]="pageTitle" [subtitle]="pageSubtitle()" [backHref]="cancelHref" />
 
-    @if (isEdit && isLoadingGame) {
+    @if (isLoadingGame()) {
       <div class="form-loading">
         <ion-spinner name="crescent" aria-label="Loading game"></ion-spinner>
       </div>
@@ -37,38 +37,38 @@
                       <ion-icon name="search-outline" slot="start" aria-hidden="true"></ion-icon>
                       <ion-input
                         id="rawg-search"
-                        [(ngModel)]="rawgQuery"
+                        [ngModel]="rawgQuery()"
                         name="rawgQuery"
                         placeholder="e.g. Hades, Zelda, Elden Ring…"
-                        (ionInput)="onRawgQuery($event)"
+                        (ionInput)="onRawgQuery($event.detail.value)"
                         clearInput="true"
                         enterkeyhint="search"
                       ></ion-input>
-                      @if (rawgSearching) {
+                      @if (rawgSearching()) {
                         <ion-spinner name="crescent" slot="end"></ion-spinner>
                       }
                     </ion-item>
-                    @if (rawgError) {
-                      <p class="field-error">{{ rawgError }}</p>
+                    @if (rawgError()) {
+                      <p class="field-error">{{ rawgError() }}</p>
                     }
-                    @if (rawgImportedTitle) {
+                    @if (rawgImportedTitle()) {
                       <p class="field-help">
                         <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
-                        Imported from RAWG: <strong>{{ rawgImportedTitle }}</strong>
+                        Imported from RAWG: <strong>{{ rawgImportedTitle() }}</strong>
                       </p>
                     }
                   </div>
                 }
 
-                @if (rawgResults.length) {
+                @if (rawgResults().length) {
                   <ul class="rawg-results" role="listbox" aria-label="RAWG search results">
-                    @for (hit of rawgResults; track hit.id) {
+                    @for (hit of rawgResults(); track hit.id) {
                       <li>
                         <button
                           type="button"
                           class="rawg-result"
                           (click)="applyRawgGame(hit)"
-                          [disabled]="rawgImportingId === hit.id"
+                          [disabled]="rawgImportingId() === hit.id"
                         >
                           @if (hit.backgroundImage) {
                             <img
@@ -92,10 +92,10 @@
                               }
                             </span>
                           </span>
-                          @if (rawgImportingId === hit.id) {
+                          @if (rawgImportingId() === hit.id) {
                             <ion-spinner name="crescent"></ion-spinner>
                           }
-                          @if (rawgImportingId !== hit.id) {
+                          @if (rawgImportingId() !== hit.id) {
                             <span class="rawg-result__action">Use this</span>
                           }
                         </button>
@@ -103,7 +103,7 @@
                     }
                   </ul>
                 }
-                @if (rawgConfigured && rawgSearched && !rawgSearching && !rawgResults.length && rawgQuery.trim()) {
+                @if (rawgConfigured && rawgSearched() && !rawgSearching() && !rawgResults().length && rawgQuery().trim()) {
                   <p class="field-help">
                     No RAWG matches. Try a shorter title or add details manually below.
                   </p>
@@ -120,7 +120,7 @@
                 <ion-item class="form-item" lines="none" [class.field-invalid]="isInvalid(titleModel)">
                   <ion-input
                     id="game-title"
-                    [(ngModel)]="game.title"
+                    [(ngModel)]="form.title"
                     #titleModel="ngModel"
                     name="title"
                     required
@@ -139,7 +139,7 @@
                 <ion-item class="form-item form-item--textarea" lines="none">
                   <ion-textarea
                     id="game-description"
-                    [(ngModel)]="game.description"
+                    [(ngModel)]="form.description"
                     name="description"
                     rows="4"
                     placeholder="What’s it about? (optional)"></ion-textarea>
@@ -151,8 +151,8 @@
                 <app-game-cover-upload
                   role="group"
                   aria-labelledby="cover-label"
-                  [title]="game.title || 'Game cover'"
-                  [coverImage]="game.coverImage"
+                  [title]="form.title() || 'Game cover'"
+                  [coverImage]="form.coverImage()"
                   (coverImageChange)="onCoverImageChange($event)"
                 ></app-game-cover-upload>
               </div>
@@ -166,7 +166,7 @@
                 <ion-item class="form-item" lines="none" [class.field-invalid]="isInvalid(platformModel)">
                   <ion-select
                     id="game-platform"
-                    [(ngModel)]="selectedPlatformId"
+                    [(ngModel)]="form.platformId"
                     #platformModel="ngModel"
                     name="platform"
                     required
@@ -175,7 +175,7 @@
                     (ionFocus)="onFieldFocus('platform')"
                     (ionBlur)="onFieldBlur('platform')"
                     (ionChange)="onFieldChange('platform')">
-                    @for (platform of platforms; track platform.id) {
+                    @for (platform of platforms(); track platform.id) {
                       <ion-select-option [value]="platform.id">
                         {{ platform.name }}
                       </ion-select-option>
@@ -192,13 +192,13 @@
                 <ion-item class="form-item" lines="none" [class.field-invalid]="isInvalid(releaseYearModel)">
                   <ion-input
                     id="game-year"
-                    [(ngModel)]="game.releaseYear"
+                    [(ngModel)]="form.releaseYear"
                     #releaseYearModel="ngModel"
                     name="releaseYear"
                     type="number"
                     required
                     min="1970"
-                    [max]="maxReleaseYear"
+                    [max]="maxReleaseYear()"
                     placeholder="2024"
                     (ionFocus)="onFieldFocus('releaseYear')"
                     (ionBlur)="onFieldBlur('releaseYear')"
@@ -215,7 +215,7 @@
                   <ion-item class="form-item" lines="none" [class.field-invalid]="isInvalid(releaseDateModel)">
                     <ion-input
                       id="game-release-date"
-                      [(ngModel)]="game.releaseDate"
+                      [(ngModel)]="form.releaseDate"
                       #releaseDateModel="ngModel"
                       name="releaseDate"
                       type="date"
@@ -243,7 +243,7 @@
                 <ion-item class="form-item" lines="none" [class.field-invalid]="isInvalid(developerModel)">
                   <ion-input
                     id="game-developer"
-                    [(ngModel)]="developerName"
+                    [(ngModel)]="form.developerName"
                     #developerModel="ngModel"
                     name="developerName"
                     required
@@ -262,7 +262,7 @@
                 <ion-item class="form-item" lines="none">
                   <ion-input
                     id="game-director"
-                    [(ngModel)]="game.director"
+                    [(ngModel)]="form.director"
                     name="director"
                     placeholder="Optional"></ion-input>
                 </ion-item>
@@ -296,18 +296,18 @@
                       <span class="field-label" id="rating-label">Your rating</span>
                       <span
                         class="rating-field__score"
-                        [class.rating-field__score--preview]="ratingPreview !== null"
-                        [class.rating-field__score--empty]="!hasRating() && ratingPreview === null"
+                        [class.rating-field__score--preview]="ratingPreview() !== null"
+                        [class.rating-field__score--empty]="!hasRating() && ratingPreview() === null"
                       >
-                        {{ getRatingDisplay() }}
+                        {{ ratingDisplay() }}
                       </span>
                     </div>
                     <app-game-rating
                       role="group"
                       aria-labelledby="rating-label"
-                      [rating]="game.rating ?? null"
+                      [rating]="form.rating()"
                       (ratingChange)="onRatingChange($event)"
-                      (previewChange)="ratingPreview = $event"
+                      (previewChange)="ratingPreview.set($event)"
                       size="lg"
                       [showClear]="true"
                       [showValue]="false"
@@ -320,7 +320,7 @@
                   <ion-item class="form-item" lines="none">
                     <ion-input
                       id="game-playtime"
-                      [(ngModel)]="game.playtime"
+                      [(ngModel)]="form.playtime"
                       name="playtime"
                       type="number"
                       min="0"
@@ -332,7 +332,7 @@
                   <span class="field-label" id="status-label">Status</span>
                   <ion-segment
                     aria-labelledby="status-label"
-                    [(ngModel)]="game.status"
+                    [(ngModel)]="form.status"
                     name="status"
                     class="status-segment"
                   >
@@ -373,9 +373,9 @@
                 </ion-item>
                 <button type="button" class="tag-add-btn" (click)="addTagFromDraft()">Add</button>
               </div>
-              @if (game.tags?.length) {
+              @if (form.tags().length) {
                 <div class="tag-chips">
-                  @for (tag of game.tags; track tag) {
+                  @for (tag of form.tags(); track tag) {
                     <ion-chip
                       class="genre-chip selected"
                       (click)="removeTag(tag)"
@@ -396,7 +396,7 @@
                 <ion-item class="form-item form-item--textarea" lines="none">
                   <ion-textarea
                     aria-label="Notes"
-                    [(ngModel)]="game.notes"
+                    [(ngModel)]="form.notes"
                     name="notes"
                     rows="4"
                     placeholder="Builds, secrets, where you left off… (optional)"></ion-textarea>
@@ -410,23 +410,23 @@
   </div>
 
   <ion-toast
-    [isOpen]="!!toastMessage"
-    [message]="toastMessage"
-    color="danger"
+    [isOpen]="toast.isOpen()"
+    [message]="toast.message()"
+    [color]="toast.color()"
     duration="4000"
     position="top"
     cssClass="app-toast"
-    (didDismiss)="toastMessage = ''">
+    (didDismiss)="toast.dismiss()">
   </ion-toast>
 </ion-content>
 
-@if (!isEdit || !isLoadingGame) {
+@if (!isLoadingGame()) {
   <ion-footer class="form-footer">
     <div class="form-footer__inner">
       <a [routerLink]="cancelHref" class="btn btn--ghost">Cancel</a>
-      <button type="button" class="btn btn--primary" (click)="submitForm()" [disabled]="isSubmitting">
+      <button type="button" class="btn btn--primary" (click)="submitForm()" [disabled]="isSubmitting()">
         <ion-icon name="save-outline" aria-hidden="true"></ion-icon>
-        {{ isSubmitting ? 'Saving…' : submitLabel }}
+        {{ isSubmitting() ? 'Saving…' : submitLabel }}
       </button>
     </div>
   </ion-footer>

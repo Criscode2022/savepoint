@@ -1,10 +1,10 @@
 <ion-content class="detail-content">
-  @if (game) {
+  @if (game(); as game) {
     <section class="hero-section" [attr.data-status]="game.status">
       <div
         class="hero-background"
-        [class.hero-background--placeholder]="!hasCoverImage()"
-        [style.background-image]="getHeroBackgroundImage()"
+        [class.hero-background--placeholder]="!heroCoverImage()"
+        [style.background-image]="heroBackgroundImage()"
       ></div>
       <div class="hero-overlay"></div>
 
@@ -24,8 +24,8 @@
 
         <div class="hero-content">
           <div class="hero-image">
-            <app-game-cover [title]="game.title" [coverImage]="heroCoverImage" variant="hero" />
-            @if (hasCoverImage()) {
+            <app-game-cover [title]="game.title" [coverImage]="heroCoverImage()" variant="hero" />
+            @if (heroCoverImage()) {
               <button type="button" class="cover-remove" aria-label="Remove cover image" title="Remove cover image"
                 (click)="removeCoverImage()">
                 <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
@@ -73,7 +73,7 @@
                 aria-hidden="true"
                 tabindex="-1"
               >
-                @for (option of getAvailableStatusOptions(); track option) {
+                @for (option of availableStatusOptions(); track option) {
                   <ion-select-option [value]="option">{{ getStatusLabel(option) }}</ion-select-option>
                 }
               </ion-select>
@@ -103,15 +103,15 @@
           @if (game.status !== 'wishlist') {
             <section class="stat-strip panel" aria-label="Play stats">
               <div class="stat-strip__item">
-                <span class="stat-strip__value">{{ getPlaytimeDisplay() }}</span>
+                <span class="stat-strip__value">{{ playtimeDisplay() }}</span>
                 <span class="stat-strip__label">Playtime</span>
               </div>
               <div class="stat-strip__item">
-                <span class="stat-strip__value">{{ playSessions.length }}</span>
-                <span class="stat-strip__label">{{ playSessions.length === 1 ? 'Session' : 'Sessions' }}</span>
+                <span class="stat-strip__value">{{ playSessions().length }}</span>
+                <span class="stat-strip__label">{{ playSessions().length === 1 ? 'Session' : 'Sessions' }}</span>
               </div>
               <div class="stat-strip__item">
-                <span class="stat-strip__value">{{ getTrackedMinutesDisplay() }}</span>
+                <span class="stat-strip__value">{{ trackedMinutesDisplay() }}</span>
                 <span class="stat-strip__label">Tracked in sessions</span>
               </div>
             </section>
@@ -123,18 +123,18 @@
                 <h2 class="panel__title">Your rating</h2>
                 <span
                   class="rating-score"
-                  [class.rating-score--preview]="ratingPreview !== null"
-                  [class.rating-score--empty]="!hasRating() && ratingPreview === null"
-                >{{ getRatingDisplay() }}</span>
+                  [class.rating-score--preview]="ratingPreview() !== null"
+                  [class.rating-score--empty]="!hasRating() && ratingPreview() === null"
+                >{{ ratingDisplay() }}</span>
               </div>
               <app-game-rating
                 [rating]="game.rating"
                 (ratingChange)="onRatingChange($event)"
-                (previewChange)="ratingPreview = $event"
+                (previewChange)="ratingPreview.set($event)"
                 size="lg"
                 [showClear]="true"
                 [showValue]="false"
-                [disabled]="ratingSaving"
+                [disabled]="ratingSaving()"
               />
               @if (game.ratedAt) {
                 <p class="rating-meta">Rated {{ game.ratedAt | date: 'mediumDate' }}</p>
@@ -160,9 +160,9 @@
                   ></ion-input>
                   <span class="ritual-log__unit" aria-hidden="true">hours</span>
                 </div>
-                <button type="submit" class="btn btn--primary" [disabled]="loggingPlaytime || !canLogHours()">
+                <button type="submit" class="btn btn--primary" [disabled]="loggingPlaytime() || !canLogHours()">
                   <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
-                  {{ loggingPlaytime ? 'Saving…' : 'Log session' }}
+                  {{ loggingPlaytime() ? 'Saving…' : 'Log session' }}
                 </button>
               </form>
             </section>
@@ -204,7 +204,7 @@
           <section class="panel">
             <h2 class="panel__title">Timeline</h2>
             <ol class="timeline-list">
-              @for (event of getTimelineEvents(); track event.label + event.date) {
+              @for (event of timelineEvents(); track event.label + event.date) {
                 <li class="timeline-entry">
                   <span class="timeline-entry__icon" aria-hidden="true">
                     <ion-icon [name]="event.icon"></ion-icon>
@@ -242,7 +242,7 @@
               @if (game.releaseDate) {
                 <div class="detail-list__row">
                   <dt>Release date</dt>
-                  <dd>{{ getFormattedReleaseDate() }}</dd>
+                  <dd>{{ formattedReleaseDate() }}</dd>
                 </div>
               } @else if (game.releaseYear) {
                 <div class="detail-list__row">
@@ -266,11 +266,11 @@
             </section>
           }
 
-          @if (playSessions.length) {
+          @if (playSessions().length) {
             <section class="panel">
               <h2 class="panel__title">Sessions</h2>
               <ul class="history-list">
-                @for (session of playSessions; track session.id) {
+                @for (session of playSessions(); track session.id) {
                   <li class="history-item">
                     <time [attr.datetime]="session.startedAt">{{ session.startedAt | date: 'mediumDate' }}</time>
                     @if (session.durationMinutes) {
@@ -297,12 +297,12 @@
   }
 
   <ion-toast
-    [isOpen]="!!toastMessage"
-    [message]="toastMessage"
-    [color]="toastColor"
+    [isOpen]="toast.isOpen()"
+    [message]="toast.message()"
+    [color]="toast.color()"
     duration="3000"
     position="bottom"
     cssClass="app-toast"
-    (didDismiss)="toastMessage = ''"
+    (didDismiss)="toast.dismiss()"
   ></ion-toast>
 </ion-content>

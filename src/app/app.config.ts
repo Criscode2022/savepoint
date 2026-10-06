@@ -1,5 +1,5 @@
 import { provideHttpClient, withInterceptors, withInterceptorsFromDi } from "@angular/common/http";
-import { ApplicationConfig, provideZoneChangeDetection } from "@angular/core";
+import { ApplicationConfig, provideExperimentalZonelessChangeDetection } from "@angular/core";
 import { provideRouter } from "@angular/router";
 import { provideIonicAngular } from "@ionic/angular/standalone";
 import { routes } from "./app.routes";
@@ -10,7 +10,8 @@ import { HTTP_INTERCEPTORS } from "@angular/common/http";
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideZoneChangeDetection({ eventCoalescing: true }),
+    // Signals drive rendering; zone.js is no longer loaded (see angular.json polyfills).
+    provideExperimentalZonelessChangeDetection(),
     provideRouter(routes),
     provideHttpClient(
       withInterceptors([authInterceptor, errorInterceptor]),

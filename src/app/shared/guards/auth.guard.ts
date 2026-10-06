@@ -1,26 +1,12 @@
-import { Injectable, inject } from '@angular/core';
-import { CanActivate, Router, UrlTree } from '@angular/router';
-import { Observable, map, take, switchMap } from 'rxjs';
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
-@Injectable({
-  providedIn: 'root'
-})
-export class AuthGuard implements CanActivate {
-  private readonly authService = inject(AuthService);
-  private readonly router = inject(Router);
+/** Lets signed-in users through; everyone else goes to /login. */
+export const authGuard: CanActivateFn = async () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
 
-  public canActivate(): Observable<boolean | UrlTree> {
-    // Wait for auth initialization to complete before checking state
-    return this.authService.waitForInitialization().pipe(
-      switchMap(() => this.authService.getAuthState()),
-      take(1),
-      map(isAuthenticated => {
-        if (isAuthenticated) {
-          return true;
-        }
-        return this.router.createUrlTree(['/login']);
-      })
-    );
-  }
-}
+  await auth.ready;
+  return auth.isAuthenticated() || router.createUrlTree(['/login']);
+};

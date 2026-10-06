@@ -1,5 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { IonIcon, IonButton } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { star, starOutline } from 'ionicons/icons';
@@ -10,50 +9,44 @@ import {
   isValidRating,
 } from '../../shared/utils/rating.utils';
 
+addIcons({ star, starOutline });
+
 @Component({
   selector: 'app-game-rating',
-  standalone: true,
-  imports: [CommonModule, IonIcon, IonButton],
+  imports: [IonIcon, IonButton],
   templateUrl: './game-rating.component.html',
   styleUrl: './game-rating.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class GameRatingComponent implements OnInit {
-  @Input() rating: number | null | undefined;
-  @Input() readonly = false;
-  @Input() disabled = false;
-  @Input() size: 'sm' | 'md' | 'lg' = 'md';
-  @Input() showValue = false;
-  @Input() showClear = false;
+export class GameRatingComponent {
+  public readonly rating = input<number | null>();
+  public readonly readonly = input(false);
+  public readonly disabled = input(false);
+  public readonly size = input<'sm' | 'md' | 'lg'>('md');
+  public readonly showValue = input(false);
+  public readonly showClear = input(false);
 
-  @Output() ratingChange = new EventEmitter<number | null>();
-  @Output() previewChange = new EventEmitter<number | null>();
+  public readonly ratingChange = output<number | null>();
+  public readonly previewChange = output<number | null>();
 
-  private previewRating: number | null = null;
+  private readonly previewRating = signal<number | null>(null);
 
   protected readonly formatRatingLabel = formatRatingLabel;
   protected readonly isValidRating = isValidRating;
 
-  public ngOnInit(): void {
-    addIcons({ star, starOutline });
-  }
-
-  protected get displayRating(): number | null | undefined {
-    return this.previewRating ?? this.rating;
-  }
-
-  protected get starStates(): boolean[] {
-    return getStarFillStates(this.displayRating);
-  }
+  protected readonly displayRating = computed(() => this.previewRating() ?? this.rating());
+  protected readonly starStates = computed(() => getStarFillStates(this.displayRating()));
+  private readonly interactive = computed(() => !this.readonly() && !this.disabled());
 
   protected onStarClick(value: number, event: Event): void {
-    if (this.readonly || this.disabled) {
+    if (!this.interactive()) {
       return;
     }
 
     event.stopPropagation();
     event.preventDefault();
 
-    const next = this.rating === value ? null : clampRating(value);
+    const next = this.rating() === value ? null : clampRating(value);
     this.ratingChange.emit(next);
     this.setPreview(null);
   }
@@ -66,7 +59,7 @@ export class GameRatingComponent implements OnInit {
   }
 
   protected onStarHover(value: number): void {
-    if (this.readonly || this.disabled) {
+    if (!this.interactive()) {
       return;
     }
 
@@ -78,16 +71,17 @@ export class GameRatingComponent implements OnInit {
   }
 
   private setPreview(value: number | null): void {
-    this.previewRating = value;
+    this.previewRating.set(value);
     this.previewChange.emit(value);
   }
 
   protected onKeydown(event: KeyboardEvent): void {
-    if (this.readonly || this.disabled) {
+    if (!this.interactive()) {
       return;
     }
 
-    const current = isValidRating(this.rating) ? this.rating : 0;
+    const rating = this.rating();
+    const current = isValidRating(rating) ? rating : 0;
 
     if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
       event.preventDefault();

@@ -1,5 +1,4 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { IonContent, IonIcon } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -7,14 +6,17 @@ import {
   logOutOutline, checkmarkCircleOutline, ellipseOutline, heartOutline, pauseCircleOutline,
   playCircleOutline, statsChartOutline, trophyOutline,
 } from 'ionicons/icons';
-import { Subject, takeUntil } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { GameService } from '../../services/game.service';
-import { AuthUser } from '../../models/auth.model';
 import { Game, GAME_STATUS_ICONS, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
 import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import { LIBRARY_COLLECTIONS } from '../../shared/library-collections';
+
+addIcons({
+  logOutOutline, checkmarkCircleOutline, ellipseOutline, heartOutline, pauseCircleOutline,
+  playCircleOutline, statsChartOutline, trophyOutline,
+});
 
 const XP_PER_LEVEL = 50;
 const LEVEL_TITLES: readonly [number, string][] = [
@@ -25,108 +27,50 @@ const LEVEL_TITLES: readonly [number, string][] = [
   [1, 'Rookie'],
 ];
 
+interface ProfileStats {
+  totalGames: number;
+  completedGames: number;
+  totalHours: number;
+  averageRating: string;
+  completionRate: number;
+  level: number;
+  levelTitle: string;
+  levelXp: number;
+  wishlistCount: number;
+  recentGames: Game[];
+}
+
 @Component({
   selector: 'app-profile',
-  standalone: true,
-  imports: [CommonModule, RouterLink, GameCoverComponent, PageHeaderComponent, IonContent, IonIcon],
+  imports: [RouterLink, GameCoverComponent, PageHeaderComponent, IonContent, IonIcon],
   templateUrl: './profile.page.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ProfilePage implements OnInit, OnDestroy {
+export class ProfilePage {
   private readonly authService = inject(AuthService);
   private readonly gameService = inject(GameService);
   private readonly router = inject(Router);
 
+  protected readonly xpPerLevel = XP_PER_LEVEL;
   protected readonly gamesLoading = this.gameService.gamesLoading;
-  protected user: AuthUser | null = null;
-  /** Owned games only — the wishlist isn't part of completion or playtime */
-  private library: Game[] = [];
-  protected wishlistCount = 0;
-  protected recentGames: Game[] = [];
-  protected avatarLoadFailed = false;
+  protected readonly user = this.authService.user;
+  protected readonly avatarLoadFailed = signal(false);
 
-  private readonly destroy$ = new Subject<void>();
+  protected readonly displayName = computed(() => {
+    const user = this.user();
+    return user?.username || user?.email?.split('@')[0] || 'Player one';
+  });
 
-  public ngOnInit(): void {
-    addIcons({
-      logOutOutline, checkmarkCircleOutline, ellipseOutline, heartOutline, pauseCircleOutline,
-      playCircleOutline, statsChartOutline, trophyOutline,
-    });
-
-    this.user = this.authService.getCurrentUser();
-    if (!this.user) {
-      void this.router.navigate(['/login']);
-      return;
-    }
-
-    this.gameService.games$.pipe(takeUntil(this.destroy$)).subscribe((games) => {
-      this.library = games.filter(LIBRARY_COLLECTIONS.all.matches);
-      this.wishlistCount = games.length - this.library.length;
-      this.recentGames = [...games]
-        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
-        .slice(0, 5);
-    });
-  }
-
-  public ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
-  protected get displayName(): string {
-    return this.user?.username || this.user?.email?.split('@')[0] || 'Player one';
-  }
-
-  protected get initials(): string {
-    return this.displayName
+  protected readonly initials = computed(() =>
+    this.displayName()
       .split(/[\s._-]+/)
       .filter(Boolean)
       .slice(0, 2)
       .map((part) => part[0]!.toUpperCase())
-      .join('');
-  }
+      .join(''),
+  );
 
-  protected get totalGames(): number {
-    return this.library.length;
-  }
-
-  protected get completedGames(): number {
-    return this.library.filter((g) => g.status === 'completed').length;
-  }
-
-  protected get totalHours(): number {
-    return Math.round(this.library.reduce((sum, g) => sum + (g.playtimeHours || 0), 0));
-  }
-
-  protected get averageRating(): string {
-    const rated = this.library.filter((g) => g.rating != null);
-    if (!rated.length) {
-      return '—';
-    }
-    return (rated.reduce((sum, g) => sum + (g.rating || 0), 0) / rated.length).toFixed(1);
-  }
-
-  protected get completionRate(): number {
-    return this.totalGames ? Math.round((this.completedGames / this.totalGames) * 100) : 0;
-  }
-
-  /** Light gamification: 10 XP per completed game, 1 XP per 10 hours played */
-  private get xp(): number {
-    return this.completedGames * 10 + Math.floor(this.totalHours / 10);
-  }
-
-  protected get level(): number {
-    return Math.floor(this.xp / XP_PER_LEVEL) + 1;
-  }
-
-  protected get levelTitle(): string {
-    return LEVEL_TITLES.find(([min]) => this.level >= min)?.[1] ?? 'Rookie';
-  }
-
-  protected get levelXp(): number {
-    return this.xp % XP_PER_LEVEL;
-  }
-
-  protected readonly xpPerLevel = XP_PER_LEVEL;
+  protected readonly profileStats = computed(() => computeProfileStats(this.gameService.games()));
 
   protected statusLabel(status: GamePlayStatus): string {
     return GAME_STATUS_LABELS[status];
@@ -140,4 +84,34 @@ export class ProfilePage implements OnInit, OnDestroy {
     this.authService.logout();
     void this.router.navigate(['/login']);
   }
+}
+
+function computeProfileStats(games: Game[]): ProfileStats {
+  /** Owned games only — the wishlist isn't part of completion or playtime */
+  const library = games.filter(LIBRARY_COLLECTIONS.all.matches);
+  const totalGames = library.length;
+  const completedGames = library.filter((g) => g.status === 'completed').length;
+  const totalHours = Math.round(library.reduce((sum, g) => sum + (g.playtimeHours || 0), 0));
+  const rated = library.filter((g) => g.rating != null);
+  const averageRating = rated.length
+    ? (rated.reduce((sum, g) => sum + (g.rating || 0), 0) / rated.length).toFixed(1)
+    : '—';
+  // Light gamification: 10 XP per completed game, 1 XP per 10 hours played
+  const xp = completedGames * 10 + Math.floor(totalHours / 10);
+  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
+
+  return {
+    totalGames,
+    completedGames,
+    totalHours,
+    averageRating,
+    completionRate: totalGames ? Math.round((completedGames / totalGames) * 100) : 0,
+    level,
+    levelTitle: LEVEL_TITLES.find(([min]) => level >= min)?.[1] ?? 'Rookie',
+    levelXp: xp % XP_PER_LEVEL,
+    wishlistCount: games.length - library.length,
+    recentGames: [...games]
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+      .slice(0, 5),
+  };
 }

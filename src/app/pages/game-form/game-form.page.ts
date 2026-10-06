@@ -1,5 +1,6 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { SlicePipe } from '@angular/common';
 import { FormsModule, NgForm, NgModel } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
@@ -11,20 +12,12 @@ import { addIcons } from 'ionicons';
 import {
   saveOutline, imageOutline, closeOutline, searchOutline, flashOutline, checkmarkCircleOutline,
 } from 'ionicons/icons';
-import {
-  Subject,
-  debounceTime,
-  distinctUntilChanged,
-  switchMap,
-  takeUntil,
-  of,
-  catchError,
-} from 'rxjs';
-import { PLATFORMS, GENRES, Game, Platform, GamePlayStatus, GAME_STATUS_LABELS } from '../../models/game.model';
+import { Subject, debounceTime, distinctUntilChanged, switchMap, of, catchError } from 'rxjs';
+import { PLATFORMS, GENRES, Game, GameFormPayload, Platform, GamePlayStatus, GAME_STATUS_LABELS } from '../../models/game.model';
 import { normalizeTags } from '../../shared/utils/tag.utils';
 import { GameService } from '../../services/game.service';
 import { PlatformService } from '../../services/platform.service';
-import { RawgService, RawgGameSummary } from '../../services/rawg.service';
+import { RawgService, RawgGameImport, RawgGameSummary } from '../../services/rawg.service';
 import { GameRatingComponent } from '../../components/game-rating/game-rating.component';
 import { GameCoverUploadComponent } from '../../components/game-cover-upload/game-cover-upload.component';
 import { PageHeaderComponent } from '../../components/page-header/page-header.component';
@@ -32,115 +25,132 @@ import {
   confirmResetPlayHistory,
   statusChangeClearsPlayHistory,
 } from '../../shared/utils/game-status.utils';
-import { canRateGame, formatRatingLabel, isRated } from '../../shared/utils/rating.utils';
+import { canRateGame, formatRatingLabel, isValidRating } from '../../shared/utils/rating.utils';
 import { shouldShowFieldError } from '../../shared/utils/form-field-error';
+import { ToastState } from '../../shared/toast-state';
+
+addIcons({
+  saveOutline,
+  imageOutline,
+  closeOutline,
+  searchOutline,
+  flashOutline,
+  checkmarkCircleOutline,
+});
+
+const CURRENT_YEAR = new Date().getFullYear();
+
+/** One writable signal per field, bound with `[(ngModel)]="form.field"` */
+function createGameForm(status: GamePlayStatus) {
+  return {
+    title: signal(''),
+    description: signal(''),
+    coverImage: signal<string | undefined>(undefined),
+    platformId: signal(''),
+    releaseYear: signal<number | null>(status === 'wishlist' ? CURRENT_YEAR + 1 : CURRENT_YEAR),
+    releaseDate: signal(''),
+    developerName: signal(''),
+    director: signal(''),
+    genres: signal<string[]>([]),
+    tags: signal<string[]>([]),
+    rating: signal<number | null>(null),
+    playtime: signal<number | null>(null),
+    status: signal<GamePlayStatus>(status),
+    notes: signal(''),
+  };
+}
 
 @Component({
   selector: 'app-game-form',
-  standalone: true,
   imports: [
-    CommonModule, FormsModule, RouterLink,
+    SlicePipe, FormsModule, RouterLink,
     IonContent, IonFooter, IonIcon, IonCard, IonCardContent, IonItem, IonLabel, IonInput,
     IonSelect, IonSelectOption, IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton,
     IonSpinner, GameRatingComponent, GameCoverUploadComponent, PageHeaderComponent,
   ],
   templateUrl: './game-form.page.html',
   styleUrl: './game-form.page.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class GameFormPage implements OnInit, OnDestroy {
+export class GameFormPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly gameService = inject(GameService);
   private readonly platformService = inject(PlatformService);
   private readonly alertController = inject(AlertController);
   private readonly rawg = inject(RawgService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
 
-  @ViewChild('gameForm') private gameFormRef?: NgForm;
+  private readonly gameForm = viewChild<NgForm>('gameForm');
 
-  protected platforms: Platform[] = [];
   protected readonly genres = GENRES;
   protected readonly statusLabels = GAME_STATUS_LABELS;
-  private readonly currentYear = new Date().getFullYear();
-  
-  protected isEdit = false;
-  protected isWishlistMode = false;
-  protected isLoadingGame = false;
-  private gameId: string | null = null;
-  protected selectedPlatformId = '';
-  
-  protected game: Partial<Game> = {
-    title: '',
-    description: '',
-    coverImage: '',
-    releaseYear: this.currentYear,
-    releaseDate: '',
-    director: '',
-    genre: [],
-    tags: [],
-    rating: undefined,
-    playtime: undefined,
-    status: 'not_started' as GamePlayStatus,
-    notes: ''
-  };
+  protected readonly rawgConfigured = this.rawg.isConfigured;
 
-  protected tagDraft = '';
-  
-  protected developerName = '';
-  protected isSubmitting = false;
-  private submitted = false;
+  private readonly gameId = this.route.snapshot.paramMap.get('id');
+  protected readonly isEdit = !!this.gameId;
+  protected readonly isWishlistMode = !this.isEdit && this.route.snapshot.data['wishlist'] === true;
+
+  protected readonly pageTitle = this.isEdit ? 'Edit game' : this.isWishlistMode ? 'Add to wishlist' : 'Add a game';
+  protected readonly submitLabel = this.isEdit ? 'Save changes' : this.isWishlistMode ? 'Add to wishlist' : 'Save game';
+  /** Where Cancel / back returns: the game you were editing, otherwise the library */
+  protected readonly cancelHref = this.isEdit ? `/game/${this.gameId}` : '/home';
+
+  protected readonly form = createGameForm(this.isWishlistMode ? 'wishlist' : 'not_started');
+  protected readonly tagDraft = signal('');
+  protected readonly platforms = signal<Platform[]>([]);
+  protected readonly isLoadingGame = signal(this.isEdit);
+  protected readonly isSubmitting = signal(false);
+  protected readonly ratingPreview = signal<number | null>(null);
+  protected readonly toast = new ToastState();
+  private readonly originalStatus = signal<GamePlayStatus>('not_started');
+  private readonly revealedErrors = signal<ReadonlySet<string>>(new Set());
   private focusedField: string | null = null;
-  private readonly revealedErrors = new Set<string>();
-  protected toastMessage = '';
-  private originalStatus: GamePlayStatus = 'not_started';
-  protected ratingPreview: number | null = null;
 
   // RAWG search / import
-  protected rawgQuery = '';
-  protected rawgResults: RawgGameSummary[] = [];
-  protected rawgSearching = false;
-  protected rawgSearched = false;
-  protected rawgError = '';
-  protected rawgImportingId: number | null = null;
-  protected rawgImportedTitle = '';
+  protected readonly rawgQuery = signal('');
+  protected readonly rawgResults = signal<RawgGameSummary[]>([]);
+  protected readonly rawgSearching = signal(false);
+  protected readonly rawgSearched = signal(false);
+  protected readonly rawgError = signal('');
+  protected readonly rawgImportingId = signal<number | null>(null);
+  protected readonly rawgImportedTitle = signal('');
   private readonly rawgQuery$ = new Subject<string>();
-  private readonly destroy$ = new Subject<void>();
 
-  protected get rawgConfigured(): boolean {
-    return this.rawg.isConfigured;
-  }
+  protected readonly pageSubtitle = computed(() => {
+    if (this.isEdit) {
+      const title = this.form.title();
+      return title ? `Changes to ${title} save when you hit Save.` : '';
+    }
+    return this.isWishlistMode
+      ? 'Track an upcoming release — we’ll count down to launch day.'
+      : 'Fields marked * are required. Everything else can wait.';
+  });
 
-  public ngOnInit(): void {
-    addIcons({
-      saveOutline,
-      imageOutline,
-      closeOutline,
-      searchOutline,
-      flashOutline,
-      checkmarkCircleOutline,
-    });
+  protected readonly requiresReleaseDate = computed(
+    () => this.isWishlistMode || this.form.status() === 'wishlist',
+  );
+  protected readonly maxReleaseYear = computed(() =>
+    this.requiresReleaseDate() ? CURRENT_YEAR + 10 : CURRENT_YEAR,
+  );
+  protected readonly canSelectWishlistStatus = computed(
+    () => this.isEdit && this.originalStatus() === 'wishlist',
+  );
+  protected readonly canShowRating = computed(
+    () => !this.isWishlistMode && canRateGame(this.form.status()),
+  );
+  protected readonly hasRating = computed(() => isValidRating(this.form.rating()));
+  protected readonly ratingDisplay = computed(() =>
+    formatRatingLabel(this.ratingPreview() ?? this.form.rating()),
+  );
 
+  constructor() {
     this.loadPlatforms();
     this.setupRawgSearch();
-    this.gameId = this.route.snapshot.paramMap.get('id');
-    this.isEdit = !!this.gameId;
-    this.isWishlistMode =
-      !this.isEdit && this.route.snapshot.data['wishlist'] === true;
-
-    if (this.isWishlistMode) {
-      this.game.status = 'wishlist';
-      this.game.releaseYear = this.currentYear + 1;
-    }
-    
-    if (this.isEdit && this.gameId) {
-      this.isLoadingGame = true;
+    if (this.gameId) {
       this.loadGame(this.gameId);
     }
-  }
-
-  public ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   private setupRawgSearch(): void {
@@ -151,156 +161,107 @@ export class GameFormPage implements OnInit, OnDestroy {
         switchMap((q) => {
           const query = q.trim();
           if (!query || query.length < 2 || !this.rawg.isConfigured) {
-            this.rawgSearching = false;
-            this.rawgSearched = !!query;
-            this.rawgResults = [];
+            this.rawgSearching.set(false);
+            this.rawgSearched.set(!!query);
+            this.rawgResults.set([]);
             return of([] as RawgGameSummary[]);
           }
-          this.rawgSearching = true;
-          this.rawgError = '';
+          this.rawgSearching.set(true);
+          this.rawgError.set('');
           return this.rawg.searchGames(query, 10).pipe(
             catchError(() => {
-              this.rawgError = 'RAWG search failed. Check your API key or try again.';
+              this.rawgError.set('RAWG search failed. Check your API key or try again.');
               return of([] as RawgGameSummary[]);
             }),
           );
         }),
-        takeUntil(this.destroy$),
+        takeUntilDestroyed(),
       )
       .subscribe((results) => {
-        this.rawgResults = results;
-        this.rawgSearching = false;
-        this.rawgSearched = true;
+        this.rawgResults.set(results);
+        this.rawgSearching.set(false);
+        this.rawgSearched.set(true);
       });
   }
 
-  protected onRawgQuery(event: CustomEvent | Event): void {
-    const value =
-      (event as CustomEvent)?.detail?.value ??
-      (event.target as HTMLInputElement | null)?.value ??
-      this.rawgQuery;
-    this.rawgQuery = String(value ?? '');
-    this.rawgQuery$.next(this.rawgQuery);
+  protected onRawgQuery(value: string | null | undefined): void {
+    this.rawgQuery.set(value ?? '');
+    this.rawgQuery$.next(value ?? '');
   }
 
   protected applyRawgGame(hit: RawgGameSummary): void {
-    if (this.rawgImportingId != null) return;
-    this.rawgImportingId = hit.id;
-    this.rawgError = '';
+    if (this.rawgImportingId() != null) return;
+    this.rawgImportingId.set(hit.id);
+    this.rawgError.set('');
 
     this.rawg
       .importGame(hit.id, hit)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (imported) => {
-          this.rawgImportingId = null;
+          this.rawgImportingId.set(null);
           if (!imported) {
-            this.rawgError = 'Could not load full game details from RAWG.';
+            this.rawgError.set('Could not load full game details from RAWG.');
             return;
           }
-
-          this.game.title = imported.title;
-          if (imported.description) this.game.description = imported.description;
-          if (imported.coverImage) this.game.coverImage = imported.coverImage;
-          if (imported.releaseYear != null) this.game.releaseYear = imported.releaseYear;
-          if (imported.releaseDate) {
-            this.game.releaseDate = imported.releaseDate.slice(0, 10);
-          }
-          if (imported.developerName) this.developerName = imported.developerName;
-
-          // Merge RAWG genres into known library genres when possible
-          const genreSet = new Set(this.game.genre ?? []);
-          for (const g of imported.genres) {
-            const match =
-              this.genres.find((x) => x.toLowerCase() === g.toLowerCase()) ?? g;
-            genreSet.add(match);
-          }
-          this.game.genre = [...genreSet];
-
-          this.game.tags = normalizeTags([
-            ...(this.game.tags ?? []),
-            ...imported.tags,
-          ]);
-
-          const platformId = this.rawg.matchPlatformId(
-            imported.platforms,
-            this.platforms,
-          );
-          if (platformId) {
-            this.selectedPlatformId = platformId;
-          }
-
-          if (
-            imported.playtimeHours != null &&
-            (this.game.playtime == null || this.game.playtime === 0)
-          ) {
-            this.game.playtime = imported.playtimeHours;
-          }
-
-          // Keep a reference note without overwriting user notes entirely
-          const noteLine = `Imported from RAWG · ${imported.rawgUrl}`;
-          if (!this.game.notes?.includes('rawg.io')) {
-            this.game.notes = this.game.notes
-              ? `${this.game.notes.trim()}\n\n${noteLine}`
-              : noteLine;
-          }
-
-          this.rawgImportedTitle = imported.title;
-          this.rawgResults = [];
-          this.rawgQuery = imported.title;
+          this.fillFromRawg(imported);
+          this.rawgImportedTitle.set(imported.title);
+          this.rawgResults.set([]);
+          this.rawgQuery.set(imported.title);
         },
         error: () => {
-          this.rawgImportingId = null;
-          this.rawgError = 'Could not import that game. Try another result.';
+          this.rawgImportingId.set(null);
+          this.rawgError.set('Could not import that game. Try another result.');
         },
       });
   }
 
-  protected get pageTitle(): string {
-    if (this.isEdit) return 'Edit game';
-    return this.isWishlistMode ? 'Add to wishlist' : 'Add a game';
-  }
+  private fillFromRawg(imported: RawgGameImport): void {
+    const form = this.form;
+    form.title.set(imported.title);
+    if (imported.description) form.description.set(imported.description);
+    if (imported.coverImage) form.coverImage.set(imported.coverImage);
+    if (imported.releaseYear != null) form.releaseYear.set(imported.releaseYear);
+    if (imported.releaseDate) form.releaseDate.set(imported.releaseDate.slice(0, 10));
+    if (imported.developerName) form.developerName.set(imported.developerName);
 
-  protected get pageSubtitle(): string {
-    if (this.isEdit) return this.game.title ? `Changes to ${this.game.title} save when you hit Save.` : '';
-    return this.isWishlistMode
-      ? 'Track an upcoming release — we’ll count down to launch day.'
-      : 'Fields marked * are required. Everything else can wait.';
-  }
+    // Merge RAWG genres into known library genres when possible
+    form.genres.update((current) => {
+      const genreSet = new Set(current);
+      for (const g of imported.genres) {
+        genreSet.add(this.genres.find((x) => x.toLowerCase() === g.toLowerCase()) ?? g);
+      }
+      return [...genreSet];
+    });
 
-  /** Where Cancel / back returns: the game you were editing, otherwise the library */
-  protected get cancelHref(): string {
-    return this.isEdit && this.gameId ? `/game/${this.gameId}` : '/home';
-  }
+    form.tags.update((current) => normalizeTags([...current, ...imported.tags]));
 
-  protected get submitLabel(): string {
-    if (this.isEdit) return 'Save changes';
-    return this.isWishlistMode ? 'Add to wishlist' : 'Save game';
-  }
+    const platformId = this.rawg.matchPlatformId(imported.platforms, this.platforms());
+    if (platformId) {
+      form.platformId.set(platformId);
+    }
 
-  protected get maxReleaseYear(): number {
-    return this.requiresReleaseDate() ? this.currentYear + 10 : this.currentYear;
-  }
+    if (imported.playtimeHours != null && !form.playtime()) {
+      form.playtime.set(imported.playtimeHours);
+    }
 
-  protected requiresReleaseDate(): boolean {
-    return this.isWishlistMode || this.game.status === 'wishlist';
-  }
-
-  protected canSelectWishlistStatus(): boolean {
-    return this.isEdit && this.originalStatus === 'wishlist';
+    // Keep a reference note without overwriting user notes entirely
+    const noteLine = `Imported from RAWG · ${imported.rawgUrl}`;
+    form.notes.update((notes) => {
+      if (notes.includes('rawg.io')) return notes;
+      return notes ? `${notes.trim()}\n\n${noteLine}` : noteLine;
+    });
   }
 
   private releaseDateYearMismatch(): boolean {
-    if (!this.requiresReleaseDate()) {
+    const releaseDate = this.form.releaseDate();
+    const releaseYear = this.form.releaseYear();
+    if (!this.requiresReleaseDate() || !releaseDate || releaseYear == null) {
       return false;
     }
 
-    if (!this.game.releaseDate || this.game.releaseYear == null) {
-      return false;
-    }
-
-    const dateYear = new Date(`${this.game.releaseDate}T00:00:00`).getFullYear();
-    return dateYear !== Number(this.game.releaseYear);
+    const dateYear = new Date(`${releaseDate}T00:00:00`).getFullYear();
+    return dateYear !== Number(releaseYear);
   }
 
   private canSubmit(form: NgForm): boolean {
@@ -308,7 +269,7 @@ export class GameFormPage implements OnInit, OnDestroy {
       return false;
     }
 
-    if (this.requiresReleaseDate() && !this.game.releaseDate) {
+    if (this.requiresReleaseDate() && !this.form.releaseDate()) {
       return false;
     }
 
@@ -333,11 +294,11 @@ export class GameFormPage implements OnInit, OnDestroy {
   }
 
   protected isInvalid(control: NgModel | null | undefined): boolean {
-    return !!control && this.revealedErrors.has(control.name);
+    return !!control && this.revealedErrors().has(control.name);
   }
 
   private syncFieldError(name: string): void {
-    const control = this.gameFormRef?.controls?.[name];
+    const control = this.gameForm()?.controls?.[name];
     if (!control) {
       return;
     }
@@ -351,15 +312,19 @@ export class GameFormPage implements OnInit, OnDestroy {
         invalid: !!control.invalid || mismatch,
         dirty: !!control.dirty,
       },
-      this.revealedErrors.has(name),
+      this.revealedErrors().has(name),
       this.focusedField === name,
     );
 
-    if (show) {
-      this.revealedErrors.add(name);
-    } else {
-      this.revealedErrors.delete(name);
-    }
+    this.revealedErrors.update((revealed) => {
+      const next = new Set(revealed);
+      if (show) {
+        next.add(name);
+      } else {
+        next.delete(name);
+      }
+      return next;
+    });
   }
 
   private syncRelatedFieldError(name: string): void {
@@ -371,15 +336,13 @@ export class GameFormPage implements OnInit, OnDestroy {
   }
 
   private revealInvalidFields(form: NgForm): void {
-    for (const name of Object.keys(form.controls)) {
-      const control = form.controls[name];
+    const invalid = Object.keys(form.controls).filter((name) => {
       const mismatch =
         (name === 'releaseDate' || name === 'releaseYear') &&
         this.releaseDateYearMismatch();
-      if (control.invalid || mismatch) {
-        this.revealedErrors.add(name);
-      }
-    }
+      return form.controls[name].invalid || mismatch;
+    });
+    this.revealedErrors.update((revealed) => new Set([...revealed, ...invalid]));
   }
 
   protected fieldError(control: NgModel | null | undefined): string | null {
@@ -409,7 +372,7 @@ export class GameFormPage implements OnInit, OnDestroy {
 
     if (control.errors?.['max']) {
       if (control.name === 'releaseYear') {
-        return `Release year cannot be later than ${this.maxReleaseYear}`;
+        return `Release year cannot be later than ${this.maxReleaseYear()}`;
       }
       if (control.name === 'rating') {
         return 'Rating cannot be greater than 10';
@@ -420,55 +383,66 @@ export class GameFormPage implements OnInit, OnDestroy {
   }
 
   private loadPlatforms(): void {
-    this.platformService.getPlatforms().subscribe({
-      next: (platforms) => {
-        this.platforms = platforms.length > 0 ? platforms : PLATFORMS;
-        if (!this.selectedPlatformId && this.platforms[0]) {
-          this.selectedPlatformId = this.platforms[0].id;
+    this.platformService
+      .getPlatforms()
+      .pipe(
+        catchError(() => of([] as Platform[])),
+        takeUntilDestroyed(),
+      )
+      .subscribe((platforms) => {
+        const list = platforms.length > 0 ? platforms : PLATFORMS;
+        this.platforms.set(list);
+        if (!this.form.platformId() && list[0]) {
+          this.form.platformId.set(list[0].id);
         }
-      },
-      error: () => {
-        this.platforms = PLATFORMS;
-        if (this.platforms[0]) {
-          this.selectedPlatformId = this.platforms[0].id;
-        }
-      }
-    });
+      });
   }
 
   private loadGame(id: string): void {
-    this.gameService.getGameById(id).subscribe({
-      next: (game) => {
-        this.isLoadingGame = false;
-        if (game) {
-          this.game = { ...game };
-          this.originalStatus = game.status;
-          this.developerName = game.developer?.name || '';
-          this.selectedPlatformId = game.platformId || game.platform?.id || '';
-          this.game.playtime = game.playtimeHours ?? game.playtime;
-          this.game.director = game.director || '';
-          this.game.tags = game.tags ?? [];
-        } else {
-          this.router.navigate(['/home']);
-        }
-      },
-      error: () => {
-        this.isLoadingGame = false;
-        this.router.navigate(['/home']);
-      }
-    });
+    this.gameService
+      .getGameById(id)
+      .pipe(takeUntilDestroyed())
+      .subscribe({
+        next: (game) => {
+          this.isLoadingGame.set(false);
+          if (game) {
+            this.fillFromGame(game);
+          } else {
+            void this.router.navigate(['/home']);
+          }
+        },
+        error: () => {
+          this.isLoadingGame.set(false);
+          void this.router.navigate(['/home']);
+        },
+      });
+  }
+
+  private fillFromGame(game: Game): void {
+    const form = this.form;
+    form.title.set(game.title);
+    form.description.set(game.description ?? '');
+    form.coverImage.set(game.coverImage ?? undefined);
+    form.platformId.set(game.platformId || game.platform?.id || '');
+    form.releaseYear.set(game.releaseYear ?? null);
+    form.releaseDate.set(game.releaseDate ?? '');
+    form.developerName.set(game.developer?.name || '');
+    form.director.set(game.director || '');
+    form.genres.set(game.genre ?? []);
+    form.tags.set(game.tags ?? []);
+    form.rating.set(game.rating ?? null);
+    form.playtime.set(game.playtimeHours ?? game.playtime ?? null);
+    form.status.set(game.status);
+    form.notes.set(game.notes ?? '');
+    this.originalStatus.set(game.status);
   }
 
   protected isGenreSelected(genre: string): boolean {
-    return this.game.genre?.includes(genre) || false;
+    return this.form.genres().includes(genre);
   }
 
   protected onCoverImageChange(coverImage: string | null): void {
-    this.game.coverImage = coverImage ?? undefined;
-  }
-
-  protected canShowRating(): boolean {
-    return !this.isWishlistMode && canRateGame(this.game.status);
+    this.form.coverImage.set(coverImage ?? undefined);
   }
 
   protected onRatingChange(rating: number | null): void {
@@ -476,64 +450,47 @@ export class GameFormPage implements OnInit, OnDestroy {
       return;
     }
 
-    this.ratingPreview = null;
-    this.game.rating = rating ?? undefined;
-  }
-
-  protected hasRating(): boolean {
-    return isRated(this.game);
-  }
-
-  protected getRatingDisplay(): string {
-    return formatRatingLabel(this.ratingPreview ?? this.game.rating);
+    this.ratingPreview.set(null);
+    this.form.rating.set(rating);
   }
 
   protected toggleGenre(genre: string): void {
-    if (!this.game.genre) {
-      this.game.genre = [];
-    }
-    const index = this.game.genre.indexOf(genre);
-    if (index > -1) {
-      this.game.genre.splice(index, 1);
-    } else {
-      this.game.genre.push(genre);
-    }
+    this.form.genres.update((genres) =>
+      genres.includes(genre) ? genres.filter((g) => g !== genre) : [...genres, genre],
+    );
   }
 
   protected addTagFromDraft(): void {
-    const next = normalizeTags([...(this.game.tags ?? []), this.tagDraft]);
-    this.game.tags = next;
-    this.tagDraft = '';
+    this.form.tags.update((tags) => normalizeTags([...tags, this.tagDraft()]));
+    this.tagDraft.set('');
   }
 
   protected removeTag(tag: string): void {
-    this.game.tags = (this.game.tags ?? []).filter((t) => t !== tag);
+    this.form.tags.update((tags) => tags.filter((t) => t !== tag));
   }
 
   protected submitForm(): void {
-    if (this.gameFormRef) {
-      void this.onSubmit(this.gameFormRef);
+    const form = this.gameForm();
+    if (form) {
+      void this.onSubmit(form);
     }
   }
 
-  protected async onSubmit(form: NgForm): Promise<void> {
-    this.submitted = true;
-    form.control.markAllAsTouched();
-    this.revealInvalidFields(form);
+  protected async onSubmit(ngForm: NgForm): Promise<void> {
+    ngForm.control.markAllAsTouched();
+    this.revealInvalidFields(ngForm);
 
-    if (!this.canSubmit(form)) {
-      this.showToast('A few fields need attention before saving.');
+    if (!this.canSubmit(ngForm)) {
+      this.toast.show('A few fields need attention before saving.', 'danger');
       this.focusFirstInvalidField();
       return;
     }
 
-    const nextStatus = this.isWishlistMode
-      ? 'wishlist'
-      : (this.game.status || 'not_started');
+    const nextStatus = this.isWishlistMode ? 'wishlist' : this.form.status();
 
     if (
       this.isEdit &&
-      statusChangeClearsPlayHistory(this.originalStatus, nextStatus)
+      statusChangeClearsPlayHistory(this.originalStatus(), nextStatus)
     ) {
       const confirmed = await confirmResetPlayHistory(this.alertController);
       if (!confirmed) {
@@ -541,35 +498,12 @@ export class GameFormPage implements OnInit, OnDestroy {
       }
     }
 
-    this.isSubmitting = true;
+    this.isSubmitting.set(true);
 
-    const payload = {
-      title: this.game.title!,
-      description: this.game.description,
-      coverImage: this.game.coverImage,
-      platformId: this.selectedPlatformId,
-      releaseYear: Number(this.game.releaseYear),
-      releaseDate: this.game.releaseDate || undefined,
-      developerName: this.developerName.trim(),
-      directorName: this.game.director?.trim() || undefined,
-      genre: this.game.genre || [],
-      tags: normalizeTags(this.game.tags),
-      rating:
-        nextStatus === 'wishlist' || !canRateGame(nextStatus)
-          ? undefined
-          : this.game.rating != null
-            ? Number(this.game.rating)
-            : undefined,
-      playtimeHours:
-        this.game.playtime != null ? Number(this.game.playtime) : undefined,
-      status: nextStatus,
-      notes: this.game.notes
-    };
-
-    const request$ =
-      this.isEdit && this.gameId
-        ? this.gameService.updateGameFromForm(this.gameId, payload)
-        : this.gameService.saveGameFromForm(payload);
+    const payload = this.buildPayload(nextStatus);
+    const request$ = this.gameId
+      ? this.gameService.updateGameFromForm(this.gameId, payload)
+      : this.gameService.saveGameFromForm(payload);
 
     request$.subscribe({
       next: (savedGame) => {
@@ -584,14 +518,37 @@ export class GameFormPage implements OnInit, OnDestroy {
           state: { toast: `${payload.title} saved to your ${destination}` },
         });
       },
-      error: (error) => {
-        this.showToast(
+      error: (error: { message?: string }) => {
+        this.toast.show(
           error.message ||
             (this.isEdit ? "Couldn't save your changes. Try again." : "Couldn't add the game. Try again."),
+          'danger',
         );
-        this.isSubmitting = false;
-      }
+        this.isSubmitting.set(false);
+      },
     });
+  }
+
+  private buildPayload(status: GamePlayStatus): GameFormPayload {
+    const form = this.form;
+    const rating = form.rating();
+    const playtime = form.playtime();
+    return {
+      title: form.title(),
+      description: form.description(),
+      coverImage: form.coverImage(),
+      platformId: form.platformId(),
+      releaseYear: Number(form.releaseYear()),
+      releaseDate: form.releaseDate() || undefined,
+      developerName: form.developerName().trim(),
+      directorName: form.director().trim() || undefined,
+      genre: form.genres(),
+      tags: normalizeTags(form.tags()),
+      rating: status === 'wishlist' || !canRateGame(status) || rating == null ? undefined : Number(rating),
+      playtimeHours: playtime != null ? Number(playtime) : undefined,
+      status,
+      notes: form.notes(),
+    };
   }
 
   private focusFirstInvalidField(): void {
@@ -600,9 +557,5 @@ export class GameFormPage implements OnInit, OnDestroy {
       field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       field?.querySelector<HTMLElement>('input, textarea, ion-select')?.focus();
     });
-  }
-
-  private showToast(message: string): void {
-    this.toastMessage = message;
   }
 }
