@@ -1,35 +1,26 @@
 <ion-content class="auth-content" [fullscreen]="true">
   <div class="auth-shell">
-    <div class="auth-grid"></div>
-    <div class="auth-orb auth-orb--purple"></div>
-    <div class="auth-orb auth-orb--cyan"></div>
-    <div class="auth-orb auth-orb--pink"></div>
+    <div class="auth-grid" aria-hidden="true"></div>
+    <div class="auth-orb auth-orb--primary" aria-hidden="true"></div>
+    <div class="auth-orb auth-orb--alt" aria-hidden="true"></div>
 
     <div class="auth-panel">
       <div class="auth-brand">
-        <div class="auth-logo">
-          <ion-icon name="game-controller"></ion-icon>
-        </div>
-        <h1 class="auth-title">GameVault</h1>
-        <p class="auth-subtitle">
-          {{
-            isRegisterMode()
-              ? "Create your vault and start collecting"
-              : "Sign in to your refined game vault"
-          }}
-        </p>
+        <app-brand-mark class="auth-logo" [size]="64" [glow]="true" />
+        <h1 class="auth-title brand-font">{{ appName }}</h1>
+        <p class="auth-subtitle">{{ tagline }}</p>
       </div>
 
       <ion-card class="auth-card">
         <ion-card-header class="auth-card-header">
           <h2 class="auth-card-title">
-            {{ isRegisterMode() ? "Create Account" : "Welcome Back" }}
+            {{ isRegisterMode() ? "New game" : "Continue" }}
           </h2>
           <p class="auth-card-desc">
             {{
               isRegisterMode()
-                ? "Join thousands of gamers tracking their collections"
-                : "Enter your credentials to continue"
+                ? "Create an account to start your library."
+                : "Sign in to load your save."
             }}
           </p>
         </ion-card-header>
@@ -50,6 +41,7 @@
                   <ion-icon name="person-outline" slot="start"></ion-icon>
                   <ion-input
                     formControlName="username"
+                  aria-label="Username"
                     placeholder="Username"
                     type="text"
                     autocomplete="username"
@@ -80,6 +72,7 @@
                 <ion-icon name="mail-outline" slot="start"></ion-icon>
                 <ion-input
                   formControlName="email"
+                  aria-label="Email address"
                   placeholder="Email address"
                   type="email"
                   autocomplete="email"
@@ -101,6 +94,7 @@
                 <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
                 <ion-input
                   formControlName="password"
+                  aria-label="Password"
                   placeholder="Password"
                   [type]="showPassword() ? 'text' : 'password'"
                   [autocomplete]="
@@ -169,6 +163,7 @@
                   <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
                   <ion-input
                     formControlName="confirmPassword"
+                  aria-label="Confirm password"
                     placeholder="Confirm password"
                     [type]="showConfirmPassword() ? 'text' : 'password'"
                     autocomplete="new-password"
@@ -215,15 +210,15 @@
               expand="block"
               type="submit"
               class="auth-submit"
-              [disabled]="authForm.invalid || isLoading()"
+              [disabled]="isLoading()"
             >
               @if (isLoading()) {
                 <ion-spinner name="crescent" slot="start"></ion-spinner>
                 {{
-                  isRegisterMode() ? "Creating account..." : "Signing in..."
+                  isRegisterMode() ? "Creating account…" : "Signing in…"
                 }}
               } @else {
-                {{ isRegisterMode() ? "Create Account" : "Sign In" }}
+                {{ isRegisterMode() ? "Create account" : "Sign in" }}
                 <ion-icon name="arrow-forward" slot="end"></ion-icon>
               }
             </ion-button>

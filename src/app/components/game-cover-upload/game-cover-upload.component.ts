@@ -12,7 +12,6 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
-  IonButton,
   IonIcon,
   IonInput,
   IonItem,
@@ -21,7 +20,6 @@ import {
 import { addIcons } from 'ionicons';
 import {
   cloudUploadOutline,
-  createOutline,
   imageOutline,
   linkOutline,
   searchOutline,
@@ -49,8 +47,7 @@ import {
   imports: [
     CommonModule,
     FormsModule,
-    IonButton,
-    IonIcon,
+      IonIcon,
     IonInput,
     IonItem,
     IonSpinner,
@@ -85,7 +82,6 @@ export class GameCoverUploadComponent implements OnInit, OnChanges, OnDestroy {
   public ngOnInit(): void {
     addIcons({
       cloudUploadOutline,
-      createOutline,
       imageOutline,
       linkOutline,
       searchOutline,

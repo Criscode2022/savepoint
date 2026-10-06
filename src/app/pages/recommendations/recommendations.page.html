@@ -1,52 +1,23 @@
-<ion-header class="ion-no-border">
-  <ion-toolbar class="header-toolbar">
-    <div class="header-inner">
-      <div class="header-brand">
-        <ion-back-button
-          class="header-back-btn"
-          defaultHref="/home"
-          text=""
-          icon="arrow-back-outline"
-        ></ion-back-button>
-        <h1 class="header-title">For you</h1>
-      </div>
-      <div class="header-actions">
-        <ion-button
-          fill="clear"
-          class="header-icon-btn"
-          (click)="reload()"
-          [disabled]="loading"
-          aria-label="Refresh recommendations"
-        >
-          <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
-        </ion-button>
-      </div>
-    </div>
-  </ion-toolbar>
-</ion-header>
-
 <ion-content class="recs-content">
   <div class="recs-wrap">
-    <header class="recs-hero">
-      <div class="recs-hero__icon" aria-hidden="true">
-        <ion-icon name="sparkles-outline"></ion-icon>
-      </div>
-      <div>
-        <h2 class="recs-hero__title">Picks from your vault</h2>
-        <p class="recs-hero__sub">
-          Online suggestions matched to your genres, platforms, and highly rated titles — rule-based, no AI.
-        </p>
-      </div>
-    </header>
+    <app-page-header
+      title="For you"
+      subtitle="Picks matched to the genres, platforms and games you rate highest."
+    >
+      <button pageActions type="button" class="btn btn--ghost btn--sm" (click)="reload()" [disabled]="loading">
+        <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon>
+        Shuffle picks
+      </button>
+    </app-page-header>
 
     @if (result?.profile; as profile) {
       <section class="taste-panel">
-        <h3 class="taste-panel__title">Your taste signals</h3>
+        <h2 class="taste-panel__title">Based on your taste</h2>
         @if (profile.topGenres.length) {
           <div class="taste-chips">
             <span class="taste-label">Genres</span>
             @for (g of profile.topGenres; track g.name) {
-              <ion-chip class="taste-chip">{{ g.name }}</ion-chip>
+              <span class="chip">{{ g.name }}</span>
             }
           </div>
         }
@@ -54,15 +25,15 @@
           <div class="taste-chips">
             <span class="taste-label">Platforms</span>
             @for (p of profile.topPlatforms; track p.name) {
-              <ion-chip class="taste-chip taste-chip--platform">{{ p.name }}</ion-chip>
+              <span class="chip chip--alt">{{ p.name }}</span>
             }
           </div>
         }
         @if (profile.seedTitles.length) {
           <div class="taste-chips">
-            <span class="taste-label">Seeds</span>
+            <span class="taste-label">Because you liked</span>
             @for (t of profile.seedTitles; track t) {
-              <ion-chip class="taste-chip taste-chip--seed">{{ t }}</ion-chip>
+              <span class="chip chip--neutral">{{ t }}</span>
             }
           </div>
         }
@@ -72,7 +43,7 @@
     @if (loading) {
       <div class="recs-loading">
         <ion-spinner name="crescent"></ion-spinner>
-        <p>Scanning your library and fetching online matches…</p>
+        <p>Reading your library and finding matches…</p>
       </div>
     }
 
@@ -99,8 +70,8 @@
     @if (!loading && result?.configured && !result?.items?.length && !result?.error) {
       <div class="recs-empty">
         <ion-icon name="game-controller-outline"></ion-icon>
-        <h3>No fresh picks yet</h3>
-        <p>Try adding more genres or completed games so we have stronger signals.</p>
+        <h2>No fresh picks yet</h2>
+        <p>Rate a few games or add genres to the ones you own — the more signal, the better the picks.</p>
       </div>
     }
 
@@ -114,7 +85,7 @@
               [style.background-image]="rec.backgroundImage ? 'url(' + rec.backgroundImage + ')' : null"
             >
               <span class="rec-card__source">{{ sourceLabel(rec.source) }}</span>
-              @if (rec.metacritic != null) {
+              @if (rec.metacritic !== null && rec.metacritic !== undefined) {
                 <span class="rec-card__score">
                   <ion-icon name="star-outline" aria-hidden="true"></ion-icon>
                   {{ rec.metacritic }}
@@ -149,7 +120,7 @@
                   [disabled]="isAdding(rec)"
                 >
                   <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
-                  {{ addingKey === rec.externalId + ':library' ? 'Adding…' : 'Library' }}
+                  {{ addingKey === rec.externalId + ':library' ? 'Adding…' : 'Own it' }}
                 </button>
                 <button
                   type="button"
@@ -158,7 +129,7 @@
                   [disabled]="isAdding(rec)"
                 >
                   <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
-                  {{ addingKey === rec.externalId + ':wishlist' ? 'Adding…' : 'Wishlist' }}
+                  {{ addingKey === rec.externalId + ':wishlist' ? 'Adding…' : 'Want it' }}
                 </button>
                 <a
                   class="rec-btn rec-btn--ghost"
@@ -183,6 +154,7 @@
     [color]="toastColor"
     duration="3200"
     position="bottom"
+    cssClass="app-toast"
     (didDismiss)="toastMessage = ''"
   ></ion-toast>
 </ion-content>

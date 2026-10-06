@@ -1,0 +1,31 @@
+:host {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.brand-mark {
+  filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), 0.45));
+}
+
+.brand-mark--glow {
+  animation: crystal-float 3.2s var(--ease-smooth) infinite alternate;
+}
+
+@keyframes crystal-float {
+  from {
+    transform: translateY(0);
+    filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), 0.4));
+  }
+  to {
+    transform: translateY(-3px);
+    filter: drop-shadow(0 0 14px rgba(var(--accent-rgb), 0.7));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark--glow {
+    animation: none;
+  }
+}

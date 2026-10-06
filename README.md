@@ -1,6 +1,6 @@
-# 🎮 GameVault
+# 💎 Savepoint
 
-A modern, gaming-themed videogames library management application built with Angular, Ionic, and Tailwind CSS. Features Neon Auth/PostgreSQL integration, dark mode, and a sleek cyberpunk aesthetic.
+*Formerly GameVault.* Every game you own, play and want — saved in one place. A videogame library manager built with Angular, Ionic and Tailwind CSS on Neon Auth + PostgreSQL, with a deep-navy, dark-blue interface.
 
 ![Angular](https://img.shields.io/badge/Angular-19-DD0031?style=flat-square&logo=angular)
 ![Ionic](https://img.shields.io/badge/Ionic-8-3880FF?style=flat-square&logo=ionic)
@@ -22,7 +22,7 @@ A modern, gaming-themed videogames library management application built with Ang
 - ✨ **Recommendations** — online picks from your library taste (RAWG, no AI)
 - ⏱️ **Log playtime** — quick session hours on game detail
 - 📊 **Play history** — completed timeline
-- 🎨 **Refined Vault** — dark cyberpunk DNA with Apple-level restraint
+- 🎨 **The Save Point** — deep navy, one dark-blue accent, labelled status tones (see `DESIGN.md`)
 
 ## 🛠️ Tech Stack
 
@@ -110,28 +110,23 @@ videogames-library/
 
 ### Theme Colors
 
-Edit `src/styles.scss` to customize the gaming theme:
+All colors are tokens in `src/theme/variables.scss` (the Ionic palette mirrors them in `src/global.scss`):
 
 ```scss
 :root {
-  --color-primary: #8b5cf6;        /* Purple */
-  --color-secondary: #06b6d4;      /* Cyan */
-  --color-accent: #f472b6;         /* Pink */
-  --color-bg-primary: #0f0f1a;     /* Dark background */
-  --color-bg-secondary: #1a1a2e;   /* Card background */
+  --accent: #2a56e8;        /* Savepoint blue — primary actions */
+  --accent-rgb: 59, 103, 245; /* tint channel for selected / focus states */
+  --bg-base: #070b17;       /* app background */
+  --bg-elevated: #101a2e;   /* cards & panels */
+  --status-playing: #22d3ee;
 }
 ```
 
+Change the product name in one place: `src/app/shared/brand.ts`.
+
 ### Adding New Platforms
 
-Edit `src/app/models/game.model.ts`:
-
-```typescript
-export const PLATFORMS: Platform[] = [
-  { id: 'ps5', name: 'PlayStation 5', manufacturer: 'Sony', color: '#003791' },
-  // Add your platform here
-];
-```
+Platforms come from the `platforms` table (fallback list in `src/app/models/game.model.ts`). Badge colors are derived from the platform name in `src/app/shared/utils/platform.utils.ts`.
 
 ## 🏗️ Building for Production
 

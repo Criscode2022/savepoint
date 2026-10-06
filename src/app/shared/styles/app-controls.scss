@@ -1,0 +1,457 @@
+// Shared control vocabulary — one look for buttons, icon buttons, menus and toasts.
+
+// Buttons
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 1.125rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
+
+  ion-icon {
+    font-size: 1.125rem;
+    flex-shrink: 0;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.5), 0 6px 18px rgba(var(--accent-rgb), 0.24);
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: var(--accent-strong);
+  }
+
+  &:active:not(:disabled) {
+    background: var(--accent-deep);
+  }
+}
+
+.btn--ghost {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--border-strong);
+  color: var(--ink-primary);
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: rgba(var(--accent-rgb), 0.12);
+    border-color: rgba(var(--accent-rgb), 0.5);
+  }
+}
+
+.btn--danger {
+  background: transparent;
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: rgba(239, 68, 68, 0.14);
+    border-color: rgba(239, 68, 68, 0.65);
+    color: #fecaca;
+  }
+}
+
+.btn--sm {
+  min-height: 36px;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ink-secondary);
+  font-size: 1.125rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: rgba(var(--accent-rgb), 0.12);
+    border-color: rgba(var(--accent-rgb), 0.4);
+    color: var(--ink-primary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.icon-btn--danger:hover:not(:disabled),
+.icon-btn--danger:focus-visible {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.55);
+  color: #fecaca;
+}
+
+.text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  min-height: 32px;
+  margin: 0;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--accent-ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  cursor: pointer;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: rgba(var(--accent-rgb), 0.12);
+    color: var(--accent-ink-soft);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// Segmented control (layout switcher)
+
+.segmented {
+  display: inline-flex;
+  gap: 0.125rem;
+  padding: 0.1875rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.segmented__btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 1.0625rem;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--ink-primary);
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+.segmented__btn--active,
+.segmented__btn--active:hover {
+  background: rgba(var(--accent-rgb), 0.22);
+  color: var(--accent-ink-soft);
+}
+
+// Popover menus & selects
+
+ion-popover.app-menu-popover,
+ion-popover.app-select-popover,
+ion-popover.select-popover {
+  --background: var(--bg-overlay);
+  --box-shadow: 0 18px 44px rgba(0, 3, 12, 0.6);
+  --width: auto;
+  --min-width: 200px;
+
+  &::part(content) {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+  }
+
+  &::part(arrow) {
+    display: none;
+  }
+
+  ion-list {
+    --background: transparent;
+    background: transparent;
+    padding: 0.25rem 0;
+  }
+
+  ion-item {
+    --background: transparent;
+    --background-hover: rgba(var(--accent-rgb), 0.14);
+    --background-hover-opacity: 1;
+    --color: var(--ink-primary);
+    --border-color: transparent;
+    font-size: 0.875rem;
+  }
+
+  ion-radio,
+  ion-checkbox {
+    --color-checked: var(--accent-ink);
+    --checkbox-background-checked: var(--accent);
+    --border-color-checked: var(--accent);
+  }
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0.375rem;
+}
+
+.menu-list__item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 550;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+
+  ion-icon {
+    font-size: 1.0625rem;
+    color: var(--ink-secondary);
+  }
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: rgba(var(--accent-rgb), 0.16);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// Toasts
+
+ion-toast.app-toast {
+  --border-radius: var(--radius-md);
+  --box-shadow: 0 12px 32px rgba(0, 3, 12, 0.5);
+  --max-width: 440px;
+  font-weight: 600;
+}
+
+// Panels — the one content surface used by detail, profile, insights and history
+
+.panel {
+  margin: 0;
+  padding: 1.25rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
+.panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.panel__title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.panel__head .panel__title {
+  margin: 0;
+}
+
+.panel__hint {
+  margin: -0.5rem 0 1rem;
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+}
+
+.panel__note {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin: 0.75rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+}
+
+.panel__link {
+  margin-left: auto;
+  color: var(--accent-ink);
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}
+
+.panel__empty a,
+.panel__note a {
+  color: var(--accent-ink);
+}
+
+.panel__empty {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.875rem;
+}
+
+// Chips (read-only labels)
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 0.6875rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--accent-ink-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+a.chip:hover,
+a.chip:focus-visible {
+  background: rgba(var(--accent-rgb), 0.24);
+}
+
+.chip--neutral {
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink-secondary);
+}
+
+.chip--alt {
+  border-color: rgba(var(--accent-alt-rgb), 0.3);
+  background: rgba(var(--accent-alt-rgb), 0.1);
+  color: var(--accent-alt-ink);
+}
+
+a.chip--alt:hover,
+a.chip--alt:focus-visible {
+  background: rgba(var(--accent-alt-rgb), 0.2);
+}
+
+// Stat strip — a row of figures inside one panel (no hero-metric tiles)
+
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
+  padding: 0;
+  overflow: hidden;
+}
+
+.stat-strip__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem 1.25rem;
+  box-shadow: -1px 0 0 var(--border-subtle);
+}
+
+.stat-strip__value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-primary);
+}
+
+.stat-strip__label {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}
+
+.stat-strip__sub {
+  font-size: 0.75rem;
+  color: var(--ink-secondary);
+}
+
+@media (max-width: 639px) {
+  .stat-strip__item {
+    padding: 0.875rem 0.75rem;
+  }
+
+  .stat-strip__value {
+    font-size: 1.1875rem;
+  }
+}
+
+// Progress meter
+
+.meter {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(148, 170, 214, 0.14);
+  overflow: hidden;
+}
+
+.meter--success {
+  --meter-color: var(--status-completed);
+}
+
+.meter__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--meter-color, var(--accent));
+}

@@ -30,7 +30,6 @@ import {
   arrowForward,
   eyeOffOutline,
   eyeOutline,
-  gameController,
   lockClosedOutline,
   mailOutline,
   personOutline,
@@ -43,6 +42,8 @@ import {
   passwordMatchValidator,
   PasswordStrength,
 } from "../../shared/validators/auth.validators";
+import { BrandMarkComponent } from "../../components/brand-mark/brand-mark.component";
+import { APP_NAME, APP_TAGLINE } from "../../shared/brand";
 
 @Component({
   selector: "app-login",
@@ -62,6 +63,7 @@ import {
     IonButton,
     IonIcon,
     IonSpinner,
+    BrandMarkComponent,
   ],
 })
 export class LoginPage implements OnInit {
@@ -72,6 +74,8 @@ export class LoginPage implements OnInit {
   private readonly toastCtrl = inject(ToastController);
   private readonly destroyRef = inject(DestroyRef);
 
+  protected readonly appName = APP_NAME;
+  protected readonly tagline = APP_TAGLINE;
   protected readonly isRegisterMode = signal(false);
   protected readonly isLoading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
@@ -125,7 +129,6 @@ export class LoginPage implements OnInit {
 
   public ngOnInit(): void {
     addIcons({
-      gameController,
       mailOutline,
       lockClosedOutline,
       personOutline,
@@ -233,10 +236,10 @@ export class LoginPage implements OnInit {
     try {
       if (this.isRegisterMode()) {
         await this.authService.register({ email, password, username });
-        await this.showToast("Welcome to GameVault! Your account is ready.", "success");
+        await this.showToast(`Welcome to ${APP_NAME}! Your library is ready.`, "success");
       } else {
         await this.authService.login({ email, password });
-        await this.showToast("Welcome back, gamer!", "success");
+        await this.showToast("Welcome back — save loaded.", "success");
       }
       await this.router.navigate(["/home"]);
     } catch (error: unknown) {
@@ -244,7 +247,6 @@ export class LoginPage implements OnInit {
         error instanceof Error ? error.message : undefined,
       );
       this.errorMessage.set(message);
-      await this.showToast(message, "danger");
     } finally {
       this.isLoading.set(false);
     }

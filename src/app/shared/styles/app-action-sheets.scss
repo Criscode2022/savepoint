@@ -1,41 +1,39 @@
 // Action sheets (status picker, etc.)
 
 ion-action-sheet.app-status-sheet {
-  --background: #18182c;
+  --background: var(--bg-overlay);
   --backdrop-opacity: 0.72;
-  --button-background: #18182c;
-  --button-background-activated: rgba(168, 85, 247, 0.16);
-  --button-background-selected: rgba(168, 85, 247, 0.12);
-  --button-color: #f8fafc;
-  --color: #f8fafc;
-  --ion-color-step-150: #22223a;
-  --ion-color-step-250: #2a2a42;
-  --ion-color-step-350: #334155;
+  --button-background: var(--bg-overlay);
+  --button-background-activated: rgba(var(--accent-rgb), 0.16);
+  --button-background-selected: rgba(var(--accent-rgb), 0.12);
+  --button-color: var(--ink-primary);
+  --color: var(--ink-primary);
+  --ion-color-step-150: var(--bg-overlay-raised);
+  --ion-color-step-250: var(--bg-overlay-raised);
+  --ion-color-step-350: var(--bg-overlay-raised);
 
   .action-sheet-group {
-    background: #18182c;
+    background: var(--bg-overlay);
   }
 
   .action-sheet-title {
-    color: #94a3b8;
-    font-size: 0.8125rem;
+    color: var(--ink-secondary);
+    font-size: 0.875rem;
     font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
   }
 
   .action-sheet-button {
-    color: #f8fafc !important;
+    color: var(--ink-primary) !important;
     font-size: 1rem;
     font-weight: 600;
   }
 
   .action-sheet-button.action-sheet-selected {
-    color: #e9d5ff !important;
+    color: var(--accent-ink-soft) !important;
   }
 
   .action-sheet-button.action-sheet-cancel {
-    color: #cbd5e1 !important;
+    color: var(--ink-secondary) !important;
     font-weight: 600;
   }
 }

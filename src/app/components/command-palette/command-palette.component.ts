@@ -27,6 +27,10 @@ import {
   albumsOutline,
   sparklesOutline,
   statsChartOutline,
+  layersOutline,
+  playCircleOutline,
+  pauseCircleOutline,
+  trophyOutline,
 } from 'ionicons/icons';
 import {
   Subject,
@@ -43,8 +47,12 @@ import { GameService } from '../../services/game.service';
 import { LibraryPrefsService, LibraryViewMode } from '../../services/library-prefs.service';
 import { PlatformService } from '../../services/platform.service';
 import { RawgGameSummary, RawgService } from '../../services/rawg.service';
+import { LIBRARY_COLLECTIONS, LibraryCollection, STATUS_COLLECTIONS } from '../../shared/library-collections';
 
-type PaletteGroup = 'Actions' | 'Collections' | 'Games' | 'RAWG';
+type PaletteGroup = 'Actions' | 'Go to' | 'Collections' | 'Games' | 'RAWG';
+
+const MAX_GAME_RESULTS = 40;
+const MAX_GAMES_WITHOUT_QUERY = 8;
 
 interface PaletteItem {
   id: string;
@@ -88,12 +96,8 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
   private rawgItems: PaletteItem[] = [];
   private allItems: PaletteItem[] = [];
   protected flatItems: PaletteItem[] = [];
-  protected readonly groups: PaletteGroup[] = [
-    'Actions',
-    'Collections',
-    'Games',
-    'RAWG',
-  ];
+  /** Display order — must match buildItems() order so arrow keys follow what you see */
+  protected readonly groups: PaletteGroup[] = ['Actions', 'Go to', 'Collections', 'Games', 'RAWG'];
 
   public ngOnInit(): void {
     addIcons({
@@ -111,6 +115,10 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
       albumsOutline,
       sparklesOutline,
       statsChartOutline,
+      layersOutline,
+      playCircleOutline,
+      pauseCircleOutline,
+      trophyOutline,
     });
 
     this.palette.open$.pipe(takeUntil(this.destroy$)).subscribe((open) => {
@@ -254,13 +262,17 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
   private refreshItems(): void {
     const q = this.query.trim().toLowerCase();
     this.allItems = this.buildItems();
-    const local = q
+    const matches = q
       ? this.allItems.filter(
           (i) =>
             i.label.toLowerCase().includes(q) ||
             (i.hint?.toLowerCase().includes(q) ?? false),
         )
       : this.allItems;
+    // Search the whole library, but keep the visible list short.
+    const gameLimit = q ? MAX_GAME_RESULTS : MAX_GAMES_WITHOUT_QUERY;
+    const games = matches.filter((i) => i.group === 'Games').slice(0, gameLimit);
+    const local = [...matches.filter((i) => i.group !== 'Games'), ...games];
     this.flatItems = [...local, ...this.rawgItems];
     this.activeId = this.flatItems[0]?.id ?? '';
   }
@@ -371,132 +383,43 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
   }
 
   private buildItems(): PaletteItem[] {
+    const navigate = (commands: unknown[], queryParams?: Record<string, string>) => () =>
+      void this.router.navigate(commands, { queryParams });
+
     const actions: PaletteItem[] = [
-      {
-        id: 'a-add',
-        label: 'Add game',
-        icon: 'add-outline',
-        group: 'Actions',
-        run: () => void this.router.navigate(['/add']),
-      },
-      {
-        id: 'a-wishlist-add',
-        label: 'Add to wishlist',
-        icon: 'heart-outline',
-        group: 'Actions',
-        run: () => void this.router.navigate(['/wishlist/add']),
-      },
-      {
-        id: 'a-history',
-        label: 'Play history',
-        icon: 'checkmark-circle-outline',
-        group: 'Actions',
-        run: () => void this.router.navigate(['/play-history']),
-      },
-      {
-        id: 'a-insights',
-        label: 'Insights',
-        icon: 'stats-chart-outline',
-        group: 'Actions',
-        run: () => void this.router.navigate(['/insights']),
-      },
-      {
-        id: 'a-recs',
-        label: 'Recommendations',
-        icon: 'sparkles-outline',
-        group: 'Actions',
-        run: () => void this.router.navigate(['/recommendations']),
-      },
-      {
-        id: 'a-profile',
-        label: 'Profile',
-        icon: 'person-circle-outline',
-        group: 'Actions',
-        run: () => void this.router.navigate(['/profile']),
-      },
-      {
-        id: 'a-view-grid',
-        label: 'Grid view',
-        icon: 'grid-outline',
-        group: 'Actions',
-        run: () => this.setView('grid'),
-      },
-      {
-        id: 'a-view-list',
-        label: 'List view',
-        icon: 'list-outline',
-        group: 'Actions',
-        run: () => this.setView('list'),
-      },
-      {
-        id: 'a-view-shelf',
-        label: 'Shelf view',
-        icon: 'albums-outline',
-        group: 'Actions',
-        run: () => this.setView('shelf'),
-      },
+      { id: 'a-add', label: 'Add game', icon: 'add-outline', group: 'Actions', run: navigate(['/add']) },
+      { id: 'a-wishlist-add', label: 'Add to wishlist', icon: 'heart-outline', group: 'Actions', run: navigate(['/wishlist/add']) },
+      { id: 'a-view-grid', label: 'Switch to grid layout', icon: 'grid-outline', group: 'Actions', run: () => this.setView('grid') },
+      { id: 'a-view-list', label: 'Switch to list layout', icon: 'list-outline', group: 'Actions', run: () => this.setView('list') },
+      { id: 'a-view-shelf', label: 'Switch to shelf layout', icon: 'albums-outline', group: 'Actions', run: () => this.setView('shelf') },
     ];
 
-    const collections: PaletteItem[] = [
-      {
-        id: 'c-all',
-        label: 'All games',
-        icon: 'game-controller-outline',
-        group: 'Collections',
-        run: () => void this.router.navigate(['/home'], { queryParams: {} }),
-      },
-      {
-        id: 'c-playing',
-        label: 'Playing',
-        icon: 'time-outline',
-        group: 'Collections',
-        run: () =>
-          void this.router.navigate(['/home'], {
-            queryParams: { collection: 'playing' },
-          }),
-      },
-      {
-        id: 'c-wishlist',
-        label: 'Wishlist',
-        icon: 'heart-outline',
-        group: 'Collections',
-        run: () =>
-          void this.router.navigate(['/home'], {
-            queryParams: { collection: 'wishlist' },
-          }),
-      },
-      {
-        id: 'c-completed',
-        label: 'Completed',
-        icon: 'checkmark-circle-outline',
-        group: 'Collections',
-        run: () =>
-          void this.router.navigate(['/home'], {
-            queryParams: { collection: 'completed' },
-          }),
-      },
-      {
-        id: 'c-paused',
-        label: 'Paused',
-        icon: 'time-outline',
-        group: 'Collections',
-        run: () =>
-          void this.router.navigate(['/home'], {
-            queryParams: { collection: 'paused' },
-          }),
-      },
+    const pages: PaletteItem[] = [
+      { id: 'p-insights', label: 'Insights', icon: 'stats-chart-outline', group: 'Go to', run: navigate(['/insights']) },
+      { id: 'p-recs', label: 'For you', hint: 'Recommendations', icon: 'sparkles-outline', group: 'Go to', run: navigate(['/recommendations']) },
+      { id: 'p-history', label: 'Play history', icon: 'trophy-outline', group: 'Go to', run: navigate(['/play-history']) },
+      { id: 'p-profile', label: 'Profile', icon: 'person-circle-outline', group: 'Go to', run: navigate(['/profile']) },
     ];
 
-    const games: PaletteItem[] = this.games.slice(0, 40).map((g) => ({
+    const collectionKeys: LibraryCollection[] = ['all', ...STATUS_COLLECTIONS];
+    const collections: PaletteItem[] = collectionKeys.map((key) => ({
+      id: `c-${key}`,
+      label: key === 'all' ? 'Whole library' : LIBRARY_COLLECTIONS[key].label,
+      icon: LIBRARY_COLLECTIONS[key].icon,
+      group: 'Collections',
+      run: navigate(['/home'], key === 'all' ? {} : { collection: key }),
+    }));
+
+    const games: PaletteItem[] = this.games.map((g) => ({
       id: `g-${g.id}`,
       label: g.title,
       hint: g.platform?.name,
       icon: 'game-controller-outline',
       group: 'Games' as const,
-      run: () => void this.router.navigate(['/game', g.id]),
+      run: navigate(['/game', g.id]),
     }));
 
-    return [...actions, ...collections, ...games];
+    return [...actions, ...pages, ...collections, ...games];
   }
 
   private setView(mode: LibraryViewMode): void {

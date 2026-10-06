@@ -105,7 +105,7 @@ function buildFilename(
   scope: 'library' | 'filtered' = 'library',
 ): string {
   const stamp = new Date().toISOString().slice(0, 10);
-  const prefix = scope === 'filtered' ? 'gamevault-filtered' : 'gamevault-library';
+  const prefix = scope === 'filtered' ? 'savepoint-filtered' : 'savepoint-library';
   return `${prefix}-${stamp}.${format === 'json' ? 'json' : 'xlsx'}`;
 }
 

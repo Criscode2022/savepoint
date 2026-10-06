@@ -1,150 +1,87 @@
-<ion-header class="ion-no-border">
-  <ion-toolbar class="header-toolbar">
-    <div class="header-inner">
-      <div class="header-brand">
-        <ion-back-button
-          class="header-back-btn"
-          defaultHref="/home"
-          text=""
-          icon="arrow-back-outline"
-        ></ion-back-button>
-        <h1 class="header-title">Insights</h1>
-      </div>
-    </div>
-  </ion-toolbar>
-</ion-header>
-
 <ion-content class="insights-content">
-  @if (!loading && insights) {
-    <div class="insights-wrap">
-      <header class="insights-hero">
-        <div class="insights-hero__icon" aria-hidden="true">
-          <ion-icon name="stats-chart-outline"></ion-icon>
-        </div>
-        <div>
-          <h2 class="insights-hero__title">Play rituals</h2>
-          <p class="insights-hero__sub">
-            How your vault is actually used — streaks, completion, and taste.
-          </p>
-        </div>
-      </header>
+  <div class="insights-wrap">
+    <app-page-header title="Insights" subtitle="How your library is actually played — streaks, completion and taste." />
 
-      <section class="insights-stats" aria-label="Overview">
-        <article class="insights-stat">
-          <ion-icon name="flame-outline" class="insights-stat__icon insights-stat__icon--streak"></ion-icon>
-          <div>
-            <strong>{{ insights.currentStreakDays }}</strong>
-            <span>Day streak</span>
-            <small>Best {{ insights.longestStreakDays }}d</small>
-          </div>
-        </article>
-        <article class="insights-stat">
-          <ion-icon name="time-outline" class="insights-stat__icon insights-stat__icon--hours"></ion-icon>
-          <div>
-            <strong>{{ insights.totalHours }}h</strong>
-            <span>Total playtime</span>
-          </div>
-        </article>
-        <article class="insights-stat">
-          <ion-icon name="trophy-outline" class="insights-stat__icon insights-stat__icon--done"></ion-icon>
-          <div>
-            <strong>{{ insights.completionRate }}%</strong>
-            <span>Completion rate</span>
-            <small>{{ insights.completedCount }}/{{ insights.libraryCount }}</small>
-          </div>
-        </article>
-        <article class="insights-stat">
-          <ion-icon name="star-outline" class="insights-stat__icon insights-stat__icon--rating"></ion-icon>
-          <div>
-            <strong>{{ insights.averageRating != null ? insights.averageRating : '—' }}</strong>
-            <span>Avg rating</span>
-            @if (insights.ratedCount) {
-              <small>{{ insights.ratedCount }} rated</small>
-            }
-          </div>
-        </article>
+    @if (!insights || (gamesLoading() && !insights.total)) {
+      <div class="insights-loading" aria-busy="true" aria-label="Loading insights">
+        <ion-spinner name="crescent"></ion-spinner>
+      </div>
+    } @else if (insights.total === 0) {
+      <div class="empty-state">
+        <div class="empty-icon" aria-hidden="true"><ion-icon name="stats-chart-outline"></ion-icon></div>
+        <h2>No data to crunch yet</h2>
+        <p>Add games and update their status — streaks, completion and taste show up here.</p>
+        <a routerLink="/add" class="btn btn--primary">
+          <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+          Add a game
+        </a>
+      </div>
+    } @else {
+      <section class="panel stat-strip" aria-label="Overview">
+        <div class="stat-strip__item">
+          <span class="stat-strip__value">
+            <ion-icon name="flame-outline" class="insights-icon insights-icon--streak" aria-hidden="true"></ion-icon>
+            {{ insights.currentStreakDays }}d
+          </span>
+          <span class="stat-strip__label">Current streak</span>
+          <span class="stat-strip__sub">Best {{ insights.longestStreakDays }}d</span>
+        </div>
+        <div class="stat-strip__item">
+          <span class="stat-strip__value">{{ insights.totalHours }}h</span>
+          <span class="stat-strip__label">Total playtime</span>
+        </div>
+        <div class="stat-strip__item">
+          <span class="stat-strip__value">{{ insights.completionRate }}%</span>
+          <span class="stat-strip__label">Completion rate</span>
+          <span class="stat-strip__sub">{{ insights.completedCount }} of {{ insights.libraryCount }} games</span>
+        </div>
+        <div class="stat-strip__item">
+          <span class="stat-strip__value">{{ insights.averageRating ?? '—' }}</span>
+          <span class="stat-strip__label">Avg rating</span>
+          @if (insights.ratedCount) {
+            <span class="stat-strip__sub">{{ insights.ratedCount }} rated</span>
+          }
+        </div>
       </section>
 
-      <section class="insights-panel">
-        <h3 class="insights-panel__title">Collection pulse</h3>
-        <div class="insights-bars">
-          <div class="insights-bar-row">
-            <span>Playing</span>
-            <div class="insights-bar"><i [style.width.%]="pct(insights.playingCount)"></i></div>
-            <strong>{{ insights.playingCount }}</strong>
-          </div>
-          <div class="insights-bar-row">
-            <span>Paused</span>
-            <div class="insights-bar"><i [style.width.%]="pct(insights.pausedCount)"></i></div>
-            <strong>{{ insights.pausedCount }}</strong>
-          </div>
-          <div class="insights-bar-row">
-            <span>Backlog</span>
-            <div class="insights-bar"><i [style.width.%]="pct(insights.notStartedCount)"></i></div>
-            <strong>{{ insights.notStartedCount }}</strong>
-          </div>
-          <div class="insights-bar-row">
-            <span>Completed</span>
-            <div class="insights-bar"><i [style.width.%]="pct(insights.completedCount)"></i></div>
-            <strong>{{ insights.completedCount }}</strong>
-          </div>
-          <div class="insights-bar-row">
-            <span>Wishlist</span>
-            <div class="insights-bar"><i [style.width.%]="pct(insights.wishlistCount)"></i></div>
-            <strong>{{ insights.wishlistCount }}</strong>
-          </div>
-        </div>
+      <section class="panel">
+        <h2 class="panel__title">Where everything stands</h2>
+        <ul class="bar-list">
+          @for (row of statusRows; track row.collection) {
+            <li class="bar-list__row" [attr.data-status]="row.status">
+              <a class="bar-list__label" routerLink="/home" [queryParams]="{ collection: row.collection }">
+                <ion-icon [name]="row.icon" aria-hidden="true"></ion-icon>
+                {{ row.label }}
+              </a>
+              <span class="bar-list__track" [attr.title]="row.count + ' ' + row.label.toLowerCase()">
+                <span class="bar-list__fill" [style.width.%]="share(row.count, insights.total)"></span>
+              </span>
+              <span class="bar-list__value">{{ row.count }}</span>
+            </li>
+          }
+        </ul>
       </section>
 
       <div class="insights-grid">
-        <section class="insights-panel">
-          <h3 class="insights-panel__title">By platform</h3>
-          @if (insights.byPlatform.length) {
-            <ul class="insights-list">
-              @for (b of insights.byPlatform; track b.label) {
-                <li>
-                  <span>{{ b.label }}</span>
-                  <span class="insights-list__meta">{{ b.count }} · {{ b.hours }}h</span>
-                </li>
-              }
-            </ul>
-          } @else {
-            <p class="insights-muted">Nothing to chart yet.</p>
-          }
+        <section class="panel">
+          <h2 class="panel__title">By platform</h2>
+          <ng-container *ngTemplateOutlet="buckets; context: { $implicit: insights.byPlatform }"></ng-container>
         </section>
 
-        <section class="insights-panel">
-          <h3 class="insights-panel__title">By genre</h3>
-          @if (insights.byGenre.length) {
-            <ul class="insights-list">
-              @for (b of insights.byGenre; track b.label) {
-                <li>
-                  <span>{{ b.label }}</span>
-                  <span class="insights-list__meta">{{ b.count }} · {{ b.hours }}h</span>
-                </li>
-              }
-            </ul>
-          } @else {
-            <p class="insights-muted">Nothing to chart yet.</p>
-          }
+        <section class="panel">
+          <h2 class="panel__title">By genre</h2>
+          <ng-container *ngTemplateOutlet="buckets; context: { $implicit: insights.byGenre }"></ng-container>
         </section>
       </div>
 
       @if (insights.recentActivity.length) {
-        <section class="insights-panel">
-          <h3 class="insights-panel__title">Recent activity</h3>
+        <section class="panel">
+          <h2 class="panel__title">Recent activity</h2>
           <div class="insights-activity">
             @for (game of insights.recentActivity; track game.id) {
-              <a
-                class="insights-activity__item"
-                [routerLink]="['/game', game.id]"
-              >
+              <a class="insights-activity__item" [routerLink]="['/game', game.id]">
                 <div class="insights-activity__cover">
-                  <app-game-cover
-                    [title]="game.title"
-                    [coverImage]="game.coverImage"
-                    variant="thumbnail"
-                  />
+                  <app-game-cover [title]="game.title" [coverImage]="game.coverImage" variant="thumbnail" />
                 </div>
                 <div class="insights-activity__copy">
                   <strong>{{ game.title }}</strong>
@@ -155,19 +92,24 @@
           </div>
         </section>
       }
-
-      @if (insights.libraryCount === 0) {
-        <div class="insights-empty">
-          <ion-icon name="game-controller-outline"></ion-icon>
-          <h3>No library data yet</h3>
-          <p>Add games and log play status to unlock streaks and insights.</p>
-          <a routerLink="/add" class="insights-cta">Add game</a>
-        </div>
-      }
-    </div>
-  } @else {
-    <div class="insights-loading">
-      <ion-spinner name="crescent"></ion-spinner>
-    </div>
-  }
+    }
+  </div>
 </ion-content>
+
+<ng-template #buckets let-rows>
+  @if (rows.length) {
+    <ul class="bar-list bar-list--compact">
+      @for (bucket of rows; track bucket.label) {
+        <li class="bar-list__row">
+          <span class="bar-list__label">{{ bucket.label }}</span>
+          <span class="bar-list__track" [attr.title]="bucket.count + ' games · ' + bucket.hours + 'h'">
+            <span class="bar-list__fill" [style.width.%]="share(bucket.count, maxCount(rows))"></span>
+          </span>
+          <span class="bar-list__value">{{ bucket.count }} <small>· {{ bucket.hours }}h</small></span>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="panel__empty">Nothing to chart yet.</p>
+  }
+</ng-template>

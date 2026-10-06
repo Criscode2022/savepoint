@@ -2,43 +2,66 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-// GameVault design tokens (DESIGN.md canonical)
+// Savepoint design tokens (DESIGN.md canonical)
+// Deep-navy surfaces, one dark-blue accent, semantic status tones.
 
 :root {
-  /* Surfaces */
-  --vault-bg: #0a0a0f;
-  --vault-surface: #12121a;
-  --vault-elevated: #151520;
-  --vault-input: #0f0f15;
-  --vault-header: rgba(32, 32, 48, 0.88);
+  /* Surfaces — navy ramp, darkest first */
+  --bg-base: #070b17;
+  --bg-base-rgb: 7, 11, 23;
+  --bg-surface: #0b1222;
+  --bg-surface-rgb: 11, 18, 34;
+  --bg-elevated: #101a2e;
+  --bg-elevated-rgb: 16, 26, 46;
+  --bg-elevated-hover: #142039;
+  --bg-input: #0a1020;
+  --bg-overlay: #111c34;
+  --bg-overlay-raised: #1a2746;
+  --bg-header: rgba(11, 18, 34, 0.88);
 
-  /* Accents */
-  --neon-purple: #a855f7;
-  --neon-purple-deep: #7c3aed;
-  --neon-purple-glow: rgba(168, 85, 247, 0.4);
-  --neon-cyan: #06b6d4;
-  --neon-cyan-glow: rgba(6, 182, 212, 0.4);
-  --neon-pink: #ec4899;
-  --neon-green: #10b981;
+  /* Accent — Savepoint blue. --accent is the fill; --accent-rgb is a slightly
+     brighter channel so translucent tints and borders stay legible on navy. */
+  --accent: #2a56e8;
+  --accent-strong: #3b67f5;
+  --accent-deep: #1f45c4;
+  --accent-rgb: 59, 103, 245;
+  --accent-ink: #9bb7ff;
+  --accent-ink-rgb: 155, 183, 255;
+  --accent-ink-soft: #dbe5ff;
+  --accent-alt: #22d3ee;
+  --accent-alt-rgb: 34, 211, 238;
+  --accent-alt-ink: #67e8f9;
 
   /* Ink */
-  --ink-primary: #f8fafc;
-  --ink-secondary: #cbd5e1;
-  --ink-muted: #94a3b8;
-  --ink-separator: #64748b;
+  --ink-primary: #f5f8ff;
+  --ink-secondary: #c9d4e8;
+  --ink-muted: #9aa8c2;
+  --ink-separator: #5d6b85;
 
-  /* Status */
-  --status-playing: #3b82f6;
+  /* Status tones: base color, rgb channel for tints, ink for text on tints */
+  --status-not-started: #9aa8c2;
+  --status-not-started-rgb: 154, 168, 194;
+  --status-not-started-ink: #c9d4e8;
+  --status-playing: #22d3ee;
+  --status-playing-rgb: 34, 211, 238;
+  --status-playing-ink: #a5f3fc;
   --status-paused: #f59e0b;
+  --status-paused-rgb: 245, 158, 11;
+  --status-paused-ink: #fcd34d;
   --status-completed: #22c55e;
+  --status-completed-rgb: 34, 197, 94;
+  --status-completed-ink: #86efac;
   --status-wishlist: #f472b6;
+  --status-wishlist-rgb: 244, 114, 182;
+  --status-wishlist-ink: #f9a8d4;
   --semantic-error: #ef4444;
   --semantic-warning: #f59e0b;
+  --rating: #fbbf24;
 
-  /* Borders & shadows — layered depth for premium vault feel */
-  --border-neon: rgba(168, 85, 247, 0.2);
-  --border-subtle: rgba(148, 163, 184, 0.14);
-  --border-strong: rgba(148, 163, 184, 0.22);
+  /* Borders & shadows */
+  --border-subtle: rgba(148, 170, 214, 0.14);
+  --border-strong: rgba(148, 170, 214, 0.24);
+  --border-accent: rgba(var(--accent-rgb), 0.32);
 
   /* Z-index scale: dropdown → sticky → modal → toast → palette */
   --z-dropdown: 100;
@@ -48,15 +71,10 @@
   --z-toast: 700;
   --z-palette: 10000;
 
-  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.38), 0 2px 8px rgba(0, 0, 0, 0.2);
-  --shadow-card-hover: 0 22px 48px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(168, 85, 247, 0.28), 0 4px 12px rgba(0, 0, 0, 0.25);
-  --shadow-neon: 0 0 0 1px rgba(168, 85, 247, 0.35), 0 0 24px rgba(168, 85, 247, 0.32);
-  --shadow-elevated: 0 16px 44px rgba(0, 0, 0, 0.42);
-
-  /* Subtle vault texture (applied via .vault-surface or body) */
-  --vault-texture: 
-    radial-gradient(circle at 25% 15%, rgba(255,255,255,0.012) 0%, transparent 50%),
-    radial-gradient(circle at 78% 82%, rgba(168,85,247,0.018) 0%, transparent 55%);
+  --shadow-card: 0 10px 30px rgba(0, 3, 12, 0.42), 0 2px 8px rgba(0, 3, 12, 0.24);
+  --shadow-card-hover: 0 22px 48px rgba(0, 3, 12, 0.5), 0 0 0 1px rgba(var(--accent-rgb), 0.32), 0 4px 12px rgba(0, 3, 12, 0.28);
+  --shadow-accent: 0 0 0 1px rgba(var(--accent-rgb), 0.4), 0 8px 24px rgba(var(--accent-rgb), 0.28);
+  --shadow-elevated: 0 16px 44px rgba(0, 3, 12, 0.5);
 
   /* Radius & spacing */
   --radius-sm: 6px;
@@ -70,66 +88,106 @@
   --spacing-lg: 24px;
   --spacing-xl: 32px;
 
-  /* Motion — premium, purposeful (respect reduced-motion in base) */
+  /* Motion — short and state-driven (reduced-motion handled below) */
   --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-spring: cubic-bezier(0.25, 0.9, 0.3, 1);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --transition-fast: 150ms var(--ease-out);
-  --transition-normal: 260ms var(--ease-spring);
-  --transition-slow: 380ms var(--ease-smooth);
-
-  /* Responsive tiers: mobile ≤639px, tablet 640–1023px, laptop ≥1024px */
-  --bp-mobile-max: 639px;
-  --bp-tablet-min: 640px;
-  --bp-tablet-max: 1023px;
-  --bp-laptop-min: 1024px;
-
-  /* Legacy aliases (existing components) */
-  --color-bg-primary: var(--vault-bg);
-  --color-bg-secondary: var(--vault-surface);
-  --color-bg-tertiary: #1a1a25;
-  --color-bg-card: var(--vault-elevated);
-  --color-bg-input: var(--vault-input);
-  --color-primary: var(--neon-purple);
-  --color-primary-light: #c084fc;
-  --color-primary-dark: var(--neon-purple-deep);
-  --color-primary-glow: var(--neon-purple-glow);
-  --color-secondary: var(--neon-cyan);
-  --color-accent: var(--neon-pink);
-  --color-text-primary: var(--ink-primary);
-  --color-text-secondary: var(--ink-secondary);
-  --color-text-muted: var(--ink-muted);
-  --color-border: var(--border-subtle);
-  --color-neon-purple: var(--neon-purple);
-  --color-neon-cyan: var(--neon-cyan);
-  --color-neon-pink: var(--neon-pink);
-  --color-neon-green: var(--neon-green);
-  --gradient-brand: linear-gradient(135deg, var(--neon-purple) 0%, var(--neon-cyan) 100%);
-  --border-glow: 1px solid var(--border-neon);
+  --transition-normal: 240ms var(--ease-spring);
 
   /* Ionic */
-  --ion-background-color: var(--vault-bg);
+  --ion-background-color: var(--bg-base);
   --ion-text-color: var(--ink-primary);
-  --ion-toolbar-background: var(--vault-header);
+  --ion-toolbar-background: var(--bg-header);
   --ion-toolbar-color: var(--ink-primary);
-  --ion-item-background: var(--vault-elevated);
-  --ion-card-background: var(--vault-elevated);
-  --ion-tab-bar-background: var(--vault-surface);
+  --ion-item-background: var(--bg-elevated);
+  --ion-card-background: var(--bg-elevated);
+  --ion-tab-bar-background: var(--bg-surface);
   --ion-tab-bar-color: var(--ink-muted);
-  --ion-tab-bar-color-selected: var(--neon-purple);
+  --ion-tab-bar-color-selected: var(--accent-ink);
+  --ion-font-family: "Inter", system-ui, -apple-system, sans-serif;
 }
 
 @theme {
-  --color-bg-primary: var(--vault-bg);
-  --color-bg-secondary: var(--vault-surface);
-  --color-bg-card: var(--vault-elevated);
-  --color-neon-purple: var(--neon-purple);
-  --color-neon-cyan: var(--neon-cyan);
-  --color-neon-pink: var(--neon-pink);
-  --color-neon-green: var(--neon-green);
-  --color-text-primary: var(--ink-primary);
-  --color-text-secondary: var(--ink-secondary);
-  --color-text-muted: var(--ink-muted);
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-ink-primary: var(--ink-primary);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+}
+
+/* Status tone: any element with [data-status] exposes --tone / --tone-rgb / --tone-ink
+   so badges, buttons and dots share one color mapping. */
+[data-status="not_started"] {
+  --tone: var(--status-not-started);
+  --tone-rgb: var(--status-not-started-rgb);
+  --tone-ink: var(--status-not-started-ink);
+}
+
+[data-status="playing"] {
+  --tone: var(--status-playing);
+  --tone-rgb: var(--status-playing-rgb);
+  --tone-ink: var(--status-playing-ink);
+}
+
+[data-status="paused"] {
+  --tone: var(--status-paused);
+  --tone-rgb: var(--status-paused-rgb);
+  --tone-ink: var(--status-paused-ink);
+}
+
+[data-status="completed"] {
+  --tone: var(--status-completed);
+  --tone-rgb: var(--status-completed-rgb);
+  --tone-ink: var(--status-completed-ink);
+}
+
+[data-status="wishlist"] {
+  --tone: var(--status-wishlist);
+  --tone-rgb: var(--status-wishlist-rgb);
+  --tone-ink: var(--status-wishlist-ink);
+}
+
+/* Shared status pill — used by list rows, detail hero, profile, history */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(var(--tone-rgb, 154, 168, 194), 0.38);
+  background: rgba(var(--tone-rgb, 154, 168, 194), 0.12);
+  color: var(--tone-ink, var(--ink-secondary));
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.status-pill ion-icon {
+  font-size: 0.9375rem;
+  flex-shrink: 0;
+}
+
+button.status-pill {
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+button.status-pill:hover:not(:disabled),
+button.status-pill:focus-visible {
+  background: rgba(var(--tone-rgb, 154, 168, 194), 0.2);
+  border-color: rgba(var(--tone-rgb, 154, 168, 194), 0.6);
+}
+
+button.status-pill:disabled,
+button.status-pill[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 // Base
@@ -146,8 +204,7 @@ body {
   margin: 0;
   padding: 0;
   font-family: "Inter", system-ui, -apple-system, sans-serif;
-  background-color: var(--vault-bg);
-  background-image: var(--vault-texture);
+  background-color: var(--bg-base);
   color: var(--ink-primary);
   line-height: 1.55;
   min-height: 100vh;
@@ -157,21 +214,37 @@ body {
   font-feature-settings: "tnum" 1, "cv02" 1, "cv03" 1;
 }
 
-/* Orbitron: brand wordmark + auth hero only */
-.gaming-font {
-  font-family: "Orbitron", system-ui, sans-serif;
-  letter-spacing: 0.02em;
+h1,
+h2,
+h3 {
+  text-wrap: balance;
 }
 
-.text-gradient {
-  background: var(--gradient-brand);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Brand display face: wordmark + auth hero only */
+.brand-font {
+  font-family: "Chakra Petch", system-ui, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
 }
 
 ::selection {
-  background-color: var(--neon-purple);
+  background-color: var(--accent);
   color: #fff;
 }
 
@@ -181,16 +254,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--vault-surface);
+  background: var(--bg-surface);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--neon-purple-deep);
+  background: var(--bg-overlay-raised);
   border-radius: var(--radius-sm);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--neon-purple);
+  background: var(--accent-deep);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -206,63 +279,68 @@ body {
 
 // Ionic dark overrides
 
-.dark ion-content {
-  --background: var(--vault-bg);
+:where(.dark) ion-content {
+  --background: var(--bg-base);
 }
 
-.dark ion-header {
-  --background: var(--vault-header);
+:where(.dark) ion-header {
+  --background: var(--bg-header);
 }
 
-.dark ion-toolbar {
-  --background: var(--vault-header);
-  --border-color: rgba(148, 163, 184, 0.18);
+:where(.dark) ion-toolbar {
+  --background: var(--bg-header);
+  --border-color: var(--border-subtle);
 }
 
-.dark ion-card {
-  --background: var(--vault-elevated);
+:where(.dark) ion-card {
+  --background: var(--bg-elevated);
 }
 
-.dark ion-input,
-.dark ion-textarea,
-.dark ion-select {
+:where(.dark) ion-input,
+:where(.dark) ion-textarea,
+:where(.dark) ion-select {
   --background: transparent;
   --color: var(--ink-primary);
   --placeholder-color: var(--ink-muted);
+  --placeholder-opacity: 1;
 }
 
-.dark ion-item:not(.form-item):not(.toggle-item):not(.game-list-item) {
+:where(.dark) ion-item:not(.form-item):not(.toggle-item):not(.game-list-item) {
   --background: transparent;
-  --border-color: var(--border-neon);
+  --border-color: var(--border-subtle);
 }
 
-.dark ion-searchbar:not(.gaming-searchbar) {
-  --background: var(--vault-input);
-  --color: var(--ink-primary);
-  --placeholder-color: var(--ink-muted);
-  --icon-color: var(--ink-muted);
-  --box-shadow: none;
-  border: var(--border-glow);
-  border-radius: var(--radius-md);
-}
-
-.dark ion-button {
-  --background: var(--neon-purple);
-  --background-hover: var(--neon-purple-deep);
-  --background-activated: #6d28d9;
+:where(.dark) ion-button {
+  --background: var(--accent);
+  --background-hover: var(--accent-strong);
+  --background-hover-opacity: 1;
+  --background-activated: var(--accent-deep);
   --color: #fff;
   --border-radius: var(--radius-md);
   font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
-.dark ion-button.button-outline {
+:where(.dark) ion-button.button-outline {
   --background: transparent;
-  --color: var(--neon-purple);
-  --border-color: var(--neon-purple);
+  --color: var(--accent-ink);
+  --border-color: rgba(var(--accent-rgb), 0.6);
   --border-width: 1px;
   --box-shadow: none;
 }
 
-.dark ion-button.button-outline:hover {
-  --background: rgba(168, 85, 247, 0.12);
+:where(.dark) ion-button.button-outline:hover {
+  --background: rgba(var(--accent-rgb), 0.12);
+}
+
+:where(.dark) ion-button.button-clear {
+  --background: transparent;
+  --color: var(--accent-ink);
+}
+
+:where(.dark) ion-segment-button,
+:where(.dark) ion-chip {
+  text-transform: none;
+  letter-spacing: normal;
 }

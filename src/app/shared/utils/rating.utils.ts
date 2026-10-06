@@ -30,6 +30,11 @@ export function formatRating(value: number | null | undefined): string {
   return Number.isInteger(value) ? `${value}` : value.toFixed(1);
 }
 
+/** Narrowing helper for templates: a game has a usable rating value. */
+export function isRated(game: { rating?: number | null }): game is { rating: number } {
+  return game.rating !== null && game.rating !== undefined;
+}
+
 export function formatRatingLabel(value: number | null | undefined): string {
   if (!isValidRating(value)) {
     return 'Not rated';

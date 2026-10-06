@@ -1,53 +1,65 @@
-import { Component, OnInit, OnDestroy, Signal, inject } from '@angular/core';
+import { Component, ElementRef, OnInit, OnDestroy, Signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Subject, takeUntil, debounceTime, distinctUntilChanged, forkJoin, take } from 'rxjs';
+import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import {
-  IonContent, IonButton,
-  IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
-  IonList, IonItem, IonThumbnail, IonLabel,
-  IonSelect, IonSelectOption, IonToast, AlertController, ViewWillEnter
+  IonContent, IonIcon, IonInput, IonChip,
+  IonSelect, IonSelectOption, IonToast, IonPopover,
+  AlertController, ViewWillEnter,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   gameControllerOutline, addOutline, searchOutline, filterOutline,
-  gridOutline, listOutline, albumsOutline,
-  starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
-  closeOutline, imageOutline, heartOutline, ellipseOutline,
-  pauseCircleOutline, downloadOutline, playOutline, chevronForwardOutline,
-  documentAttachOutline, bookmarkOutline
+  gridOutline, listOutline, albumsOutline, starOutline, timeOutline,
+  checkmarkCircleOutline, closeOutline, heartOutline, ellipseOutline,
+  pauseCircleOutline, playCircleOutline, downloadOutline, playOutline, pauseOutline,
+  documentAttachOutline, bookmarkOutline, ellipsisHorizontal, arrowDownOutline,
+  arrowUpOutline, layersOutline, createOutline, trashOutline, star,
 } from 'ionicons/icons';
-import { Game, GameFilters, PLATFORMS, GAME_STATUS_LABELS, GamePlayStatus, GAME_STATUS_CYCLE } from '../../models/game.model';
+import { Game, GameFilters, GAME_STATUS_ICONS, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
 import { formatReleaseCountdown, canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
 import {
   confirmResetPlayHistory,
+  getNextStatus,
+  getStatusAction,
   statusChangeClearsPlayHistory,
+  statusChangeMessage,
 } from '../../shared/utils/game-status.utils';
 import { GameService } from '../../services/game.service';
 import { GameCardComponent } from '../../components/game-card/game-card.component';
 import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
-import { GameRatingComponent } from '../../components/game-rating/game-rating.component';
-import {
-  exportLibrary,
-  LibraryExportFormat,
-} from '../../shared/utils/library-export.utils';
+import { exportLibrary, LibraryExportFormat } from '../../shared/utils/library-export.utils';
 import { parseLibraryImportJson } from '../../shared/utils/library-import.utils';
-import { collectUniqueTags } from '../../shared/utils/tag.utils';
+import { collectFilterOptions, LibraryFilterOptions } from '../../shared/utils/filter-options.utils';
+import { DEFAULT_SORT_ORDER, GameSortField, SortOrder } from '../../shared/utils/game-sort.utils';
 import { LibraryPrefsService, LibraryViewMode } from '../../services/library-prefs.service';
 import { CollectionsService, SavedCollection } from '../../services/collections.service';
+import {
+  LIBRARY_COLLECTIONS,
+  LibraryCollection,
+  STATUS_COLLECTIONS,
+  parseCollection,
+} from '../../shared/library-collections';
+import { APP_NAME } from '../../shared/brand';
+import { isRated } from '../../shared/utils/rating.utils';
 
-type LibraryStatusFilter = 'all' | 'not_started' | 'playing' | 'paused' | 'completed' | 'rated' | 'with_playtime' | 'wishlist';
+type ToastColor = 'success' | 'danger' | 'warning';
+type FilterType = 'search' | 'platform' | 'year' | 'developer' | 'genre' | 'tag';
+
+interface ActiveFilterChip {
+  type: FilterType;
+  value: string | number;
+  label: string;
+}
 
 @Component({
   selector: 'app-home',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, RouterLink, GameCardComponent, GameCoverComponent, GameRatingComponent,
-    IonContent, IonButton,
-    IonIcon, IonGrid, IonRow, IonCol, IonInput, IonChip,
-    IonList, IonItem, IonThumbnail, IonLabel,
-    IonSelect, IonSelectOption, IonToast
+    CommonModule, FormsModule, RouterLink, GameCardComponent, GameCoverComponent,
+    IonContent, IonIcon, IonInput, IonChip,
+    IonSelect, IonSelectOption, IonToast, IonPopover,
   ],
   templateUrl: './home.page.html',
 })
@@ -58,35 +70,51 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   private readonly alertController = inject(AlertController);
   private readonly prefs = inject(LibraryPrefsService);
   private readonly collections = inject(CollectionsService);
+  private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
 
+  /** Full library (all statuses) — drives filter options, continue rail, empty state */
   private games: Game[] = [];
   protected readonly filteredGames: Signal<Game[]> = this.gameService.filteredGames;
   protected readonly gamesLoading: Signal<boolean> = this.gameService.gamesLoading;
+
+  protected readonly collectionMeta = LIBRARY_COLLECTIONS;
+  protected readonly chipCollections: LibraryCollection[] = ['all', ...STATUS_COLLECTIONS];
+  protected readonly getStatusAction = getStatusAction;
+  protected readonly appName = APP_NAME;
+  protected readonly isRated = isRated;
+  protected readonly sortOptions: { value: GameSortField; label: string }[] = [
+    { value: 'createdAt', label: 'Recently added' },
+    { value: 'title', label: 'Title' },
+    { value: 'releaseYear', label: 'Release year' },
+    { value: 'rating', label: 'Rating' },
+    { value: 'lastPlayedAt', label: 'Last played' },
+    { value: 'playtimeHours', label: 'Playtime' },
+  ];
 
   protected viewMode: LibraryViewMode = 'grid';
   protected searchQuery = '';
   private readonly searchSubject = new Subject<string>();
 
   protected showFilters = false;
-  protected platforms: string[] = [];
-  protected years: number[] = [];
-  protected developers: string[] = [];
-  protected genres: string[] = [];
+  protected filterOptions: LibraryFilterOptions = {
+    platforms: [], years: [], developers: [], genres: [], tags: [],
+  };
 
   private selectedPlatforms: string[] = [];
   private selectedYears: number[] = [];
   protected selectedDevelopers: string[] = [];
   private selectedGenres: string[] = [];
   protected selectedTags: string[] = [];
-  protected availableTags: string[] = [];
+  /** Tag that arrived through the URL (saved views); cleared again when the URL drops it */
+  private urlTag: string | null = null;
 
-  protected sortBy: 'title' | 'releaseYear' | 'rating' | 'createdAt' | 'lastPlayedAt' | 'playtimeHours' = 'createdAt';
-  private sortOrder: 'asc' | 'desc' = 'desc';
+  protected sortBy: GameSortField = 'createdAt';
+  protected sortOrder: SortOrder = DEFAULT_SORT_ORDER.createdAt;
 
-  protected libraryStatusFilter: LibraryStatusFilter = 'all';
+  protected collection: LibraryCollection = 'all';
 
   protected toastMessage = '';
-  protected toastColor: 'success' | 'danger' | 'warning' = 'success';
+  protected toastColor: ToastColor = 'success';
   protected countdownTick = 0;
 
   protected showExportDialog = false;
@@ -107,162 +135,158 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   public ngOnInit(): void {
     addIcons({
       gameControllerOutline, addOutline, searchOutline, filterOutline,
-      gridOutline, listOutline, albumsOutline,
-      starOutline, timeOutline, checkmarkCircleOutline, closeCircleOutline,
-      closeOutline, imageOutline, heartOutline, ellipseOutline,
-      pauseCircleOutline, downloadOutline, playOutline, chevronForwardOutline,
-      documentAttachOutline, bookmarkOutline
+      gridOutline, listOutline, albumsOutline, starOutline, timeOutline,
+      checkmarkCircleOutline, closeOutline, heartOutline, ellipseOutline,
+      pauseCircleOutline, playCircleOutline, downloadOutline, playOutline, pauseOutline,
+      documentAttachOutline, bookmarkOutline, ellipsisHorizontal, arrowDownOutline,
+      arrowUpOutline, layersOutline, createOutline, trashOutline, star,
     });
 
     this.viewMode = this.prefs.viewMode;
-    this.prefs.viewMode$.pipe(takeUntil(this.destroy$)).subscribe((m) => {
-      this.viewMode = m;
+    this.prefs.viewMode$.pipe(takeUntil(this.destroy$)).subscribe((mode) => {
+      this.viewMode = mode;
     });
 
-    this.loadGames();
-    this.setupSearch();
-    this.applyFilters();
-    this.countdownInterval = setInterval(() => {
-      this.countdownTick++;
-    }, 60000);
+    this.gameService.games$.pipe(takeUntil(this.destroy$)).subscribe((games) => {
+      this.games = games;
+      this.filterOptions = collectFilterOptions(games);
+      this.pruneInvalidFilterSelections();
+      this.applyFilters();
+    });
+
+    this.searchSubject
+      .pipe(debounceTime(200), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe(() => this.applyFilters());
 
     this.collections.collections$
       .pipe(takeUntil(this.destroy$))
-      .subscribe((items) => {
-        this.savedCollections = items;
-      });
+      .subscribe((items) => (this.savedCollections = items));
 
     this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
-      const c = params.get('collection');
-      const tag = params.get('tag');
-      this.activeSavedCollectionId = params.get('saved') || null;
-      if (
-        c === 'playing' ||
-        c === 'paused' ||
-        c === 'completed' ||
-        c === 'wishlist' ||
-        c === 'not_started' ||
-        c === 'rated' ||
-        c === 'with_playtime'
-      ) {
-        this.libraryStatusFilter = c;
-      } else {
-        this.libraryStatusFilter = 'all';
-      }
-
-      if (tag) {
-        this.selectedTags = [tag];
-        this.applyFilters();
-      }
+      this.collection = parseCollection(params.get('collection'));
+      this.revealActiveChip();
+      this.activeSavedCollectionId = params.get('saved');
+      this.syncUrlTag(params.get('tag'));
     });
+
+    this.countdownInterval = setInterval(() => this.countdownTick++, 60000);
   }
 
   public ionViewWillEnter(): void {
-    this.refreshFilterOptions();
+    // Other pages reload the library without filters; restore this page's view.
+    this.applyFilters();
     this.consumeNavigationToast();
   }
 
-  private consumeNavigationToast(): void {
-    const state = history.state as { showDeletedGameToast?: boolean } | null;
-    if (!state?.showDeletedGameToast) {
-      return;
-    }
-    this.showToast('Game deleted successfully', 'success');
-    history.replaceState({ ...state, showDeletedGameToast: false }, '');
-  }
-
   public ngOnDestroy(): void {
-    if (this.countdownInterval) {
-      clearInterval(this.countdownInterval);
-    }
+    clearInterval(this.countdownInterval);
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  private loadGames(): void {
-    this.gameService.games$.pipe(takeUntil(this.destroy$)).subscribe((games) => {
-      this.games = games;
-      this.availableTags = collectUniqueTags(games);
-      this.syncLibraryFilter();
+  // ── Collections ──────────────────────────────────────────
+
+  protected get collectionGames(): Game[] {
+    return this.filteredGames().filter(LIBRARY_COLLECTIONS[this.collection].matches);
+  }
+
+  protected get wishlistGames(): Game[] {
+    return this.filteredGames().filter(LIBRARY_COLLECTIONS.wishlist.matches);
+  }
+
+  protected collectionCount(collection: LibraryCollection): number {
+    return this.filteredGames().filter(LIBRARY_COLLECTIONS[collection].matches).length;
+  }
+
+  protected get libraryIsEmpty(): boolean {
+    return this.games.length === 0;
+  }
+
+  protected get showWishlistSection(): boolean {
+    return (
+      this.collection === 'all' &&
+      (this.wishlistGames.length > 0 || !this.hasActiveFilters())
+    );
+  }
+
+  protected get continuePlaying(): Game[] {
+    return this.games
+      .filter((g) => g.status === 'playing')
+      .sort((a, b) => Date.parse(b.lastPlayedAt ?? '0') - Date.parse(a.lastPlayedAt ?? '0'))
+      .slice(0, 8);
+  }
+
+  protected get showContinueRail(): boolean {
+    return this.collection === 'all' && !this.hasActiveFilters() && this.continuePlaying.length > 0;
+  }
+
+  /** On phones the chip rail scrolls; keep the selected collection visible. */
+  private revealActiveChip(): void {
+    setTimeout(() =>
+      this.host.nativeElement
+        .querySelector('.collection-chip--active')
+        ?.scrollIntoView({ block: 'nearest', inline: 'nearest' }),
+    );
+  }
+
+  protected setCollection(collection: LibraryCollection): void {
+    void this.router.navigate(['/home'], {
+      queryParams: collection === 'all' ? {} : { collection },
     });
   }
 
-  private refreshFilterOptions(): void {
-    forkJoin({
-      platforms: this.gameService.getPlatforms().pipe(take(1)),
-      years: this.gameService.getYears().pipe(take(1)),
-      developers: this.gameService.getDevelopers().pipe(take(1)),
-      genres: this.gameService.getGenres().pipe(take(1)),
-    })
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(({ platforms, years, developers, genres }) => {
-        this.platforms = platforms;
-        this.years = years;
-        this.developers = developers;
-        this.genres = genres;
-        this.pruneInvalidFilterSelections();
-      });
-  }
+  // ── Search, filters & sort ───────────────────────────────
 
-  private pruneInvalidFilterSelections(): void {
-    const nextPlatforms = this.selectedPlatforms.filter((p) => this.platforms.includes(p));
-    const nextYears = this.selectedYears.filter((y) => this.years.includes(y));
-    const nextDevelopers = this.selectedDevelopers.filter((d) => this.developers.includes(d));
-    const nextGenres = this.selectedGenres.filter((g) => this.genres.includes(g));
-
-    const changed =
-      nextPlatforms.length !== this.selectedPlatforms.length ||
-      nextYears.length !== this.selectedYears.length ||
-      nextDevelopers.length !== this.selectedDevelopers.length ||
-      nextGenres.length !== this.selectedGenres.length;
-
-    this.selectedPlatforms = nextPlatforms;
-    this.selectedYears = nextYears;
-    this.selectedDevelopers = nextDevelopers;
-    this.selectedGenres = nextGenres;
-
-    if (changed) {
-      this.applyFilters();
-    }
-  }
-
-  private setupSearch(): void {
-    this.searchSubject
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.applyFilters();
-      });
-  }
-
-  protected onSearch(event: CustomEvent | Event): void {
+  protected onSearch(event: Event): void {
     const detail = (event as CustomEvent<{ value?: string | null }>).detail;
-    const target = event.target as HTMLInputElement | null;
-    this.searchQuery = detail?.value ?? target?.value ?? this.searchQuery ?? '';
+    this.searchQuery = detail?.value ?? '';
     this.searchSubject.next(this.searchQuery);
   }
 
   protected applyFilters(): void {
     const filters: GameFilters = {
       search: this.searchQuery,
-      platforms: this.selectedPlatforms.length > 0 ? this.selectedPlatforms : undefined,
-      years: this.selectedYears.length > 0 ? this.selectedYears : undefined,
-      developers: this.selectedDevelopers.length > 0 ? this.selectedDevelopers : undefined,
-      genres: this.selectedGenres.length > 0 ? this.selectedGenres : undefined,
-      tags: this.selectedTags.length > 0 ? this.selectedTags : undefined,
+      platforms: this.selectedPlatforms.length ? this.selectedPlatforms : undefined,
+      years: this.selectedYears.length ? this.selectedYears : undefined,
+      developers: this.selectedDevelopers.length ? this.selectedDevelopers : undefined,
+      genres: this.selectedGenres.length ? this.selectedGenres : undefined,
+      tags: this.selectedTags.length ? this.selectedTags : undefined,
       sortBy: this.sortBy,
       sortOrder: this.sortOrder,
     };
-
-    this.gameService.getGames(filters).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => undefined,
-      error: () => {
-        this.showToast('Failed to load games', 'danger');
-      },
-    });
+    this.gameService.filterGames(filters);
   }
 
-  protected isTagSelected(tag: string): boolean {
-    return this.selectedTags.includes(tag);
+  protected onSortChange(): void {
+    this.sortOrder = DEFAULT_SORT_ORDER[this.sortBy];
+    this.applyFilters();
+  }
+
+  protected toggleSortOrder(): void {
+    this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    this.applyFilters();
+  }
+
+  protected get sortOrderLabel(): string {
+    return this.sortOrder === 'asc' ? 'Ascending' : 'Descending';
+  }
+
+  protected isPlatformSelected(platform: string): boolean {
+    return this.selectedPlatforms.includes(platform);
+  }
+
+  protected togglePlatform(platform: string): void {
+    this.selectedPlatforms = this.toggleValue(this.selectedPlatforms, platform);
+    this.applyFilters();
+  }
+
+  protected isYearSelected(year: number): boolean {
+    return this.selectedYears.includes(year);
+  }
+
+  protected toggleYear(year: number): void {
+    this.selectedYears = this.toggleValue(this.selectedYears, year);
+    this.applyFilters();
   }
 
   protected isGenreSelected(genre: string): boolean {
@@ -270,12 +294,16 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   }
 
   protected toggleGenre(genre: string): void {
-    const index = this.selectedGenres.indexOf(genre);
-    if (index > -1) {
-      this.selectedGenres.splice(index, 1);
-    } else {
-      this.selectedGenres.push(genre);
-    }
+    this.selectedGenres = this.toggleValue(this.selectedGenres, genre);
+    this.applyFilters();
+  }
+
+  protected isTagSelected(tag: string): boolean {
+    return this.selectedTags.includes(tag);
+  }
+
+  protected toggleTag(tag: string): void {
+    this.selectedTags = this.toggleValue(this.selectedTags, tag);
     this.activeSavedCollectionId = null;
     this.applyFilters();
   }
@@ -287,53 +315,127 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     this.applyFilters();
   }
 
-  protected toggleTag(tag: string): void {
-    const index = this.selectedTags.indexOf(tag);
-    if (index > -1) {
-      this.selectedTags.splice(index, 1);
-    } else {
-      this.selectedTags.push(tag);
+  protected hasActiveFilters(): boolean {
+    return this.panelFilterCount > 0 || this.selectedTags.length > 0 || !!this.searchQuery.trim();
+  }
+
+  /** Filters that live inside the Filters panel (search and tags have their own controls) */
+  protected get panelFilterCount(): number {
+    return (
+      this.selectedPlatforms.length +
+      this.selectedYears.length +
+      this.selectedDevelopers.length +
+      this.selectedGenres.length
+    );
+  }
+
+  protected get activeFilterChips(): ActiveFilterChip[] {
+    const chips: ActiveFilterChip[] = [];
+    if (this.searchQuery.trim()) {
+      chips.push({ type: 'search', value: this.searchQuery, label: `“${this.searchQuery.trim()}”` });
     }
-    this.activeSavedCollectionId = null;
+    this.selectedPlatforms.forEach((p) => chips.push({ type: 'platform', value: p, label: p }));
+    this.selectedYears.forEach((y) => chips.push({ type: 'year', value: y, label: String(y) }));
+    this.selectedDevelopers.forEach((d) => chips.push({ type: 'developer', value: d, label: d }));
+    this.selectedGenres.forEach((g) => chips.push({ type: 'genre', value: g, label: g }));
+    this.selectedTags.forEach((t) => chips.push({ type: 'tag', value: t, label: `#${t}` }));
+    return chips;
+  }
+
+  protected removeFilter(chip: ActiveFilterChip): void {
+    switch (chip.type) {
+      case 'search':
+        this.searchQuery = '';
+        break;
+      case 'platform':
+        this.selectedPlatforms = this.selectedPlatforms.filter((p) => p !== chip.value);
+        break;
+      case 'year':
+        this.selectedYears = this.selectedYears.filter((y) => y !== chip.value);
+        break;
+      case 'developer':
+        this.selectedDevelopers = this.selectedDevelopers.filter((d) => d !== chip.value);
+        break;
+      case 'genre':
+        this.selectedGenres = this.selectedGenres.filter((g) => g !== chip.value);
+        break;
+      case 'tag':
+        this.selectedTags = this.selectedTags.filter((t) => t !== chip.value);
+        break;
+    }
     this.applyFilters();
   }
 
-  protected async saveCurrentCollection(): Promise<void> {
+  protected clearFilters(): void {
+    this.searchQuery = '';
+    this.selectedPlatforms = [];
+    this.selectedYears = [];
+    this.selectedDevelopers = [];
+    this.selectedGenres = [];
+    this.selectedTags = [];
+    this.applyFilters();
+  }
+
+  private toggleValue<T>(values: T[], value: T): T[] {
+    return values.includes(value) ? values.filter((v) => v !== value) : [...values, value];
+  }
+
+  private syncUrlTag(tag: string | null): void {
+    if (tag === this.urlTag) return;
+    if (this.urlTag) {
+      this.selectedTags = this.selectedTags.filter((t) => t !== this.urlTag);
+    }
+    if (tag) {
+      this.selectedTags = [tag];
+    }
+    this.urlTag = tag;
+    this.applyFilters();
+  }
+
+  private pruneInvalidFilterSelections(): void {
+    const { platforms, years, developers, genres, tags } = this.filterOptions;
+    this.selectedPlatforms = this.selectedPlatforms.filter((p) => platforms.includes(p));
+    this.selectedYears = this.selectedYears.filter((y) => years.includes(y));
+    this.selectedDevelopers = this.selectedDevelopers.filter((d) => developers.includes(d));
+    this.selectedGenres = this.selectedGenres.filter((g) => genres.includes(g));
+    // Keep a URL tag even before the library has loaded
+    this.selectedTags = this.selectedTags.filter((t) => tags.includes(t) || t === this.urlTag);
+  }
+
+  // ── Saved views ──────────────────────────────────────────
+
+  protected get canSaveView(): boolean {
+    return this.collection !== 'all' || this.selectedTags.length > 0;
+  }
+
+  protected async saveCurrentView(): Promise<void> {
+    const tag = this.selectedTags[0];
     const alert = await this.alertController.create({
-      header: 'Save collection',
-      message: 'Name this view (status filter + optional tag).',
+      header: 'Save this view',
+      message: `Saves “${LIBRARY_COLLECTIONS[this.collection].title}”${tag ? ` with #${tag}` : ''} so it's one tap away.`,
       cssClass: 'app-alert',
       inputs: [
         {
           name: 'name',
           type: 'text',
-          placeholder: 'e.g. Weekend backlog',
-          attributes: { maxlength: 40 },
+          placeholder: 'e.g. Weekend co-op',
+          attributes: { maxlength: 40, 'aria-label': 'View name' },
         },
       ],
       buttons: [
         { text: 'Cancel', role: 'cancel', cssClass: 'app-alert-btn-cancel' },
         {
-          text: 'Save',
-          cssClass: 'app-alert-btn-delete',
+          text: 'Save view',
+          cssClass: 'app-alert-btn-primary',
           handler: (data: { name?: string }) => {
             const name = (data?.name || '').trim();
             if (!name) {
-              this.showToast('Name is required', 'warning');
+              this.showToast('Give the view a name first', 'warning');
               return false;
             }
-            const filter =
-              this.libraryStatusFilter === 'wishlist' ||
-              this.libraryStatusFilter === 'playing' ||
-              this.libraryStatusFilter === 'paused' ||
-              this.libraryStatusFilter === 'completed' ||
-              this.libraryStatusFilter === 'not_started' ||
-              this.libraryStatusFilter === 'rated' ||
-              this.libraryStatusFilter === 'with_playtime'
-                ? this.libraryStatusFilter
-                : 'all';
-            const col = this.collections.add(name, filter, this.selectedTags[0]);
-            this.showToast(`Saved “${col.name}”`, 'success');
+            const saved = this.collections.add(name, this.collection, tag);
+            this.activeSavedCollectionId = saved.id;
+            this.showToast(`Saved “${saved.name}”`);
             return true;
           },
         },
@@ -352,238 +454,22 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     });
   }
 
-  protected removeSavedCollection(event: Event, id: string): void {
-    event.stopPropagation();
-    this.collections.remove(id);
-    if (this.activeSavedCollectionId === id) {
+  protected removeSavedCollection(col: SavedCollection): void {
+    this.collections.remove(col.id);
+    if (this.activeSavedCollectionId === col.id) {
       this.activeSavedCollectionId = null;
     }
+    this.showToast(`Removed “${col.name}”`);
   }
 
-  protected onImportFile(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = '';
-    if (!file) {
-      return;
-    }
-
-    this.importing = true;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = String(reader.result || '');
-      const parsed = parseLibraryImportJson(text);
-      if (!parsed.games.length) {
-        this.importing = false;
-        this.showToast(parsed.errors[0] || 'No games found in file', 'warning');
-        return;
-      }
-
-      this.gameService.importGames(parsed.games).subscribe({
-        next: (result) => {
-          this.importing = false;
-          this.refreshFilterOptions();
-          this.showToast(
-            `Imported ${result.created} game${result.created === 1 ? '' : 's'}${
-              result.failed ? `, ${result.failed} failed` : ''
-            }`,
-            result.created > 0 ? 'success' : 'warning',
-          );
-        },
-        error: () => {
-          this.importing = false;
-          this.showToast('Import failed', 'danger');
-        },
-      });
-    };
-    reader.onerror = () => {
-      this.importing = false;
-      this.showToast('Could not read file', 'danger');
-    };
-    reader.readAsText(file);
-  }
+  // ── Status actions ───────────────────────────────────────
 
   protected setViewMode(mode: LibraryViewMode): void {
     this.prefs.setViewMode(mode);
   }
 
-  protected setCollection(filter: LibraryStatusFilter): void {
-    if (filter === 'all') {
-      void this.router.navigate(['/home'], { queryParams: {} });
-      return;
-    }
-    if (!this.canSelectLibraryFilter(filter) && filter !== 'wishlist') {
-      return;
-    }
-    void this.router.navigate(['/home'], { queryParams: { collection: filter } });
-  }
-
-  protected isPlatformSelected(platform: string): boolean {
-    return this.selectedPlatforms.includes(platform);
-  }
-
-  protected togglePlatform(platform: string): void {
-    const index = this.selectedPlatforms.indexOf(platform);
-    if (index > -1) {
-      this.selectedPlatforms.splice(index, 1);
-    } else {
-      this.selectedPlatforms.push(platform);
-    }
-    this.applyFilters();
-  }
-
-  protected getPlatformColor(platform: string): string {
-    const p = PLATFORMS.find((x) => x.name === platform);
-    return p?.color || '#a855f7';
-  }
-
-  protected isYearSelected(year: number): boolean {
-    return this.selectedYears.includes(year);
-  }
-
-  protected toggleYear(year: number): void {
-    const index = this.selectedYears.indexOf(year);
-    if (index > -1) {
-      this.selectedYears.splice(index, 1);
-    } else {
-      this.selectedYears.push(year);
-    }
-    this.applyFilters();
-  }
-
-  protected hasActiveFilters(): boolean {
-    return (
-      this.selectedPlatforms.length > 0 ||
-      this.selectedYears.length > 0 ||
-      this.selectedDevelopers.length > 0 ||
-      this.selectedGenres.length > 0 ||
-      this.selectedTags.length > 0 ||
-      !!this.searchQuery
-    );
-  }
-
-  protected get activeFilterCount(): number {
-    return (
-      this.selectedPlatforms.length +
-      this.selectedYears.length +
-      this.selectedDevelopers.length +
-      this.selectedGenres.length +
-      this.selectedTags.length +
-      (this.searchQuery ? 1 : 0)
-    );
-  }
-
-  protected getActiveFilterChips(): Array<{ type: string; value: unknown; label: string }> {
-    const chips: Array<{ type: string; value: unknown; label: string }> = [];
-    if (this.searchQuery) {
-      chips.push({ type: 'search', value: this.searchQuery, label: `Search: ${this.searchQuery}` });
-    }
-    this.selectedPlatforms.forEach((p) => chips.push({ type: 'platform', value: p, label: p }));
-    this.selectedYears.forEach((y) => chips.push({ type: 'year', value: y, label: y.toString() }));
-    this.selectedDevelopers.forEach((d) => chips.push({ type: 'developer', value: d, label: d }));
-    this.selectedGenres.forEach((g) => chips.push({ type: 'genre', value: g, label: g }));
-    this.selectedTags.forEach((t) => chips.push({ type: 'tag', value: t, label: `#${t}` }));
-    return chips;
-  }
-
-  protected removeFilter(type: string, value: unknown): void {
-    switch (type) {
-      case 'search':
-        this.searchQuery = '';
-        break;
-      case 'platform':
-        this.selectedPlatforms = this.selectedPlatforms.filter((p) => p !== value);
-        break;
-      case 'year':
-        this.selectedYears = this.selectedYears.filter((y) => y !== value);
-        break;
-      case 'developer':
-        this.selectedDevelopers = this.selectedDevelopers.filter((d) => d !== value);
-        break;
-      case 'genre':
-        this.selectedGenres = this.selectedGenres.filter((g) => g !== value);
-        break;
-      case 'tag':
-        this.selectedTags = this.selectedTags.filter((t) => t !== value);
-        break;
-    }
-    this.applyFilters();
-  }
-
-  protected clearFilters(): void {
-    this.searchQuery = '';
-    this.selectedPlatforms = [];
-    this.selectedYears = [];
-    this.selectedDevelopers = [];
-    this.selectedGenres = [];
-    this.selectedTags = [];
-    this.applyFilters();
-  }
-
-  protected handleStatusClick(event: Event, game: Game): void {
-    event.stopPropagation();
-    event.preventDefault();
-    this.cycleStatus(game.id);
-  }
-
-  protected handleMarkCompletedClick(event: Event, gameId: string): void {
-    event.stopPropagation();
-    event.preventDefault();
-    this.markCompleted(gameId);
-  }
-
-  protected showMarkCompleted(game: Game): boolean {
+  protected canMarkCompleted(game: Game): boolean {
     return game.status === 'playing' || game.status === 'paused';
-  }
-
-  protected cycleStatus(gameId: string): void {
-    const game =
-      this.games.find((g) => g.id === gameId) ??
-      this.filteredGames().find((g) => g.id === gameId);
-
-    if (game && this.isWishlistLocked(game)) {
-      this.showWishlistLockedToast();
-      return;
-    }
-
-    const nextStatus = game ? GAME_STATUS_CYCLE[game.status] : undefined;
-    if (game && nextStatus && statusChangeClearsPlayHistory(game.status, nextStatus)) {
-      void this.confirmAndCycleStatus(gameId);
-      return;
-    }
-
-    this.performCycleStatus(gameId);
-  }
-
-  private async confirmAndCycleStatus(gameId: string): Promise<void> {
-    const confirmed = await confirmResetPlayHistory(this.alertController);
-    if (confirmed) {
-      this.performCycleStatus(gameId);
-    }
-  }
-
-  private performCycleStatus(gameId: string): void {
-    this.gameService.cycleStatus(gameId).subscribe({
-      next: () => {
-        this.syncLibraryFilter();
-        this.showToast('Game status updated', 'success');
-      },
-      error: () => {
-        this.showToast('Failed to update game', 'danger');
-      },
-    });
-  }
-
-  protected markCompleted(gameId: string): void {
-    this.gameService.setStatus(gameId, 'completed').subscribe({
-      next: () => {
-        this.syncLibraryFilter();
-        this.showToast('Game marked as completed', 'success');
-      },
-      error: () => {
-        this.showToast('Failed to update game', 'danger');
-      },
-    });
   }
 
   protected isWishlistLocked(game: Game): boolean {
@@ -591,218 +477,129 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
     return game.status === 'wishlist' && !canAddWishlistToLibrary(game);
   }
 
-  protected getStatusLabel(status: GamePlayStatus): string {
-    if (status === 'wishlist') {
-      return 'Add to Library';
-    }
-    return GAME_STATUS_LABELS[status];
-  }
-
-  protected getStatusIcon(status: GamePlayStatus): string {
-    const icons: Record<GamePlayStatus, string> = {
-      not_started: 'ellipse-outline',
-      playing: 'time-outline',
-      paused: 'pause-circle-outline',
-      completed: 'checkmark-circle-outline',
-      wishlist: 'heart-outline',
-    };
-    return icons[status];
-  }
-
   protected getCountdownLabel(game: Game): string {
     void this.countdownTick;
     return formatReleaseCountdown(game).label;
   }
 
-  protected get showStatusSections(): boolean {
-    return !this.hasActiveFilters();
+  protected onQuickAction(event: Event, game: Game): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.advanceStatus(game.id);
   }
 
-  protected get libraryGames(): Game[] {
-    return this.filteredGames().filter((game) => game.status !== 'wishlist');
+  protected onMarkCompleted(event: Event, game: Game): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.markCompleted(game.id);
   }
 
-  protected get wishlistGames(): Game[] {
-    return this.filteredGames().filter((game) => game.status === 'wishlist');
-  }
+  protected advanceStatus(gameId: string): void {
+    const game = this.findGame(gameId);
+    if (!game) return;
 
-  protected get continuePlaying(): Game[] {
-    return this.libraryGames
-      .filter((g) => g.status === 'playing')
-      .slice()
-      .sort((a, b) => {
-        const ta = a.lastPlayedAt ? Date.parse(a.lastPlayedAt) : 0;
-        const tb = b.lastPlayedAt ? Date.parse(b.lastPlayedAt) : 0;
-        return tb - ta;
-      })
-      .slice(0, 8);
-  }
-
-  protected get libraryGamesCount(): number {
-    return this.libraryGames.length;
-  }
-
-  protected get displayGames(): Game[] {
-    switch (this.libraryStatusFilter) {
-      case 'not_started':
-        return this.libraryGames.filter((game) => game.status === 'not_started');
-      case 'playing':
-        return this.libraryGames.filter((game) => game.status === 'playing');
-      case 'paused':
-        return this.libraryGames.filter((game) => game.status === 'paused');
-      case 'completed':
-        return this.libraryGames.filter((game) => game.status === 'completed');
-      case 'rated':
-        return this.libraryGames.filter((game) => game.rating != null);
-      case 'with_playtime':
-        return this.libraryGames.filter((game) => (game.playtime || 0) > 0);
-      case 'wishlist':
-        return [];
-      default:
-        return this.libraryGames;
-    }
-  }
-
-  protected get collectionTitle(): string {
-    switch (this.libraryStatusFilter) {
-      case 'not_started':
-        return 'Backlog';
-      case 'playing':
-        return 'Playing';
-      case 'paused':
-        return 'Paused';
-      case 'completed':
-        return 'Completed';
-      case 'rated':
-        return 'Rated';
-      case 'with_playtime':
-        return 'With playtime';
-      default:
-        return 'Your library';
-    }
-  }
-
-  protected isLibraryFilterActive(filter: LibraryStatusFilter): boolean {
-    return this.libraryStatusFilter === filter;
-  }
-
-  private canSelectLibraryFilter(filter: LibraryStatusFilter): boolean {
-    switch (filter) {
-      case 'all':
-        return this.libraryGamesCount > 0;
-      case 'not_started':
-        return this.notStartedCount > 0;
-      case 'playing':
-        return this.playingCount > 0;
-      case 'paused':
-        return this.pausedCount > 0;
-      case 'completed':
-        return this.completedCount > 0;
-      case 'rated':
-        return this.ratedCount > 0;
-      case 'with_playtime':
-        return this.playtimeGamesCount > 0;
-      case 'wishlist':
-        return true;
-    }
-  }
-
-  private syncLibraryFilter(): void {
-    if (this.libraryStatusFilter === 'all' || this.libraryStatusFilter === 'wishlist') {
+    if (this.isWishlistLocked(game)) {
+      this.showToast(`${game.title} isn't out yet — you can add it once it releases.`, 'warning');
       return;
     }
-    if (!this.canSelectLibraryFilter(this.libraryStatusFilter)) {
-      this.libraryStatusFilter = 'all';
+
+    const next = getNextStatus(game.status);
+    if (statusChangeClearsPlayHistory(game.status, next)) {
+      void confirmResetPlayHistory(this.alertController).then((ok) => ok && this.performAdvance(game));
+      return;
     }
+    this.performAdvance(game);
   }
 
-  protected get librarySectionCountLabel(): string {
-    const label = this.activeLibraryFilterLabel;
-    return label ? `${this.displayGames.length} ${label}` : `${this.displayGames.length}`;
+  private performAdvance(game: Game): void {
+    this.gameService.cycleStatus(game.id).subscribe({
+      next: (updated) => this.showToast(statusChangeMessage(updated.title, updated.status)),
+      error: () => this.showToast(`Couldn't update ${game.title}. Try again.`, 'danger'),
+    });
   }
 
-  private get activeLibraryFilterLabel(): string | null {
-    switch (this.libraryStatusFilter) {
-      case 'not_started':
-        return 'not started';
-      case 'playing':
-        return 'playing';
-      case 'paused':
-        return 'paused';
-      case 'completed':
-        return 'completed';
-      case 'rated':
-        return 'rated';
-      case 'with_playtime':
-        return 'played';
-      default:
-        return null;
-    }
-  }
-
-  protected getLibraryEmptyMessage(): string {
-    switch (this.libraryStatusFilter) {
-      case 'not_started':
-        return 'No not started games in your library.';
-      case 'playing':
-        return 'No games currently playing.';
-      case 'paused':
-        return 'No paused games in your library.';
-      case 'completed':
-        return 'No completed games in your library.';
-      case 'rated':
-        return 'No rated games in your library.';
-      case 'with_playtime':
-        return 'No games with recorded playtime.';
-      default:
-        return 'No games in your library yet.';
-    }
+  protected markCompleted(gameId: string): void {
+    const game = this.findGame(gameId);
+    this.gameService.setStatus(gameId, 'completed').subscribe({
+      next: (updated) => this.showToast(statusChangeMessage(updated.title, 'completed')),
+      error: () => this.showToast(`Couldn't update ${game?.title ?? 'the game'}. Try again.`, 'danger'),
+    });
   }
 
   protected async deleteGame(gameId: string): Promise<void> {
-    const game = this.games.find((g) => g.id === gameId);
-    const title = game?.title ?? 'this game';
-
+    const title = this.findGame(gameId)?.title ?? 'this game';
     const alert = await this.alertController.create({
-      header: 'Delete game?',
-      message: `"${title}" will be permanently removed from your library.`,
+      header: `Remove ${title}?`,
+      message: 'Its status, rating, playtime and notes will be permanently deleted.',
       cssClass: 'app-alert',
       buttons: [
+        { text: 'Cancel', role: 'cancel', cssClass: 'app-alert-btn-cancel' },
         {
-          text: 'Cancel',
-          role: 'cancel',
-          cssClass: 'app-alert-btn-cancel',
-        },
-        {
-          text: 'Delete',
+          text: 'Remove',
           role: 'destructive',
           cssClass: 'app-alert-btn-delete',
-          handler: () => this.performDelete(gameId),
+          handler: () => this.performDelete(gameId, title),
         },
       ],
     });
-
     await alert.present();
   }
 
-  private performDelete(gameId: string): void {
+  private performDelete(gameId: string, title: string): void {
     this.gameService.deleteGame(gameId).subscribe({
-      next: () => {
-        this.syncLibraryFilter();
-        this.refreshFilterOptions();
-        this.showToast('Game deleted successfully', 'success');
-      },
-      error: () => {
-        this.showToast('Failed to delete game', 'danger');
-      },
+      next: () => this.showToast(`${title} removed from your library`),
+      error: () => this.showToast(`Couldn't remove ${title}. Try again.`, 'danger'),
     });
   }
 
+  private findGame(gameId: string): Game | undefined {
+    return this.games.find((g) => g.id === gameId);
+  }
+
+  // ── Import / export ──────────────────────────────────────
+
+  protected onImportFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    this.importing = true;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const parsed = parseLibraryImportJson(String(reader.result || ''));
+      if (!parsed.games.length) {
+        this.importing = false;
+        this.showToast(parsed.errors[0] || 'No games found in that file', 'warning');
+        return;
+      }
+
+      this.gameService.importGames(parsed.games).subscribe({
+        next: (result) => {
+          this.importing = false;
+          const failed = result.failed ? `, ${result.failed} failed` : '';
+          this.showToast(
+            `Imported ${result.created} game${result.created === 1 ? '' : 's'}${failed}`,
+            result.created > 0 ? 'success' : 'warning',
+          );
+        },
+        error: () => {
+          this.importing = false;
+          this.showToast('Import failed. Check the file and try again.', 'danger');
+        },
+      });
+    };
+    reader.onerror = () => {
+      this.importing = false;
+      this.showToast("Couldn't read that file", 'danger');
+    };
+    reader.readAsText(file);
+  }
+
   private get filteredExportGames(): Game[] {
-    if (this.libraryStatusFilter === 'wishlist') {
-      return [...this.wishlistGames];
-    }
-    return [...this.displayGames, ...(this.libraryStatusFilter === 'all' ? this.wishlistGames : [])];
+    return this.collection === 'all'
+      ? [...this.collectionGames, ...this.wishlistGames]
+      : [...this.collectionGames];
   }
 
   protected get filteredResultsCount(): number {
@@ -810,34 +607,28 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   }
 
   protected get exportDialogTitle(): string {
-    return this.exportScope === 'filtered' ? 'Download filtered games' : 'Download library';
+    return this.exportScope === 'filtered' ? 'Download these results' : 'Download your library';
   }
 
   protected get exportDialogMessage(): string {
     if (this.exportScope === 'filtered') {
       const count = this.filteredResultsCount;
-      const label = count === 1 ? 'game' : 'games';
-      return `Export ${count} filtered ${label} in your chosen format.`;
+      return `${count} ${count === 1 ? 'game' : 'games'} matching your filters.`;
     }
-    return 'Choose a format for your export.';
+    return 'A full backup you can re-import later (JSON) or open in a spreadsheet (Excel).';
   }
 
-  protected openExportDialog(): void {
-    if (this.games.length === 0) {
-      this.showToast('No games to export', 'warning');
-      return;
-    }
-    this.exportScope = 'library';
-    this.includeWishlistInExport = true;
-    this.showExportDialog = true;
+  protected get showWishlistExportOption(): boolean {
+    return this.exportScope === 'library' || this.collection === 'all';
   }
 
-  protected openFilteredExportDialog(): void {
-    if (this.filteredExportGames.length === 0) {
-      this.showToast('No games to export', 'warning');
+  protected openExportDialog(scope: 'library' | 'filtered'): void {
+    const games = scope === 'filtered' ? this.filteredExportGames : this.games;
+    if (!games.length) {
+      this.showToast('Nothing to export yet', 'warning');
       return;
     }
-    this.exportScope = 'filtered';
+    this.exportScope = scope;
     this.includeWishlistInExport = true;
     this.showExportDialog = true;
   }
@@ -847,70 +638,42 @@ export class HomePage implements OnInit, OnDestroy, ViewWillEnter {
   }
 
   protected exportAndClose(format: LibraryExportFormat): void {
-    this.exportLibrary(format, this.includeWishlistInExport);
-    this.closeExportDialog();
-  }
-
-  private exportLibrary(format: LibraryExportFormat, includeWishlist = true): void {
     const games = this.exportScope === 'filtered' ? this.filteredExportGames : this.games;
     try {
       exportLibrary(games, format, {
-        includeWishlist,
+        includeWishlist: this.includeWishlistInExport,
         scope: this.exportScope,
       });
-      this.showToast(
-        this.exportScope === 'filtered'
-          ? 'Filtered games downloaded successfully'
-          : 'Library downloaded successfully',
-        'success',
-      );
+      this.showToast('Download started');
     } catch {
-      this.showToast('No games to export with the selected options', 'warning');
+      this.showToast('No games to export with those options', 'warning');
     }
+    this.closeExportDialog();
   }
 
-  private showWishlistLockedToast(): void {
-    this.showToast("You can't add a game to your library before its release date.", 'warning');
+  // ── Toasts ───────────────────────────────────────────────
+
+  private consumeNavigationToast(): void {
+    const state = history.state as { toast?: string } | null;
+    if (!state?.toast) return;
+    this.showToast(state.toast);
+    history.replaceState({ ...state, toast: undefined }, '');
   }
 
-  private showToast(message: string, color: 'success' | 'danger' | 'warning' = 'success'): void {
+  private showToast(message: string, color: ToastColor = 'success'): void {
     this.toastMessage = message;
     this.toastColor = color;
   }
 
-  private trackByGameId(_index: number, game: Game): string {
-    return game.id;
+  protected statusLabel(status: GamePlayStatus): string {
+    return GAME_STATUS_LABELS[status];
   }
 
-  private trackByIndex(index: number): number {
-    return index;
+  protected statusIcon(status: GamePlayStatus): string {
+    return GAME_STATUS_ICONS[status];
   }
 
-  protected get completedCount(): number {
-    return this.libraryGames.filter((g) => g.status === 'completed').length;
-  }
-
-  protected get playingCount(): number {
-    return this.libraryGames.filter((g) => g.status === 'playing').length;
-  }
-
-  protected get pausedCount(): number {
-    return this.libraryGames.filter((g) => g.status === 'paused').length;
-  }
-
-  private get ratedCount(): number {
-    return this.libraryGames.filter((g) => g.rating != null).length;
-  }
-
-  protected get notStartedCount(): number {
-    return this.libraryGames.filter((g) => g.status === 'not_started').length;
-  }
-
-  private get totalPlaytime(): number {
-    return this.libraryGames.reduce((sum, g) => sum + (g.playtime || 0), 0);
-  }
-
-  private get playtimeGamesCount(): number {
-    return this.libraryGames.filter((g) => (g.playtime || 0) > 0).length;
+  protected platformLabel(game: Game): string {
+    return game.platform.name === 'Unknown' ? '' : game.platform.name;
   }
 }

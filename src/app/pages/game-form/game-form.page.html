@@ -1,45 +1,25 @@
-<ion-header class="ion-no-border">
-  <ion-toolbar class="header-toolbar">
-    <div class="header-inner">
-      <div class="header-brand">
-        <ion-back-button
-          class="header-back-btn"
-          defaultHref="/home"
-          text=""
-          icon="arrow-back-outline"
-        ></ion-back-button>
-        <h1 class="header-title">{{ pageTitle }}</h1>
-      </div>
-    </div>
-  </ion-toolbar>
-</ion-header>
-
 <ion-content class="form-content">
-  @if (isEdit && isLoadingGame) {
-    <div class="form-loading">
-      <ion-spinner name="crescent" aria-label="Loading game"></ion-spinner>
-    </div>
-  }
+  <div class="form-container">
+    <app-page-header [title]="pageTitle" [subtitle]="pageSubtitle" [backHref]="cancelHref" />
 
-  @if (!isEdit || !isLoadingGame) {
-    <div class="form-container">
+    @if (isEdit && isLoadingGame) {
+      <div class="form-loading">
+        <ion-spinner name="crescent" aria-label="Loading game"></ion-spinner>
+      </div>
+    } @else {
       <ion-card class="form-card">
-        <ion-card-header>
-          <ion-card-title>{{ formCardTitle }}</ion-card-title>
-        </ion-card-header>
-
         <ion-card-content>
           <form (ngSubmit)="onSubmit(gameForm)" #gameForm="ngForm">
             <!-- RAWG auto-fill -->
             @if (!isEdit) {
-              <div class="form-section rawg-import">
-                <h3 class="section-title">
-                  <ion-icon name="cloud-download-outline" aria-hidden="true"></ion-icon>
-                  Search RAWG (auto-fill)
-                </h3>
+              <div class="form-section">
+                <h2 class="section-title">
+                  <ion-icon name="flash-outline" aria-hidden="true"></ion-icon>
+                  Quick fill
+                </h2>
                 @if (rawgConfigured) {
                   <p class="field-help">
-                    Type a game name, pick a result, and we’ll fill title, cover, year, genres, tags, and developer.
+                    Search a title and pick a result — we’ll fill in the cover, year, genres, tags and developer for you.
                   </p>
                 }
                 @if (!rawgConfigured) {
@@ -52,7 +32,7 @@
 
                 @if (rawgConfigured) {
                   <div class="field-group">
-                    <label class="field-label" for="rawg-search">Find a game</label>
+                    <label class="field-label" for="rawg-search">Search RAWG</label>
                     <ion-item class="form-item" lines="none">
                       <ion-icon name="search-outline" slot="start" aria-hidden="true"></ion-icon>
                       <ion-input
@@ -116,7 +96,7 @@
                             <ion-spinner name="crescent"></ion-spinner>
                           }
                           @if (rawgImportingId !== hit.id) {
-                            <span class="rawg-result__action">Use</span>
+                            <span class="rawg-result__action">Use this</span>
                           }
                         </button>
                       </li>
@@ -133,7 +113,7 @@
 
             <!-- Basic Info -->
             <div class="form-section">
-              <h3 class="section-title">Basic Information</h3>
+              <h2 class="section-title">Basics</h2>
 
               <div class="field-group">
                 <label class="field-label" for="game-title">Title *</label>
@@ -144,7 +124,7 @@
                     #titleModel="ngModel"
                     name="title"
                     required
-                    placeholder="Enter game title"
+                    placeholder="e.g. Hollow Knight"
                     (ionFocus)="onFieldFocus('title')"
                     (ionBlur)="onFieldBlur('title')"
                     (ionInput)="onFieldChange('title')"></ion-input>
@@ -162,13 +142,15 @@
                     [(ngModel)]="game.description"
                     name="description"
                     rows="4"
-                    placeholder="Brief description of the game"></ion-textarea>
+                    placeholder="What’s it about? (optional)"></ion-textarea>
                 </ion-item>
               </div>
 
               <div class="field-group">
-                <label class="field-label">Cover Image</label>
+                <span class="field-label" id="cover-label">Cover image</span>
                 <app-game-cover-upload
+                  role="group"
+                  aria-labelledby="cover-label"
                   [title]="game.title || 'Game cover'"
                   [coverImage]="game.coverImage"
                   (coverImageChange)="onCoverImageChange($event)"
@@ -177,7 +159,7 @@
             </div>
 
             <div class="form-section">
-              <h3 class="section-title">Platform & Release</h3>
+              <h2 class="section-title">Platform &amp; release</h2>
 
               <div class="field-group">
                 <label class="field-label" for="game-platform">Platform *</label>
@@ -206,7 +188,7 @@
               </div>
 
               <div class="field-group">
-                <label class="field-label" for="game-year">Release Year *</label>
+                <label class="field-label" for="game-year">Release year *</label>
                 <ion-item class="form-item" lines="none" [class.field-invalid]="isInvalid(releaseYearModel)">
                   <ion-input
                     id="game-year"
@@ -229,7 +211,7 @@
 
               @if (requiresReleaseDate()) {
                 <div class="field-group">
-                  <label class="field-label" for="game-release-date">Release Date *</label>
+                  <label class="field-label" for="game-release-date">Release date *</label>
                   <ion-item class="form-item" lines="none" [class.field-invalid]="isInvalid(releaseDateModel)">
                     <ion-input
                       id="game-release-date"
@@ -254,7 +236,7 @@
             </div>
 
             <div class="form-section">
-              <h3 class="section-title">Developer Information</h3>
+              <h2 class="section-title">Credits</h2>
 
               <div class="field-group">
                 <label class="field-label" for="game-developer">Developer *</label>
@@ -265,7 +247,7 @@
                     #developerModel="ngModel"
                     name="developerName"
                     required
-                    placeholder="Developer company name"
+                    placeholder="e.g. Team Cherry"
                     (ionFocus)="onFieldFocus('developerName')"
                     (ionBlur)="onFieldBlur('developerName')"
                     (ionInput)="onFieldChange('developerName')"></ion-input>
@@ -282,19 +264,20 @@
                     id="game-director"
                     [(ngModel)]="game.director"
                     name="director"
-                    placeholder="Game director name"></ion-input>
+                    placeholder="Optional"></ion-input>
                 </ion-item>
               </div>
             </div>
 
             <!-- Genres -->
             <div class="form-section">
-              <h3 class="section-title">Genres</h3>
+              <h2 class="section-title">Genres</h2>
 
               <div class="genre-selector">
                 @for (genre of genres; track genre) {
                   <ion-chip
                     [class.selected]="isGenreSelected(genre)"
+                    [attr.aria-pressed]="isGenreSelected(genre)"
                     (click)="toggleGenre(genre)">
                     {{genre}}
                   </ion-chip>
@@ -305,21 +288,23 @@
             <!-- Personal Stats -->
             @if (!isWishlistMode) {
               <div class="form-section">
-                <h3 class="section-title">Your Stats</h3>
+                <h2 class="section-title">Your progress</h2>
 
                 @if (canShowRating()) {
                   <div class="field-group">
                     <div class="rating-field__header">
-                      <label class="field-label">Your Rating</label>
+                      <span class="field-label" id="rating-label">Your rating</span>
                       <span
                         class="rating-field__score"
-                        [class.rating-field__score--preview]="ratingPreview != null"
-                        [class.rating-field__score--empty]="game.rating == null && ratingPreview == null"
+                        [class.rating-field__score--preview]="ratingPreview !== null"
+                        [class.rating-field__score--empty]="!hasRating() && ratingPreview === null"
                       >
                         {{ getRatingDisplay() }}
                       </span>
                     </div>
                     <app-game-rating
+                      role="group"
+                      aria-labelledby="rating-label"
                       [rating]="game.rating ?? null"
                       (ratingChange)="onRatingChange($event)"
                       (previewChange)="ratingPreview = $event"
@@ -344,8 +329,9 @@
                 </div>
 
                 <div class="field-group">
-                  <label class="field-label">Play Status</label>
+                  <span class="field-label" id="status-label">Status</span>
                   <ion-segment
+                    aria-labelledby="status-label"
                     [(ngModel)]="game.status"
                     name="status"
                     class="status-segment"
@@ -373,27 +359,29 @@
             }
 
             <div class="form-section">
-              <h3 class="section-title">Tags</h3>
-              <p class="field-help">Personal labels like “coop”, “vr”, “platinum-hunt”.</p>
+              <h2 class="section-title">Tags</h2>
+              <p class="field-help">Personal labels like “coop”, “vr” or “platinum-hunt” — filter your library by them later.</p>
               <div class="field-group tag-entry">
                 <ion-item class="form-item" lines="none">
                   <ion-input
                     [(ngModel)]="tagDraft"
                     name="tagDraft"
-                    placeholder="Add a tag and press Enter"
+                    placeholder="Type a tag, press Enter"
+                    aria-label="New tag"
                     (keyup.enter)="addTagFromDraft(); $event.preventDefault()"
                   ></ion-input>
                 </ion-item>
                 <button type="button" class="tag-add-btn" (click)="addTagFromDraft()">Add</button>
               </div>
               @if (game.tags?.length) {
-                <div class="genre-chips tag-chips">
+                <div class="tag-chips">
                   @for (tag of game.tags; track tag) {
                     <ion-chip
                       class="genre-chip selected"
                       (click)="removeTag(tag)"
+                      [attr.aria-label]="'Remove tag ' + tag"
                     >
-                      {{ tag }}
+                      #{{ tag }}
                       <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
                     </ion-chip>
                   }
@@ -402,49 +390,24 @@
             </div>
 
             <div class="form-section">
-              <h3 class="section-title">Notes</h3>
+              <h2 class="section-title">Notes</h2>
 
               <div class="field-group">
                 <ion-item class="form-item form-item--textarea" lines="none">
                   <ion-textarea
+                    aria-label="Notes"
                     [(ngModel)]="game.notes"
                     name="notes"
                     rows="4"
-                    placeholder="Any notes about the game..."></ion-textarea>
+                    placeholder="Builds, secrets, where you left off… (optional)"></ion-textarea>
                 </ion-item>
               </div>
             </div>
           </form>
         </ion-card-content>
       </ion-card>
-    </div>
-  }
-
-  @if (!isEdit || !isLoadingGame) {
-    <div class="fixed-actions">
-      <div class="actions-content">
-        <ion-button
-          fill="clear"
-          routerLink="/home"
-          class="cancel-btn">
-          Cancel
-        </ion-button>
-
-        <ion-button
-          (click)="submitForm()"
-          [disabled]="isSubmitting || !canSubmitForm()"
-          class="submit-btn">
-          <ion-icon name="save-outline" slot="start"></ion-icon>
-          @if (!isSubmitting) {
-            <span>{{ submitLabel }}</span>
-          }
-          @if (isSubmitting) {
-            <span>Saving...</span>
-          }
-        </ion-button>
-      </div>
-    </div>
-  }
+    }
+  </div>
 
   <ion-toast
     [isOpen]="!!toastMessage"
@@ -452,6 +415,19 @@
     color="danger"
     duration="4000"
     position="top"
+    cssClass="app-toast"
     (didDismiss)="toastMessage = ''">
   </ion-toast>
 </ion-content>
+
+@if (!isEdit || !isLoadingGame) {
+  <ion-footer class="form-footer">
+    <div class="form-footer__inner">
+      <a [routerLink]="cancelHref" class="btn btn--ghost">Cancel</a>
+      <button type="button" class="btn btn--primary" (click)="submitForm()" [disabled]="isSubmitting">
+        <ion-icon name="save-outline" aria-hidden="true"></ion-icon>
+        {{ isSubmitting ? 'Saving…' : submitLabel }}
+      </button>
+    </div>
+  </ion-footer>
+}

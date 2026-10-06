@@ -5,39 +5,43 @@ import { IonIcon, IonRouterOutlet } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   addOutline,
-  albumsOutline,
   checkmarkCircleOutline,
   chevronBackOutline,
   chevronForwardOutline,
-  ellipseOutline,
   gameControllerOutline,
-  gridOutline,
   heartOutline,
-  listOutline,
+  layersOutline,
   logOutOutline,
   menuOutline,
   pauseCircleOutline,
   personCircleOutline,
+  playCircleOutline,
   searchOutline,
   sparklesOutline,
   statsChartOutline,
-  timeOutline,
+  trophyOutline,
 } from 'ionicons/icons';
 import { filter, Subject, takeUntil } from 'rxjs';
+import { BrandMarkComponent } from '../../components/brand-mark/brand-mark.component';
 import { CommandPaletteComponent } from '../../components/command-palette/command-palette.component';
 import { AuthService } from '../../services/auth.service';
 import { CommandPaletteService } from '../../services/command-palette.service';
 import { GameService } from '../../services/game.service';
 import { LibraryPrefsService } from '../../services/library-prefs.service';
 import { Game } from '../../models/game.model';
+import { APP_NAME } from '../../shared/brand';
+import {
+  LIBRARY_COLLECTIONS,
+  LibraryCollection,
+  STATUS_COLLECTIONS,
+} from '../../shared/library-collections';
 
 interface NavItem {
   label: string;
   icon: string;
   link: string;
   queryParams?: Record<string, string>;
-  exact?: boolean;
-  count?: () => number;
+  count?: number;
 }
 
 @Component({
@@ -49,6 +53,7 @@ interface NavItem {
     RouterLinkActive,
     IonRouterOutlet,
     IonIcon,
+    BrandMarkComponent,
     CommandPaletteComponent,
   ],
   templateUrl: './app-shell.component.html',
@@ -62,13 +67,11 @@ export class AppShellComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly destroy$ = new Subject<void>();
 
+  protected readonly appName = APP_NAME;
   protected sidebarCollapsed = false;
   protected mobileDrawerOpen = false;
-  protected viewMode: 'grid' | 'list' | 'shelf' = 'grid';
-  private games: Game[] = [];
-  protected readonly modKey = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
-    ? '⌘'
-    : 'Ctrl+';
+  protected readonly modKey =
+    typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl ';
 
   protected primaryNav: NavItem[] = [];
   protected collectionNav: NavItem[] = [];
@@ -76,61 +79,51 @@ export class AppShellComponent implements OnInit, OnDestroy {
   public ngOnInit(): void {
     addIcons({
       addOutline,
-      albumsOutline,
       checkmarkCircleOutline,
       chevronBackOutline,
       chevronForwardOutline,
-      ellipseOutline,
       gameControllerOutline,
-      gridOutline,
       heartOutline,
-      listOutline,
+      layersOutline,
       logOutOutline,
       menuOutline,
       pauseCircleOutline,
       personCircleOutline,
+      playCircleOutline,
       searchOutline,
       sparklesOutline,
       statsChartOutline,
-      timeOutline,
+      trophyOutline,
     });
 
     this.sidebarCollapsed = this.prefs.sidebarCollapsed;
-    this.viewMode = this.prefs.viewMode;
-
     this.prefs.sidebarCollapsed$
       .pipe(takeUntil(this.destroy$))
-      .subscribe((v) => (this.sidebarCollapsed = v));
+      .subscribe((collapsed) => (this.sidebarCollapsed = collapsed));
 
-    this.prefs.viewMode$
+    this.buildNav([]);
+    this.gameService.games$
       .pipe(takeUntil(this.destroy$))
-      .subscribe((v) => (this.viewMode = v));
+      .subscribe((games) => this.buildNav(games));
 
-    this.gameService.games$.pipe(takeUntil(this.destroy$)).subscribe((games) => {
-      this.games = games;
-      this.buildNav();
-    });
-
-    // Ensure library data is available for sidebar counts & command palette
-    this.gameService.getGames().pipe(takeUntil(this.destroy$)).subscribe({
-      error: () => undefined,
-    });
-
-    this.buildNav();
+    // The shell owns the initial library load; pages re-filter the cached copy.
+    this.gameService.getGames().pipe(takeUntil(this.destroy$)).subscribe({ error: () => undefined });
 
     this.router.events
       .pipe(
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
         takeUntil(this.destroy$),
       )
-      .subscribe(() => {
-        this.mobileDrawerOpen = false;
-      });
+      .subscribe(() => (this.mobileDrawerOpen = false));
   }
 
   public ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  protected get showLabels(): boolean {
+    return !this.sidebarCollapsed || this.mobileDrawerOpen;
   }
 
   protected toggleSidebar(): void {
@@ -141,11 +134,7 @@ export class AppShellComponent implements OnInit, OnDestroy {
     this.palette.open();
   }
 
-  protected setView(mode: 'grid' | 'list' | 'shelf'): void {
-    this.prefs.setViewMode(mode);
-  }
-
-  protected onNavClick(): void {
+  protected closeDrawer(): void {
     this.mobileDrawerOpen = false;
   }
 
@@ -154,74 +143,22 @@ export class AppShellComponent implements OnInit, OnDestroy {
     void this.router.navigate(['/login']);
   }
 
-  private buildNav(): void {
-    const lib = this.games.filter((g) => g.status !== 'wishlist');
-    const count = (pred: (g: Game) => boolean) => () =>
-      this.games.filter(pred).length;
+  private buildNav(games: Game[]): void {
+    const count = (key: LibraryCollection) => games.filter(LIBRARY_COLLECTIONS[key].matches).length;
 
     this.primaryNav = [
-      {
-        label: 'All games',
-        icon: 'game-controller-outline',
-        link: '/home',
-        queryParams: {},
-        exact: true,
-        count: () => lib.length,
-      },
-      {
-        label: 'Insights',
-        icon: 'stats-chart-outline',
-        link: '/insights',
-      },
-      {
-        label: 'For you',
-        icon: 'sparkles-outline',
-        link: '/recommendations',
-      },
-      {
-        label: 'Play history',
-        icon: 'checkmark-circle-outline',
-        link: '/play-history',
-        count: () => lib.filter((g) => g.status === 'completed').length,
-      },
+      { label: 'Library', icon: 'game-controller-outline', link: '/home', queryParams: {}, count: count('all') },
+      { label: 'Insights', icon: 'stats-chart-outline', link: '/insights' },
+      { label: 'For you', icon: 'sparkles-outline', link: '/recommendations' },
+      { label: 'Play history', icon: 'trophy-outline', link: '/play-history' },
     ];
 
-    this.collectionNav = [
-      {
-        label: 'Not started',
-        icon: 'ellipse-outline',
-        link: '/home',
-        queryParams: { collection: 'not_started' },
-        count: count((g) => g.status === 'not_started'),
-      },
-      {
-        label: 'Playing',
-        icon: 'time-outline',
-        link: '/home',
-        queryParams: { collection: 'playing' },
-        count: count((g) => g.status === 'playing'),
-      },
-      {
-        label: 'Paused',
-        icon: 'pause-circle-outline',
-        link: '/home',
-        queryParams: { collection: 'paused' },
-        count: count((g) => g.status === 'paused'),
-      },
-      {
-        label: 'Completed',
-        icon: 'checkmark-circle-outline',
-        link: '/home',
-        queryParams: { collection: 'completed' },
-        count: count((g) => g.status === 'completed'),
-      },
-      {
-        label: 'Wishlist',
-        icon: 'heart-outline',
-        link: '/home',
-        queryParams: { collection: 'wishlist' },
-        count: count((g) => g.status === 'wishlist'),
-      },
-    ];
+    this.collectionNav = STATUS_COLLECTIONS.map((key) => ({
+      label: LIBRARY_COLLECTIONS[key].label,
+      icon: LIBRARY_COLLECTIONS[key].icon,
+      link: '/home',
+      queryParams: { collection: key },
+      count: count(key),
+    }));
   }
 }

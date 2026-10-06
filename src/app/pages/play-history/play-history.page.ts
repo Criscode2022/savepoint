@@ -1,67 +1,48 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import {
-  IonContent,
-  IonHeader,
-  IonToolbar,
-  IonButtons,
-  IonBackButton,
-  IonTitle,
-  IonIcon,
-  IonSpinner,
-} from '@ionic/angular/standalone';
+import { IonContent, IonIcon, IonSpinner } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import {
-  arrowBackOutline,
-  calendarOutline,
-  checkmarkCircleOutline,
-  gameControllerOutline,
-  starOutline,
-  timeOutline,
-} from 'ionicons/icons';
+import { star, timeOutline, trophyOutline } from 'ionicons/icons';
 import { Subject, takeUntil } from 'rxjs';
 import { Game } from '../../models/game.model';
 import { GameService } from '../../services/game.service';
 import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { isRated } from '../../shared/utils/rating.utils';
+
+interface CompletionYear {
+  year: string;
+  games: Game[];
+}
 
 @Component({
   selector: 'app-play-history',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterLink,
-    GameCoverComponent,
-    IonContent,
-    IonHeader,
-    IonToolbar,
-    IonButtons,
-    IonBackButton,
-    IonTitle,
-    IonIcon,
-    IonSpinner,
-  ],
+  imports: [CommonModule, RouterLink, GameCoverComponent, PageHeaderComponent, IonContent, IonIcon, IonSpinner],
   templateUrl: './play-history.page.html',
 })
 export class PlayHistoryPage implements OnInit, OnDestroy {
   private readonly gameService = inject(GameService);
 
-  protected completedGames: Game[] = [];
-  protected loading = true;
+  protected readonly gamesLoading = this.gameService.gamesLoading;
+  protected readonly isRated = isRated;
+  protected completedCount = 0;
+  protected years: CompletionYear[] = [];
 
   private readonly destroy$ = new Subject<void>();
 
   public ngOnInit(): void {
-    addIcons({
-      arrowBackOutline,
-      calendarOutline,
-      checkmarkCircleOutline,
-      gameControllerOutline,
-      starOutline,
-      timeOutline,
-    });
+    addIcons({ star, timeOutline, trophyOutline });
 
-    this.loadCompletedGames();
+    // Live: completing a game anywhere in the app updates this timeline.
+    this.gameService.games$.pipe(takeUntil(this.destroy$)).subscribe((games) => {
+      const completed = games
+        .filter((game) => game.status === 'completed')
+        .sort((a, b) => this.completedAt(b).localeCompare(this.completedAt(a)));
+      this.completedCount = completed.length;
+      this.years = this.groupByYear(completed);
+    });
   }
 
   public ngOnDestroy(): void {
@@ -69,48 +50,24 @@ export class PlayHistoryPage implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private trackByGameId(_index: number, game: Game): string {
-    return game.id;
-  }
-
-  protected getCompletedIso(game: Game): string {
-    return game.completedAt || game.updatedAt;
-  }
-
-  protected formatCompletedAt(game: Game): string {
-    const value = game.completedAt || game.updatedAt;
-    if (!value) {
-      return 'Date unknown';
+  protected get subtitle(): string {
+    if (!this.completedCount) {
+      return 'Every game you finish lands here, newest first.';
     }
-
-    return new Date(value).toLocaleString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const games = this.completedCount === 1 ? 'game' : 'games';
+    return `${this.completedCount} ${games} finished — and counting.`;
   }
 
-  private loadCompletedGames(): void {
-    this.loading = true;
-    this.gameService
-      .getGames()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (games) => {
-          this.completedGames = games
-            .filter((game) => game.status === 'completed')
-            .sort((a, b) =>
-              (b.completedAt || b.updatedAt).localeCompare(
-                a.completedAt || a.updatedAt,
-              ),
-            );
-          this.loading = false;
-        },
-        error: () => {
-          this.loading = false;
-        },
-      });
+  protected completedAt(game: Game): string {
+    return game.completedAt || game.updatedAt || '';
+  }
+
+  private groupByYear(games: Game[]): CompletionYear[] {
+    const groups = new Map<string, Game[]>();
+    for (const game of games) {
+      const year = this.completedAt(game).slice(0, 4) || 'Undated';
+      groups.set(year, [...(groups.get(year) ?? []), game]);
+    }
+    return [...groups.entries()].map(([year, list]) => ({ year, games: list }));
   }
 }
