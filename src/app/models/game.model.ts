@@ -30,11 +30,19 @@ export interface Director {
 export type GamePlayStatus = 'not_started' | 'playing' | 'paused' | 'completed' | 'wishlist';
 
 export const GAME_STATUS_LABELS: Record<GamePlayStatus, string> = {
-  not_started: 'Not Started',
+  not_started: 'Not started',
   playing: 'Playing',
   paused: 'Paused',
   completed: 'Completed',
   wishlist: 'Wishlist',
+};
+
+export const GAME_STATUS_ICONS: Record<GamePlayStatus, string> = {
+  not_started: 'ellipse-outline',
+  playing: 'play-circle-outline',
+  paused: 'pause-circle-outline',
+  completed: 'checkmark-circle-outline',
+  wishlist: 'heart-outline',
 };
 
 export const GAME_STATUS_CYCLE: Record<GamePlayStatus, GamePlayStatus> = {
@@ -112,19 +120,6 @@ export interface User {
   createdAt: string;
 }
 
-export interface GameFilter {
-  search?: string;
-  platformId?: string;
-  year?: number;
-  developerId?: string;
-  directorId?: string;
-  genre?: string;
-  status?: GamePlayStatus;
-  completed?: boolean;
-  sortBy?: 'title' | 'releaseYear' | 'rating' | 'createdAt' | 'lastPlayedAt' | 'playtimeHours';
-  sortOrder?: 'asc' | 'desc';
-}
-
 export interface GameFilters {
   search?: string;
   platforms?: string[];
@@ -181,29 +176,15 @@ export interface GameFormPayload {
   notes?: string;
 }
 
-export interface GamesResponse {
-  games: Game[];
-  total: number;
-  page: number;
-  limit: number;
-}
-
-export interface FilterOptions {
-  platforms: Platform[];
-  developers: Company[];
-  directors: Director[];
-  genres: string[];
-  years: number[];
-}
 
 export const PLATFORMS: Platform[] = [
-  { id: 'ps5', name: 'PlayStation 5', manufacturer: 'Sony', color: '#0070d1', createdAt: new Date().toISOString() },
-  { id: 'ps4', name: 'PlayStation 4', manufacturer: 'Sony', color: '#003791', createdAt: new Date().toISOString() },
-  { id: 'xbox-series', name: 'Xbox Series X/S', manufacturer: 'Microsoft', color: '#107c10', createdAt: new Date().toISOString() },
-  { id: 'xbox-one', name: 'Xbox One', manufacturer: 'Microsoft', color: '#107c10', createdAt: new Date().toISOString() },
-  { id: 'switch', name: 'Nintendo Switch', manufacturer: 'Nintendo', color: '#e60012', createdAt: new Date().toISOString() },
-  { id: 'pc', name: 'PC', manufacturer: 'Various', color: '#8b5cf6', createdAt: new Date().toISOString() },
-  { id: 'steam-deck', name: 'Steam Deck', manufacturer: 'Valve', color: '#1a9fff', createdAt: new Date().toISOString() }
+  { id: 'ps5', name: 'PlayStation 5', manufacturer: 'Sony', createdAt: new Date().toISOString() },
+  { id: 'ps4', name: 'PlayStation 4', manufacturer: 'Sony', createdAt: new Date().toISOString() },
+  { id: 'xbox-series', name: 'Xbox Series X/S', manufacturer: 'Microsoft', createdAt: new Date().toISOString() },
+  { id: 'xbox-one', name: 'Xbox One', manufacturer: 'Microsoft', createdAt: new Date().toISOString() },
+  { id: 'switch', name: 'Nintendo Switch', manufacturer: 'Nintendo', createdAt: new Date().toISOString() },
+  { id: 'pc', name: 'PC', manufacturer: 'Various', createdAt: new Date().toISOString() },
+  { id: 'steam-deck', name: 'Steam Deck', manufacturer: 'Valve', createdAt: new Date().toISOString() }
 ];
 
 export const GENRES: string[] = [

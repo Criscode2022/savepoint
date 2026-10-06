@@ -1,94 +1,61 @@
-<ion-header class="ion-no-border">
-  <ion-toolbar class="history-toolbar">
-    <ion-buttons slot="start">
-      <ion-back-button defaultHref="/home" icon="arrow-back-outline"></ion-back-button>
-    </ion-buttons>
-    <ion-title>Play History</ion-title>
-  </ion-toolbar>
-</ion-header>
-
 <ion-content class="history-content">
   <div class="history-container">
-    <header class="history-hero">
-      <div class="history-hero__icon" aria-hidden="true">
-        <ion-icon name="checkmark-circle-outline"></ion-icon>
-      </div>
-      <div class="history-hero__copy">
-        <h1 class="history-hero__title">Completed Games</h1>
-        <p class="history-hero__subtitle">
-          {{ completedGames.length }}
-          {{ completedGames.length === 1 ? 'game' : 'games' }} finished
-        </p>
-      </div>
-    </header>
+    <app-page-header title="Play history" [subtitle]="subtitle" />
 
-    @if (loading) {
-      <div class="history-loading">
+    @if (gamesLoading() && !completedCount) {
+      <div class="history-loading" aria-busy="true" aria-label="Loading play history">
         <ion-spinner name="crescent"></ion-spinner>
       </div>
-    }
-
-    @if (!loading && completedGames.length === 0) {
-      <div class="history-empty">
-        <ion-icon name="game-controller-outline"></ion-icon>
-        <h2>No completed games yet</h2>
-        <p>Mark a game as completed to see it here with the date you finished it.</p>
+    } @else if (!completedCount) {
+      <div class="empty-state">
+        <div class="empty-icon" aria-hidden="true"><ion-icon name="trophy-outline"></ion-icon></div>
+        <h2>No credits rolled yet</h2>
+        <p>Mark a game as completed and it’ll show up here with the date you finished it.</p>
+        <a routerLink="/home" [queryParams]="{ collection: 'playing' }" class="btn btn--ghost">See what you’re playing</a>
       </div>
-    }
-
-    @if (!loading && completedGames.length > 0) {
-      <ol class="history-timeline">
-        @for (game of completedGames; track game.id) {
-          <li class="history-entry">
-            <div class="history-entry__date">
-              <span class="history-entry__date-label">Completed</span>
-              <time [dateTime]="getCompletedIso(game)">
-                {{ formatCompletedAt(game) }}
-              </time>
-            </div>
-
-            <a [routerLink]="['/game', game.id]" class="history-entry__card">
-              <div class="history-entry__cover">
-                <app-game-cover
-                  [title]="game.title"
-                  [coverImage]="game.coverImage"
-                  variant="thumbnail"
-                />
-              </div>
-
-              <div class="history-entry__info">
-                <h2 class="history-entry__title">{{ game.title }}</h2>
-                <p class="history-entry__meta">
-                  @if (game.platform.name) {
-                    <span class="platform-tag">
-                      {{ game.platform.name }}
-                    </span>
-                  }
-                  @if (game.releaseYear) {
-                    <span>{{ game.releaseYear }}</span>
-                  }
-                </p>
-                <p class="history-entry__details">
-                  @if (game.rating) {
-                    <span class="detail-pill">
-                      <ion-icon name="star-outline"></ion-icon>
-                      {{ game.rating }}
-                    </span>
-                  }
-                  @if (game.playtimeHours) {
-                    <span class="detail-pill">
-                      <ion-icon name="time-outline"></ion-icon>
-                      {{ game.playtimeHours }}h
-                    </span>
-                  }
-                </p>
-              </div>
-
-              <ion-icon name="calendar-outline" class="history-entry__chevron" aria-hidden="true"></ion-icon>
-            </a>
-          </li>
-        }
-      </ol>
+    } @else {
+      @for (group of years; track group.year) {
+        <section class="history-year" [attr.aria-labelledby]="'year-' + group.year">
+          <h2 class="history-year__title" [id]="'year-' + group.year">
+            {{ group.year }}
+            <span class="section-count">{{ group.games.length }}</span>
+          </h2>
+          <ol class="history-timeline">
+            @for (game of group.games; track game.id) {
+              <li class="history-entry">
+                <a [routerLink]="['/game', game.id]" class="history-entry__card">
+                  <div class="history-entry__cover">
+                    <app-game-cover [title]="game.title" [coverImage]="game.coverImage" variant="thumbnail" />
+                  </div>
+                  <div class="history-entry__info">
+                    <h3 class="history-entry__title">{{ game.title }}</h3>
+                    <p class="history-entry__meta">
+                      @if (game.platform.name && game.platform.name !== 'Unknown') {
+                        <span>{{ game.platform.name }}</span>
+                      }
+                      @if (isRated(game)) {
+                        <span class="history-entry__stat">
+                          <ion-icon name="star" class="history-entry__star" aria-hidden="true"></ion-icon>
+                          {{ game.rating }}/10
+                        </span>
+                      }
+                      @if (game.playtimeHours) {
+                        <span class="history-entry__stat">
+                          <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+                          {{ game.playtimeHours }}h
+                        </span>
+                      }
+                    </p>
+                  </div>
+                  <time class="history-entry__date" [attr.datetime]="completedAt(game)">
+                    {{ completedAt(game) | date: 'MMM d' }}
+                  </time>
+                </a>
+              </li>
+            }
+          </ol>
+        </section>
+      }
     }
   </div>
 </ion-content>

@@ -11,14 +11,11 @@ import { catchError, finalize, map, tap } from "rxjs/operators";
 import {
   CreateGameRequest,
   deriveGameStatus,
-  FilterOptions,
   Game,
-  GameFilter,
   GameFilters,
   GameFormPayload,
   GamePlayStatus,
   GAME_STATUS_CYCLE,
-  GamesResponse,
   PlaySession,
   PLATFORMS,
   UpdateGameRequest,
@@ -35,11 +32,10 @@ import {
   clampRating,
   isValidRating,
 } from "../shared/utils/rating.utils";
-import {
-  collectUniqueGenres,
-  normalizeGenres,
-} from "../shared/utils/genre.utils";
+import { normalizeGenres } from "../shared/utils/genre.utils";
 import { normalizeTags } from "../shared/utils/tag.utils";
+import { platformColor } from "../shared/utils/platform.utils";
+import { sortGames } from "../shared/utils/game-sort.utils";
 import { normalizeCoverImage, processCoverImageFile } from "../shared/utils/image.utils";
 import type { ImportGameDraft } from "../shared/utils/library-import.utils";
 
@@ -135,33 +131,9 @@ export class GameService {
   private lastFilters: GameFilters | undefined;
 
   /**
-   * Get games with filters (returns GamesResponse with pagination)
-   */
-  public getGamesResponse(
-    filter?: GameFilter,
-    page = 1,
-    limit = 20,
-  ): Observable<GamesResponse> {
-    const currentUser = this.authService.getCurrentUser();
-    if (!currentUser) {
-      return throwError(() => new Error("User not authenticated"));
-    }
-
-    this.gamesLoading.set(true);
-    return from(
-      this.fetchGamesWithPagination(filter, page, limit, currentUser.id),
-    ).pipe(
-      tap((response) => {
-        this.gamesSubject.next(response.games);
-        this.filteredGames.set(response.games);
-      }),
-      finalize(() => this.gamesLoading.set(false)),
-      catchError((error) => this.handleError(error, "Failed to fetch games")),
-    );
-  }
-
-  /**
-   * Get games with filters (returns Game[] - for home page)
+   * Load the whole library, then apply filters client-side.
+   * `games$` always carries the full library (sidebar counts, tags, stats);
+   * `filteredGames` carries what the current filters let through.
    */
   public getGames(filters?: GameFilters): Observable<Game[]> {
     this.lastFilters = filters;
@@ -171,169 +143,33 @@ export class GameService {
     }
 
     this.gamesLoading.set(true);
-    return from(this.fetchGames(filters, currentUser.id)).pipe(
-      tap((games) => {
-        this.gamesSubject.next(games);
-        this.filteredGames.set(games);
-      }),
+    return from(this.fetchGames(currentUser.id)).pipe(
+      tap((games) => this.gamesSubject.next(games)),
+      map(() => this.filterGames(filters)),
       finalize(() => this.gamesLoading.set(false)),
       catchError((error) => this.handleError(error, "Failed to fetch games")),
     );
   }
 
-  private fetchGamesWithPagination(
-    filter: GameFilter | undefined,
-    page: number,
-    limit: number,
-    userId: string,
-  ): Promise<GamesResponse> {
-    const offset = (page - 1) * limit;
-
-    // Build filters
-    const filters: Record<string, any> = { user_id: userId };
-    if (filter?.platformId) filters["platform_id"] = filter.platformId;
-    if (filter?.year) filters["release_year"] = filter.year;
-    if (filter?.developerId) filters["developer_id"] = filter.developerId;
-    if (filter?.directorId) filters["director_id"] = filter.directorId;
-    if (filter?.genre) filters["genre"] = filter.genre;
-    if (filter?.completed !== undefined)
-      filters["completed"] = filter.completed;
-    if (filter?.status) filters["status"] = filter.status;
-
-    // Server-side search using PostgREST ILIKE
-    if (filter?.search?.trim()) {
-      const q = filter.search.trim().replace(/[()*]/g, " ").trim();
-      if (q) {
-        filters["title"] = `ilike.*${q}*`;
-      }
-    }
-
-    // For search, we need to use ILIKE which isn't directly supported by simple eq filters
-    // We'll fetch all and filter client-side for search, or use a custom endpoint
-
-    // Build order
-    const sortFieldMap: Record<string, string> = {
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-      releaseYear: "release_year",
-      playtimeHours: "playtime_hours",
-      lastPlayedAt: "last_played_at",
-      title: "title",
-      rating: "rating",
-    };
-    const sortBy = sortFieldMap[filter?.sortBy || "createdAt"] || "created_at";
-    const sortOrder = filter?.sortOrder === "asc" ? "asc" : "desc";
-    const order = `${sortBy}.${sortOrder}`;
-
-    // Avoid embedded selects here; Neon Data API can be strict about select parsing.
-    // We'll hydrate related entities client-side in a second step.
-    const select = "*";
-    return Promise.all([
-      // Get total count
-      firstValueFrom(
-        this.db.select<DbGame>("games", {
-          select: "count",
-          filters,
-          limit: 1,
-        }),
-      ).then(() => 0), // PostgREST returns count in headers, simplified here
-
-      // Get games
-      firstValueFrom(
-        this.db.select<DbGame>("games", {
-          select,
-          filters,
-          order,
-          limit,
-          offset,
-        }),
-      ),
-    ]).then(([total, games]) => {
-      // Count query - we need to do a separate count
-      return firstValueFrom(
-        this.db.select<DbGame>("games", { filters, limit: 10000 }),
-      ).then((allGames) => {
-        return this.hydrateGames(games).then((hydrated) => ({
-          games: hydrated.map((g) => this.mapGameFromDb(g)),
-          total: allGames.length,
-          page,
-          limit,
-        }));
-      });
-    });
+  /** Re-filter and sort the cached library without a network round-trip. */
+  public filterGames(filters?: GameFilters): Game[] {
+    this.lastFilters = filters;
+    const visible = this.gamesSubject.value.filter((game) =>
+      this.shouldIncludeGame(game, filters),
+    );
+    this.filteredGames.set(sortGames(visible, filters?.sortBy, filters?.sortOrder));
+    return this.filteredGames();
   }
 
-  private fetchGames(
-    filters: GameFilters | undefined,
-    userId: string,
-  ): Promise<Game[]> {
-    // Build base filters
-    const dbFilters: Record<string, any> = { user_id: userId };
-
-    // Server-side search using PostgREST ILIKE
-    if (filters?.search?.trim()) {
-      const q = filters.search.trim().replace(/[()*]/g, " ").trim();
-      if (q) {
-        dbFilters["title"] = `ilike.*${q}*`;
-      }
-    }
-
-    // Build order
-    const sortFieldMap: Record<string, string> = {
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-      releaseYear: "release_year",
-      playtimeHours: "playtime_hours",
-      lastPlayedAt: "last_played_at",
-      title: "title",
-      rating: "rating",
-    };
-    const sortBy = sortFieldMap[filters?.sortBy || "createdAt"] || "created_at";
-    const sortOrder = filters?.sortOrder === "asc" ? "asc" : "desc";
-    const order = `${sortBy}.${sortOrder}`;
-
-    // Avoid embedded selects; hydrate client-side.
-    const select = "*";
-
+  private fetchGames(userId: string): Promise<Game[]> {
     return firstValueFrom(
       this.db.select<DbGame>("games", {
-        select,
-        filters: dbFilters,
-        order,
+        select: "*",
+        filters: { user_id: userId },
       }),
     ).then(async (games) => {
       const hydrated = await this.hydrateGames(games);
-
-      // Client-side filtering for complex filters
-      let filtered = hydrated;
-
-      if (filters?.platforms?.length) {
-        filtered = filtered.filter(
-          (g) => g.platform && filters.platforms!.includes(g.platform.name),
-        );
-      }
-
-      if (filters?.years?.length) {
-        filtered = filtered.filter((g: any) =>
-          filters.years!.includes(g.release_year),
-        );
-      }
-
-      if (filters?.developers?.length) {
-        filtered = filtered.filter(
-          (g) => g.developer && filters.developers!.includes(g.developer.name),
-        );
-      }
-
-      if (filters?.tags?.length) {
-        const wanted = filters.tags.map((t) => t.toLowerCase());
-        filtered = filtered.filter((g) => {
-          const tags = normalizeTags(g.tags);
-          return tags.some((t) => wanted.includes(t.toLowerCase()));
-        });
-      }
-
-      return filtered.map((g) => this.mapGameFromDb(g));
+      return hydrated.map((g) => this.mapGameFromDb(g));
     });
   }
 
@@ -354,10 +190,15 @@ export class GameService {
             id: platform.id,
             name: platform.name,
             manufacturer: platform.manufacturer,
-            color: platform.color,
+            color: platform.color ?? platformColor(platform.name),
             createdAt: platform.created_at,
           }
-        : { id: "", name: "Unknown", createdAt: new Date().toISOString() },
+        : {
+            id: "",
+            name: "Unknown",
+            color: platformColor(),
+            createdAt: new Date().toISOString(),
+          },
       developerId: g.developer_id,
       developer: developer
         ? {
@@ -540,14 +381,10 @@ export class GameService {
     return this.db.insert<DbGame>("games", data).pipe(
       switchMap((result: DbGame) => this.getGameById(result.id)),
       tap((createdGame) => {
-        if (this.shouldIncludeGame(createdGame, this.lastFilters)) {
-          this.gamesSubject.next(
-            this.mergeGameIntoList(this.gamesSubject.value, createdGame),
-          );
-          this.filteredGames.set(
-            this.mergeGameIntoList(this.filteredGames(), createdGame),
-          );
-        }
+        this.gamesSubject.next(
+          this.mergeGameIntoList(this.gamesSubject.value, createdGame),
+        );
+        this.filterGames(this.lastFilters);
       }),
       catchError((error) => this.handleError(error, "Failed to create game")),
     );
@@ -737,9 +574,7 @@ export class GameService {
           game.id === normalizedGame.id ? normalizedGame : game,
         );
         this.gamesSubject.next(games);
-        this.filteredGames.set(
-          games.filter((game) => this.shouldIncludeGame(game, this.lastFilters)),
-        );
+        this.filterGames(this.lastFilters);
       }),
       catchError((error) => this.handleError(error, "Failed to update game")),
     );
@@ -752,15 +587,14 @@ export class GameService {
     }
 
     return this.db.deleteById("games", id).pipe(
-      switchMap(() =>
-        this.getGames(this.lastFilters).pipe(map(() => undefined)),
-      ),
+      map(() => {
+        this.gamesSubject.next(
+          this.gamesSubject.value.filter((game) => game.id !== id),
+        );
+        this.filterGames(this.lastFilters);
+      }),
       catchError((error) => this.handleError(error, "Failed to delete game")),
     );
-  }
-
-  public toggleCompleted(gameId: string): Observable<Game> {
-    return this.cycleStatus(gameId);
   }
 
   public cycleStatus(gameId: string): Observable<Game> {
@@ -1031,70 +865,6 @@ export class GameService {
       );
   }
 
-  public getFilterOptions(): Observable<FilterOptions> {
-    return from(
-      Promise.all([
-        firstValueFrom(
-          this.db.select<DbPlatform>("platforms", { order: "name.asc" }),
-        ),
-        firstValueFrom(
-          this.db.select<DbCompany>("companies", { order: "name.asc" }),
-        ),
-        firstValueFrom(
-          this.db.select<DbDirector>("directors", { order: "name.asc" }),
-        ),
-        firstValueFrom(
-          this.db.select<DbGame>("games", {
-            select: "genre",
-            filters: { genre: "not.is.null" },
-          }),
-        ),
-        firstValueFrom(
-          this.db.select<DbGame>("games", {
-            select: "release_year",
-            filters: { release_year: "not.is.null" },
-            order: "release_year.desc",
-          }),
-        ),
-      ]),
-    ).pipe(
-      map(
-        ([platforms, companies, directors, gamesWithGenre, gamesWithYear]) => ({
-          platforms: platforms.map((p) => ({
-            id: p.id,
-            name: p.name,
-            manufacturer: p.manufacturer,
-            color: p.color,
-            createdAt: p.created_at,
-          })),
-          developers: companies.map((c) => ({
-            id: c.id,
-            name: c.name,
-            country: c.country,
-            createdAt: c.created_at,
-          })),
-          directors: directors.map((d) => ({
-            id: d.id,
-            name: d.name,
-            birthYear: d.birth_year,
-            nationality: d.nationality,
-            bio: d.bio,
-            createdAt: d.created_at,
-          })),
-          genres: collectUniqueGenres(gamesWithGenre),
-          years: [
-            ...new Set(
-              gamesWithYear.map((g) => g.release_year).filter(Boolean),
-            ),
-          ] as number[],
-        }),
-      ),
-      catchError((error) =>
-        this.handleError(error, "Failed to fetch filter options"),
-      ),
-    );
-  }
-
   public uploadCoverImage(file: File): Observable<string> {
     return from(processCoverImageFile(file)).pipe(
       catchError((error) =>
@@ -1106,119 +876,6 @@ export class GameService {
         ),
       ),
     );
-  }
-
-  public searchGames(query: string, limit = 10): Observable<Game[]> {
-    return this.getGames({ search: query });
-  }
-
-  public getGenres(): Observable<string[]> {
-    const userId = this.authService.getCurrentUser()?.id;
-    if (!userId) {
-      return of([]);
-    }
-
-    return this.db
-      .select<DbGame>("games", {
-        select: "genre",
-        filters: { user_id: userId },
-      })
-      .pipe(
-        map((games) => collectUniqueGenres(games)),
-        catchError((error) =>
-          this.handleError(error, "Failed to fetch genres"),
-        ),
-      );
-  }
-
-  public getPlatforms(): Observable<string[]> {
-    const userId = this.authService.getCurrentUser()?.id;
-    if (!userId) {
-      return of([]);
-    }
-
-    return this.db
-      .select<DbGame>("games", {
-        select: "platform_id",
-        filters: { user_id: userId, platform_id: "not.is.null" },
-      })
-      .pipe(
-        switchMap((games) => {
-          const platformIds = [
-            ...new Set(games.map((g) => g.platform_id).filter(Boolean)),
-          ] as string[];
-
-          if (platformIds.length === 0) {
-            return of([]);
-          }
-
-          return this.db
-            .select<DbPlatform>("platforms", {
-              select: "name",
-              filters: { id: `in.(${platformIds.join(",")})` },
-              order: "name.asc",
-            })
-            .pipe(map((platforms) => platforms.map((p) => p.name)));
-        }),
-        catchError(() => of([])),
-      );
-  }
-
-  public getYears(): Observable<number[]> {
-    const userId = this.authService.getCurrentUser()?.id;
-    if (!userId) {
-      return of([]);
-    }
-
-    return this.db
-      .select<DbGame>("games", {
-        select: "release_year",
-        filters: { user_id: userId, release_year: "not.is.null" },
-        order: "release_year.desc",
-      })
-      .pipe(
-        map((games) =>
-          [...new Set(
-            games
-              .map((g) => g.release_year)
-              .filter((year): year is number => year != null),
-          )].sort((a, b) => b - a),
-        ),
-        catchError(() => of([])),
-      );
-  }
-
-  public getDevelopers(): Observable<string[]> {
-    const userId = this.authService.getCurrentUser()?.id;
-    if (!userId) {
-      return of([]);
-    }
-
-    return this.db
-      .select<DbGame>("games", {
-        select: "developer_id",
-        filters: { user_id: userId, developer_id: "not.is.null" },
-      })
-      .pipe(
-        switchMap((games) => {
-          const developerIds = [
-            ...new Set(games.map((g) => g.developer_id).filter(Boolean)),
-          ] as string[];
-
-          if (developerIds.length === 0) {
-            return of([]);
-          }
-
-          return this.db
-            .select<DbCompany>("companies", {
-              select: "name",
-              filters: { id: `in.(${developerIds.join(",")})` },
-              order: "name.asc",
-            })
-            .pipe(map((companies) => companies.map((c) => c.name)));
-        }),
-        catchError(() => of([])),
-      );
   }
 
   private handleError(error: any, defaultMessage: string): Observable<never> {

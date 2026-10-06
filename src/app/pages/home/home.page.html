@@ -1,754 +1,394 @@
 <ion-content class="home-content">
   <div class="content-wrapper vault-home">
-    <!-- Continue Playing -->
-    @if (!gamesLoading() && continuePlaying.length > 0 && libraryStatusFilter === 'all' && !hasActiveFilters()) {
-      <section
-        class="continue-section"
-        aria-label="Continue playing"
-      >
-        <div class="section-header section-header--continue">
-          <div>
-            <h2 class="section-title">Continue playing</h2>
-            <p class="section-subtitle">Pick up where you left off</p>
+    @if (gamesLoading() && libraryIsEmpty) {
+      <div class="games-loading" aria-busy="true" aria-label="Loading your library">
+        <div class="games-grid" aria-hidden="true">
+          @for (_ of skeletonGridItems; track $index) {
+            <div class="skeleton-card">
+              <div class="skeleton-cover"><span class="skeleton-chip"></span></div>
+              <div class="skeleton-body">
+                <div class="skeleton-line tall"></div>
+                <div class="skeleton-meta">
+                  <div class="skeleton-line short"></div>
+                  <div class="skeleton-line tiny"></div>
+                </div>
+                <div class="skeleton-line medium"></div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    } @else if (libraryIsEmpty) {
+      <div class="empty-state empty-state--hero">
+        <div class="empty-icon" aria-hidden="true">
+          <ion-icon name="game-controller-outline"></ion-icon>
+        </div>
+        <h1>No save data found</h1>
+        <p>
+          {{ appName }} is empty. Add the games you own, are playing or have finished —
+          covers, status and playtime all live here.
+        </p>
+        <div class="empty-state__actions">
+          <a routerLink="/add" class="btn btn--primary">
+            <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+            Add your first game
+          </a>
+          <button type="button" class="btn btn--ghost" (click)="importFileInput.click()" [disabled]="importing">
+            <ion-icon name="document-attach-outline" aria-hidden="true"></ion-icon>
+            {{ importing ? 'Importing…' : 'Import a JSON backup' }}
+          </button>
+        </div>
+      </div>
+    } @else {
+      <!-- Continue -->
+      @if (showContinueRail) {
+        <section class="continue-section" aria-labelledby="continue-title">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title" id="continue-title">Continue</h2>
+              <p class="section-subtitle">Pick up where you left off</p>
+            </div>
+          </div>
+          <div class="continue-rail">
+            @for (game of continuePlaying; track game.id) {
+              <a class="continue-card" [routerLink]="['/game', game.id]">
+                <div class="continue-card__cover">
+                  <app-game-cover [title]="game.title" [coverImage]="game.coverImage" variant="card" />
+                  <span class="continue-card__play" aria-hidden="true">
+                    <ion-icon name="play-outline"></ion-icon>
+                  </span>
+                </div>
+                <div class="continue-card__meta">
+                  <h3 class="continue-card__title">{{ game.title }}</h3>
+                  <p class="continue-card__sub">
+                    {{ platformLabel(game) }}@if (game.playtimeHours) { · {{ game.playtimeHours }}h }
+                  </p>
+                </div>
+              </a>
+            }
+          </div>
+        </section>
+      }
+
+      <section class="library-section" aria-labelledby="library-title">
+        <div class="library-head">
+          <div class="library-head__title">
+            <h1 class="library-title" id="library-title">{{ collectionMeta[collection].title }}</h1>
+            <span class="section-count" aria-label="games in this view">{{ collectionGames.length }}</span>
+          </div>
+
+          <div class="library-head__actions">
+            <div class="segmented" role="group" aria-label="Layout">
+              <button type="button" class="segmented__btn" [class.segmented__btn--active]="viewMode === 'grid'"
+                [attr.aria-pressed]="viewMode === 'grid'" (click)="setViewMode('grid')" aria-label="Grid" title="Grid">
+                <ion-icon name="grid-outline" aria-hidden="true"></ion-icon>
+              </button>
+              <button type="button" class="segmented__btn" [class.segmented__btn--active]="viewMode === 'list'"
+                [attr.aria-pressed]="viewMode === 'list'" (click)="setViewMode('list')" aria-label="List" title="List">
+                <ion-icon name="list-outline" aria-hidden="true"></ion-icon>
+              </button>
+              <button type="button" class="segmented__btn" [class.segmented__btn--active]="viewMode === 'shelf'"
+                [attr.aria-pressed]="viewMode === 'shelf'" (click)="setViewMode('shelf')" aria-label="Shelf" title="Shelf">
+                <ion-icon name="albums-outline" aria-hidden="true"></ion-icon>
+              </button>
+            </div>
+
+            <button type="button" id="library-menu-trigger" class="icon-btn" aria-label="Library actions" title="Library actions">
+              <ion-icon name="ellipsis-horizontal" aria-hidden="true"></ion-icon>
+            </button>
+            <ion-popover trigger="library-menu-trigger" triggerAction="click" [dismissOnSelect]="true"
+              alignment="end" side="bottom" class="app-menu-popover">
+              <ng-template>
+                <div class="menu-list" role="menu">
+                  <button type="button" role="menuitem" class="menu-list__item" (click)="openExportDialog('library')">
+                    <ion-icon name="download-outline" aria-hidden="true"></ion-icon>
+                    Export library…
+                  </button>
+                  <button type="button" role="menuitem" class="menu-list__item" (click)="importFileInput.click()"
+                    [disabled]="importing">
+                    <ion-icon name="document-attach-outline" aria-hidden="true"></ion-icon>
+                    {{ importing ? 'Importing…' : 'Import from JSON…' }}
+                  </button>
+                </div>
+              </ng-template>
+            </ion-popover>
           </div>
         </div>
-        <div class="continue-rail">
-          @for (game of continuePlaying; track game.id; let i = $index) {
-            <a
-              class="continue-card"
-              [routerLink]="['/game', game.id]"
-              [style.--i]="i"
-            >
-              <div class="continue-card__cover">
-                <app-game-cover
-                  [title]="game.title"
-                  [coverImage]="game.coverImage"
-                  variant="card"
-                />
-                <span class="continue-card__play" aria-hidden="true">
-                  <ion-icon name="play-outline"></ion-icon>
-                </span>
-              </div>
-              <div class="continue-card__meta">
-                <h3 class="continue-card__title">{{ game.title }}</h3>
-                <p class="continue-card__sub">
-                  @if (game.platform.name) {
-                    <span>{{ game.platform.name }}</span>
-                  }
-                  @if (game.playtimeHours) {
-                    <span> · {{ game.playtimeHours }}h</span>
-                  }
-                </p>
-              </div>
-            </a>
-          }
-        </div>
-      </section>
-    }
 
-    <!-- Toolbar: search + filters + sort -->
-    <div class="library-toolbar">
-      <div class="search-bar-container">
-        <div class="search-field">
-          <ion-icon name="search-outline" class="search-field__icon" aria-hidden="true"></ion-icon>
-          <ion-input
-            [(ngModel)]="searchQuery"
-            (ionInput)="onSearch($event)"
-            placeholder="Filter this collection…"
-            class="search-field__input"
-            clearInput="true"
-            enterkeyhint="search"
-          ></ion-input>
-        </div>
-
-        <div class="filter-toggle-wrap">
-          <button
-            type="button"
-            (click)="showFilters = !showFilters"
-            [class.active]="showFilters || hasActiveFilters()"
-            class="filter-toggle-btn filter-toggle-btn--wide"
-            [attr.aria-expanded]="showFilters"
-            aria-label="Toggle filters"
-          >
-            <ion-icon name="filter-outline" aria-hidden="true" class="filter-toggle-icon"></ion-icon>
-            <span class="filter-toggle-label">Filters</span>
-          </button>
-          @if (activeFilterCount > 0) {
-            <span class="filter-badge" aria-hidden="true">{{ activeFilterCount }}</span>
-          }
-        </div>
-
-        <button
-          type="button"
-          class="toolbar-icon-btn"
-          (click)="openExportDialog()"
-          title="Download library"
-          aria-label="Download library"
-        >
-          <ion-icon name="download-outline"></ion-icon>
-        </button>
-
-        <button
-          type="button"
-          class="toolbar-icon-btn"
-          (click)="importFileInput.click()"
-          title="Import library JSON"
-          aria-label="Import library JSON"
-          [disabled]="importing"
-        >
-          <ion-icon name="document-attach-outline"></ion-icon>
-        </button>
-        <input
-          #importFileInput
-          type="file"
-          accept="application/json,.json"
-          hidden
-          (change)="onImportFile($event)"
-        />
-
-        <button
-          type="button"
-          class="toolbar-icon-btn"
-          (click)="saveCurrentCollection()"
-          title="Save current view as collection"
-          aria-label="Save current view as collection"
-        >
-          <ion-icon name="bookmark-outline"></ion-icon>
-        </button>
-      </div>
-
-      @if (savedCollections.length) {
-        <div class="saved-collections">
-          @for (col of savedCollections; track col.id) {
+        <!-- Smart collections (sidebar covers this on desktop) -->
+        <div class="collection-chips" role="tablist" aria-label="Collections">
+          @for (key of chipCollections; track key) {
             <button
               type="button"
+              role="tab"
               class="collection-chip"
-              [class.collection-chip--active]="activeSavedCollectionId === col.id"
-              (click)="applySavedCollection(col)"
+              [class.collection-chip--active]="collection === key"
+              [attr.aria-selected]="collection === key"
+              (click)="setCollection(key)"
             >
-              {{ col.name }}
-              <span
-                class="collection-chip__remove"
-                (click)="removeSavedCollection($event, col.id)"
-                aria-label="Remove saved collection"
-              >×</span>
+              {{ collectionMeta[key].label }}
+              <span class="collection-chip__count">{{ collectionCount(key) }}</span>
             </button>
           }
         </div>
-      }
 
-      <div class="collection-chips" role="tablist" aria-label="Smart collections">
-        <button
-          type="button"
-          class="collection-chip"
-          [class.collection-chip--active]="isLibraryFilterActive('all')"
-          (click)="setCollection('all')"
-          role="tab"
-          [attr.aria-selected]="isLibraryFilterActive('all')"
-        >
-          All
-          <span class="collection-chip__count">{{ libraryGamesCount }}</span>
-        </button>
-        <button
-          type="button"
-          class="collection-chip"
-          [class.collection-chip--active]="isLibraryFilterActive('playing')"
-          [disabled]="playingCount === 0"
-          (click)="setCollection('playing')"
-          role="tab"
-          [attr.aria-selected]="isLibraryFilterActive('playing')"
-        >
-          Playing
-          <span class="collection-chip__count">{{ playingCount }}</span>
-        </button>
-        <button
-          type="button"
-          class="collection-chip"
-          [class.collection-chip--active]="isLibraryFilterActive('paused')"
-          [disabled]="pausedCount === 0"
-          (click)="setCollection('paused')"
-          role="tab"
-          [attr.aria-selected]="isLibraryFilterActive('paused')"
-        >
-          Paused
-          <span class="collection-chip__count">{{ pausedCount }}</span>
-        </button>
-        <button
-          type="button"
-          class="collection-chip"
-          [class.collection-chip--active]="isLibraryFilterActive('completed')"
-          [disabled]="completedCount === 0"
-          (click)="setCollection('completed')"
-          role="tab"
-          [attr.aria-selected]="isLibraryFilterActive('completed')"
-        >
-          Done
-          <span class="collection-chip__count">{{ completedCount }}</span>
-        </button>
-        <button
-          type="button"
-          class="collection-chip"
-          [class.collection-chip--active]="isLibraryFilterActive('wishlist')"
-          [disabled]="wishlistGames.length === 0 && libraryStatusFilter !== 'wishlist'"
-          (click)="setCollection('wishlist')"
-          role="tab"
-          [attr.aria-selected]="isLibraryFilterActive('wishlist')"
-        >
-          Wishlist
-          <span class="collection-chip__count">{{ wishlistGames.length }}</span>
-        </button>
-        <button
-          type="button"
-          class="collection-chip"
-          [class.collection-chip--active]="isLibraryFilterActive('not_started')"
-          [disabled]="notStartedCount === 0"
-          (click)="setCollection('not_started')"
-          role="tab"
-          [attr.aria-selected]="isLibraryFilterActive('not_started')"
-        >
-          Backlog
-          <span class="collection-chip__count">{{ notStartedCount }}</span>
-        </button>
-      </div>
-    </div>
+        <!-- Toolbar -->
+        <div class="library-toolbar">
+          <div class="search-field">
+            <ion-icon name="search-outline" class="search-field__icon" aria-hidden="true"></ion-icon>
+            <ion-input
+              [(ngModel)]="searchQuery"
+              (ionInput)="onSearch($event)"
+              placeholder="Filter by title…"
+              aria-label="Filter by title"
+              class="search-field__input"
+              [clearInput]="true"
+              enterkeyhint="search"
+            ></ion-input>
+          </div>
 
-    <!-- Quick tag filter rail -->
-    @if (availableTags.length && !gamesLoading()) {
-      <div class="tag-rail" role="toolbar" aria-label="Filter by tag">
-        <button
-          type="button"
-          class="tag-rail__chip"
-          [class.tag-rail__chip--active]="selectedTags.length === 0"
-          (click)="clearTagFilters()"
-        >
-          All tags
-        </button>
-        @for (tag of availableTags; track tag) {
-          <button
-            type="button"
-            class="tag-rail__chip"
-            [class.tag-rail__chip--active]="isTagSelected(tag)"
-            (click)="toggleTag(tag)"
-          >
-            #{{ tag }}
-          </button>
-        }
-      </div>
-    }
+          <div class="library-toolbar__controls">
+            <button
+              type="button"
+              class="toolbar-btn"
+              [class.toolbar-btn--active]="showFilters || panelFilterCount > 0"
+              [attr.aria-expanded]="showFilters"
+              aria-controls="filters-panel"
+              (click)="showFilters = !showFilters"
+            >
+              <ion-icon name="filter-outline" aria-hidden="true"></ion-icon>
+              <span>Filters</span>
+              @if (panelFilterCount > 0) {
+                <span class="toolbar-btn__badge">{{ panelFilterCount }}</span>
+              }
+            </button>
 
-    <!-- Filters Panel -->
-    @if (showFilters) {
-      <div class="filters-panel">
-        <div class="filters-header">
-          <h3>Filters &amp; sort</h3>
-          <ion-button fill="clear" size="small" (click)="clearFilters()">Clear All</ion-button>
+            <div class="sort-control">
+              <ion-select
+                [(ngModel)]="sortBy"
+                (ionChange)="onSortChange()"
+                interface="popover"
+                class="sort-control__select"
+                aria-label="Sort by"
+                label="Sort"
+                labelPlacement="start"
+                [interfaceOptions]="{ cssClass: 'app-select-popover' }"
+              >
+                @for (option of sortOptions; track option.value) {
+                  <ion-select-option [value]="option.value">{{ option.label }}</ion-select-option>
+                }
+              </ion-select>
+              <button
+                type="button"
+                class="sort-control__dir"
+                (click)="toggleSortOrder()"
+                [attr.aria-label]="'Sort direction: ' + sortOrderLabel"
+                [title]="sortOrderLabel"
+              >
+                <ion-icon [name]="sortOrder === 'asc' ? 'arrow-up-outline' : 'arrow-down-outline'" aria-hidden="true"></ion-icon>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <ion-grid class="filters-grid">
-          <ion-row>
-            <ion-col size="12" sizeMd="6" sizeLg="3">
+        <!-- Filters panel -->
+        @if (showFilters) {
+          <div class="filters-panel" id="filters-panel">
+            <div class="filters-columns">
               <div class="filter-group">
-                <label>Platform</label>
-                <div class="filter-chips">
-                  @for (platform of platforms; track platform) {
-                    <ion-chip
-                      [class.selected]="isPlatformSelected(platform)"
-                      (click)="togglePlatform(platform)"
-                      [style.--platform-color]="getPlatformColor(platform)"
-                    >
+                <span class="filter-group__label" id="filter-platform">Platform</span>
+                <div class="filter-chips" role="group" aria-labelledby="filter-platform">
+                  @for (platform of filterOptions.platforms; track platform) {
+                    <ion-chip [class.selected]="isPlatformSelected(platform)" (click)="togglePlatform(platform)"
+                      [attr.aria-pressed]="isPlatformSelected(platform)">
                       {{ platform }}
                     </ion-chip>
                   }
                 </div>
               </div>
-            </ion-col>
 
-            <ion-col size="12" sizeMd="6" sizeLg="3">
               <div class="filter-group">
-                <label>Release Year</label>
-                <div class="filter-chips">
-                  @for (year of years; track year) {
-                    <ion-chip
-                      [class.selected]="isYearSelected(year)"
-                      (click)="toggleYear(year)"
-                    >
+                <span class="filter-group__label" id="filter-year">Release year</span>
+                <div class="filter-chips" role="group" aria-labelledby="filter-year">
+                  @for (year of filterOptions.years; track year) {
+                    <ion-chip [class.selected]="isYearSelected(year)" (click)="toggleYear(year)"
+                      [attr.aria-pressed]="isYearSelected(year)">
                       {{ year }}
                     </ion-chip>
                   }
                 </div>
               </div>
-            </ion-col>
 
-            <ion-col size="12" sizeMd="6" sizeLg="3">
-              <div class="filter-group">
-                <label>Developer</label>
-                <ion-select
-                  [(ngModel)]="selectedDevelopers"
-                  [multiple]="true"
-                  placeholder="Select developers"
-                  interface="popover"
-                  class="gaming-select"
-                  (ionChange)="applyFilters()"
-                >
-                  @for (dev of developers; track dev) {
-                    <ion-select-option [value]="dev">
-                      {{ dev }}
-                    </ion-select-option>
-                  }
-                </ion-select>
-              </div>
-            </ion-col>
-
-            <ion-col size="12" sizeMd="6" sizeLg="3">
-              <div class="filter-group">
-                <label>Sort By</label>
-                <ion-select
-                  [(ngModel)]="sortBy"
-                  (ionChange)="applyFilters()"
-                  interface="popover"
-                  class="gaming-select"
-                >
-                  <ion-select-option value="title">Title</ion-select-option>
-                  <ion-select-option value="releaseYear">Release Year</ion-select-option>
-                  <ion-select-option value="rating">Rating</ion-select-option>
-                  <ion-select-option value="createdAt">Date Added</ion-select-option>
-                  <ion-select-option value="lastPlayedAt">Last Played</ion-select-option>
-                  <ion-select-option value="playtimeHours">Playtime</ion-select-option>
-                </ion-select>
-              </div>
-            </ion-col>
-
-            @if (genres.length) {
-              <ion-col size="12">
+              @if (filterOptions.genres.length) {
                 <div class="filter-group">
-                  <label>Genre</label>
-                  <div class="filter-chips">
-                    @for (genre of genres; track genre) {
-                      <ion-chip
-                        [class.selected]="isGenreSelected(genre)"
-                        (click)="toggleGenre(genre)"
-                      >
+                  <span class="filter-group__label" id="filter-genre">Genre</span>
+                  <div class="filter-chips" role="group" aria-labelledby="filter-genre">
+                    @for (genre of filterOptions.genres; track genre) {
+                      <ion-chip [class.selected]="isGenreSelected(genre)" (click)="toggleGenre(genre)"
+                        [attr.aria-pressed]="isGenreSelected(genre)">
                         {{ genre }}
                       </ion-chip>
                     }
                   </div>
                 </div>
-              </ion-col>
-            }
+              }
 
-            <ion-col size="12">
               <div class="filter-group">
-                <label>Tags</label>
-                @if (!availableTags.length) {
-                  <p class="filter-group__hint">
-                    No tags yet — add tags on a game’s edit screen, then filter here.
-                  </p>
-                }
-                @if (availableTags.length) {
-                  <div class="filter-chips">
-                    @for (tag of availableTags; track tag) {
-                      <ion-chip
-                        [class.selected]="isTagSelected(tag)"
-                        (click)="toggleTag(tag)"
-                      >
-                        #{{ tag }}
-                      </ion-chip>
-                    }
-                  </div>
-                }
-              </div>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-
-        @if (hasActiveFilters()) {
-          <div class="active-filters">
-            @for (filter of getActiveFilterChips(); track filter.type + ':' + filter.label) {
-              <button
-                type="button"
-                class="active-filter-chip"
-                (click)="removeFilter(filter.type, filter.value)"
-              >
-                <span class="active-filter-chip__label">{{ filter.label }}</span>
-                <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
-              </button>
-            }
-          </div>
-        }
-      </div>
-    }
-
-    @if (hasActiveFilters() && !gamesLoading()) {
-      <div class="filter-results-bar">
-        <p class="filter-results-bar__count">
-          <strong>{{ filteredResultsCount }}</strong>
-          {{ filteredResultsCount === 1 ? 'game' : 'games' }} found
-        </p>
-        <button
-          type="button"
-          class="filter-results-bar__download"
-          (click)="openFilteredExportDialog()"
-          [disabled]="filteredResultsCount === 0"
-        >
-          <ion-icon name="download-outline" aria-hidden="true"></ion-icon>
-          <span>Download</span>
-        </button>
-      </div>
-    }
-
-    @if (gamesLoading()) {
-      <div class="games-loading" aria-busy="true" aria-label="Loading games">
-        @if (viewMode === 'grid') {
-          <div class="games-grid" aria-hidden="true">
-            @for (_ of skeletonGridItems; track $index) {
-              <div class="skeleton-card">
-                <div class="skeleton-cover">
-                  <span class="skeleton-chip"></span>
-                </div>
-                <div class="skeleton-body">
-                  <div class="skeleton-line tall"></div>
-                  <div class="skeleton-meta">
-                    <div class="skeleton-line short"></div>
-                    <div class="skeleton-line tiny"></div>
-                  </div>
-                  <div class="skeleton-line medium"></div>
-                  <div class="skeleton-chips">
-                    <span class="skeleton-pill"></span>
-                    <span class="skeleton-pill"></span>
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-        } @else if (viewMode === 'shelf') {
-          <div class="games-shelf" aria-hidden="true">
-            @for (_ of skeletonShelfItems; track $index) {
-              <div class="skeleton-shelf-item">
-                <div class="skeleton-cover skeleton-cover--shelf"></div>
-                <div class="skeleton-line medium"></div>
-                <div class="skeleton-line short"></div>
-              </div>
-            }
-          </div>
-        } @else {
-          <div class="skeleton-list" aria-hidden="true">
-            @for (_ of skeletonListItems; track $index) {
-              <div class="skeleton-list-item">
-                <div class="skeleton-cover skeleton-cover--list"></div>
-                <div class="skeleton-list-body">
-                  <div class="skeleton-line tall"></div>
-                  <div class="skeleton-line medium"></div>
-                  <div class="skeleton-line short"></div>
-                </div>
-              </div>
-            }
-          </div>
-        }
-      </div>
-    }
-
-    <!-- Main library (non-wishlist collection) -->
-    @if (!gamesLoading() && libraryStatusFilter !== 'wishlist' && (showStatusSections || displayGames.length > 0)) {
-      <section
-        id="library-section"
-        class="library-section"
-      >
-        <div class="section-header">
-          <h2 class="section-title">{{ collectionTitle }}</h2>
-          <div class="section-header__actions">
-            <span class="section-count">{{ librarySectionCountLabel }}</span>
-            <div class="view-mode-inline" role="group" aria-label="View mode">
-              <button type="button" class="view-mode-btn" [class.active]="viewMode === 'grid'" (click)="setViewMode('grid')" aria-label="Grid">
-                <ion-icon name="grid-outline"></ion-icon>
-              </button>
-              <button type="button" class="view-mode-btn" [class.active]="viewMode === 'list'" (click)="setViewMode('list')" aria-label="List">
-                <ion-icon name="list-outline"></ion-icon>
-              </button>
-              <button type="button" class="view-mode-btn" [class.active]="viewMode === 'shelf'" (click)="setViewMode('shelf')" aria-label="Shelf">
-                <ion-icon name="albums-outline"></ion-icon>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        @if (libraryGamesCount === 0) {
-          <p class="section-empty">
-            No games in your library yet.
-          </p>
-        }
-
-        @if (libraryGamesCount > 0 && displayGames.length === 0) {
-          <p class="section-empty">
-            {{ getLibraryEmptyMessage() }}
-          </p>
-        }
-
-        @if (viewMode === 'grid' && displayGames.length > 0) {
-          <div class="games-grid">
-            @for (game of displayGames; track game.id; let i = $index) {
-              <app-game-card
-                [game]="game"
-                (onToggleCompleted)="cycleStatus($event)"
-                (onMarkCompleted)="markCompleted($event)"
-                (onDelete)="deleteGame($event)"
-                class="game-card-wrapper"
-                [style.--i]="i"
-              ></app-game-card>
-            }
-          </div>
-        }
-
-        @if (viewMode === 'shelf' && displayGames.length > 0) {
-          <div class="games-shelf">
-            @for (game of displayGames; track game.id; let i = $index) {
-              <a
-                class="shelf-item"
-                [routerLink]="['/game', game.id]"
-                [style.--i]="i"
-                [attr.title]="game.title"
-              >
-                <div class="shelf-item__art">
-                  <app-game-cover
-                    [title]="game.title"
-                    [coverImage]="game.coverImage"
-                    variant="card"
-                  />
-                  @if (game.status !== 'not_started') {
-                    <span
-                      [class]="'shelf-item__status shelf-item__status--' + game.status"
-                      [attr.aria-label]="getStatusLabel(game.status)"
-                    ></span>
-                  }
-                  @if (game.platform.name) {
-                    <span
-                      class="shelf-item__badge"
-                      [style.--platform-color]="game.platform.color || '#a855f7'"
-                    >{{ game.platform.name }}</span>
-                  }
-                  <span class="shelf-item__shade" aria-hidden="true"></span>
-                </div>
-                <div class="shelf-item__meta">
-                  <h3 class="shelf-item__title">{{ game.title }}</h3>
-                  <p class="shelf-item__sub">
-                    @if (game.releaseYear) {
-                      <span>{{ game.releaseYear }}</span>
-                    }
-                    @if (game.rating != null && game.status !== 'wishlist') {
-                      <span>
-                        · {{ game.rating }}/10
-                      </span>
-                    }
-                    @if (game.playtimeHours) {
-                      <span> · {{ game.playtimeHours }}h</span>
-                    }
-                  </p>
-                </div>
-              </a>
-            }
-          </div>
-        }
-
-        @if (viewMode === 'list' && displayGames.length > 0) {
-          <ion-list class="games-list">
-            <ng-container *ngTemplateOutlet="listItems; context: { $implicit: displayGames }"></ng-container>
-          </ion-list>
-        }
-      </section>
-    }
-
-    <!-- Wishlist -->
-    @if (!gamesLoading() && (libraryStatusFilter === 'wishlist' || (libraryStatusFilter === 'all' && !hasActiveFilters()) || (hasActiveFilters() && wishlistGames.length > 0))) {
-      <section
-        id="wishlist-section"
-        class="library-section wishlist-section"
-      >
-        @if (libraryStatusFilter !== 'wishlist') {
-          <div class="section-header">
-            <h2 class="section-title">Wishlist</h2>
-            <div class="section-header__actions">
-              <span class="section-count">{{ wishlistGames.length }}</span>
-              <a routerLink="/wishlist/add" class="section-add-btn">
-                <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
-                <span>Add</span>
-              </a>
-            </div>
-          </div>
-        }
-
-        @if (libraryStatusFilter === 'wishlist') {
-          <div class="section-header">
-            <h2 class="section-title">Wishlist</h2>
-            <div class="section-header__actions">
-              <span class="section-count">{{ wishlistGames.length }}</span>
-              <a routerLink="/wishlist/add" class="section-add-btn">
-                <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
-                <span>Add</span>
-              </a>
-            </div>
-          </div>
-        }
-
-        @if (wishlistGames.length === 0) {
-          <p class="section-empty">
-            No wishlist games yet. Add upcoming titles you want to play.
-          </p>
-        }
-
-        @if (viewMode === 'grid' && wishlistGames.length) {
-          <div class="games-grid">
-            @for (game of wishlistGames; track game.id) {
-              <app-game-card
-                [game]="game"
-                [countdownTick]="countdownTick"
-                (onToggleCompleted)="cycleStatus($event)"
-                (onMarkCompleted)="markCompleted($event)"
-                (onDelete)="deleteGame($event)"
-                class="game-card-wrapper"
-              ></app-game-card>
-            }
-          </div>
-        }
-
-        @if (viewMode === 'shelf' && wishlistGames.length) {
-          <div class="games-shelf">
-            @for (game of wishlistGames; track game.id; let i = $index) {
-              <a
-                class="shelf-item"
-                [routerLink]="['/game', game.id]"
-                [style.--i]="i"
-                [attr.title]="game.title"
-              >
-                <div class="shelf-item__art">
-                  <app-game-cover
-                    [title]="game.title"
-                    [coverImage]="game.coverImage"
-                    variant="card"
-                  />
-                  <span class="shelf-item__status shelf-item__status--wishlist" aria-label="Wishlist"></span>
-                  @if (game.platform.name) {
-                    <span
-                      class="shelf-item__badge"
-                      [style.--platform-color]="game.platform.color || '#a855f7'"
-                    >{{ game.platform.name }}</span>
-                  }
-                  <span class="shelf-item__shade" aria-hidden="true"></span>
-                </div>
-                <div class="shelf-item__meta">
-                  <h3 class="shelf-item__title">{{ game.title }}</h3>
-                  <p class="shelf-item__sub">{{ getCountdownLabel(game) }}</p>
-                </div>
-              </a>
-            }
-          </div>
-        }
-
-        @if (viewMode === 'list' && wishlistGames.length) {
-          <ion-list class="games-list">
-            <ng-container *ngTemplateOutlet="listItems; context: { $implicit: wishlistGames, showCountdown: true }"></ng-container>
-          </ion-list>
-        }
-      </section>
-    }
-
-    <ng-template #listItems let-games let-showCountdown="showCountdown">
-      @for (game of games; track game.id) {
-        <ion-item
-          class="game-list-item"
-          button
-          detail="false"
-          [routerLink]="['/game', game.id]"
-        >
-          <ion-thumbnail slot="start" class="game-thumbnail">
-            <app-game-cover
-              [title]="game.title"
-              [coverImage]="game.coverImage"
-              variant="thumbnail"
-            />
-          </ion-thumbnail>
-
-          <div class="game-list-content">
-            <ion-label class="game-info">
-              <h3 class="game-title">{{ game.title }}</h3>
-              <div class="game-meta-row">
-                @if (game.platform.name) {
-                  <span class="platform-tag">{{ game.platform.name }}</span>
-                }
-                @if (game.releaseYear) {
-                  <span class="game-year">{{ game.releaseYear }}</span>
-                }
-                @if (game.rating != null) {
-                  <span class="rating-tag">
-                    <app-game-rating [rating]="game.rating" [readonly]="true" size="sm" [showValue]="false" />
-                  </span>
-                }
-              </div>
-              @if (game.description) {
-                <p class="game-description">{{ game.description }}</p>
-              }
-              @if (game.developer.name || game.playtimeHours || (showCountdown && game.status === 'wishlist')) {
-                <p class="game-secondary">
-                  @if (game.developer.name) {
-                    <span>{{ game.developer.name }}</span>
-                  }
-                  @if (game.playtimeHours) {
-                    <span>{{ game.playtimeHours }}h played</span>
-                  }
-                  @if (showCountdown && game.status === 'wishlist') {
-                    <span class="wishlist-countdown">
-                      {{ getCountdownLabel(game) }}
-                    </span>
-                  }
-                </p>
-              }
-            </ion-label>
-
-            <div class="game-status" (click)="$event.stopPropagation()">
-              <button
-                type="button"
-                [class]="'status-badge status-badge--' + game.status"
-                [class.status-badge--disabled]="isWishlistLocked(game)"
-                (click)="handleStatusClick($event, game)"
-              >
-                <ion-icon [name]="getStatusIcon(game.status)"></ion-icon>
-                {{ getStatusLabel(game.status) }}
-              </button>
-              @if (showMarkCompleted(game)) {
-                <button
-                  type="button"
-                  class="play-history-btn mark-completed-btn list-mark-completed-btn"
-                  (click)="handleMarkCompletedClick($event, game.id)"
+                <span class="filter-group__label" id="filter-developer">Developer</span>
+                <ion-select
+                  [(ngModel)]="selectedDevelopers"
+                  [multiple]="true"
+                  placeholder="Any developer"
+                  interface="popover"
+                  class="gaming-select"
+                  aria-labelledby="filter-developer"
+                  (ionChange)="applyFilters()"
+                  [interfaceOptions]="{ cssClass: 'app-select-popover' }"
                 >
-                  <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
-                  <span class="play-history-btn__label">Mark as completed</span>
+                  @for (dev of filterOptions.developers; track dev) {
+                    <ion-select-option [value]="dev">{{ dev }}</ion-select-option>
+                  }
+                </ion-select>
+                @if (!filterOptions.tags.length) {
+                  <p class="filter-group__hint">Tip: add tags like “coop” on a game’s edit screen to filter by them.</p>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Tags + saved views -->
+        @if (filterOptions.tags.length) {
+          <div class="tag-rail" role="toolbar" aria-label="Filter by tag">
+            <button type="button" class="tag-rail__chip" [class.tag-rail__chip--active]="selectedTags.length === 0"
+              (click)="clearTagFilters()">
+              All tags
+            </button>
+            @for (tag of filterOptions.tags; track tag) {
+              <button type="button" class="tag-rail__chip" [class.tag-rail__chip--active]="isTagSelected(tag)"
+                [attr.aria-pressed]="isTagSelected(tag)" (click)="toggleTag(tag)">
+                #{{ tag }}
+              </button>
+            }
+          </div>
+        }
+
+        @if (savedCollections.length || canSaveView) {
+          <div class="saved-views" aria-label="Saved views">
+            @if (savedCollections.length) {
+              <span class="saved-views__label">Saved</span>
+            }
+            @for (col of savedCollections; track col.id) {
+              <span class="saved-view" [class.saved-view--active]="activeSavedCollectionId === col.id">
+                <button type="button" class="saved-view__apply" (click)="applySavedCollection(col)">
+                  <ion-icon name="bookmark-outline" aria-hidden="true"></ion-icon>
+                  {{ col.name }}
+                </button>
+                <button type="button" class="saved-view__remove" (click)="removeSavedCollection(col)"
+                  [attr.aria-label]="'Remove saved view ' + col.name">
+                  <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+                </button>
+              </span>
+            }
+            @if (canSaveView) {
+              <button type="button" class="saved-views__add" (click)="saveCurrentView()">
+                <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+                Save this view
+              </button>
+            }
+          </div>
+        }
+
+        <!-- Active filters summary -->
+        @if (hasActiveFilters()) {
+          <div class="filter-results-bar" role="status">
+            <p class="filter-results-bar__count">
+              <strong>{{ filteredResultsCount }}</strong> {{ filteredResultsCount === 1 ? 'match' : 'matches' }}
+            </p>
+            <div class="active-filters">
+              @for (chip of activeFilterChips; track chip.type + ':' + chip.value) {
+                <button type="button" class="active-filter-chip" (click)="removeFilter(chip)"
+                  [attr.aria-label]="'Remove filter ' + chip.label">
+                  <span>{{ chip.label }}</span>
+                  <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
                 </button>
               }
             </div>
+            <div class="filter-results-bar__actions">
+              <button type="button" class="text-btn" (click)="clearFilters()">Clear all</button>
+              <button type="button" class="text-btn" (click)="openExportDialog('filtered')" [disabled]="filteredResultsCount === 0">
+                <ion-icon name="download-outline" aria-hidden="true"></ion-icon>
+                Download
+              </button>
+            </div>
           </div>
-        </ion-item>
-      }
-    </ng-template>
+        }
 
-    <!-- Empty State -->
-    @if (!gamesLoading() && filteredGames().length === 0) {
-      <div class="empty-state empty-state--vault">
-        <div class="empty-icon">
-          <ion-icon name="game-controller-outline"></ion-icon>
-        </div>
-        <h3>{{ hasActiveFilters() ? 'No games found' : 'Your vault is empty' }}</h3>
-        @if (hasActiveFilters()) {
-          <p>Try adjusting filters or search</p>
+        @if (gamesLoading()) {
+          <div class="games-loading" aria-busy="true" aria-label="Loading games">
+            <div class="games-grid" aria-hidden="true">
+              @for (_ of skeletonGridItems.slice(0, 8); track $index) {
+                <div class="skeleton-card">
+                  <div class="skeleton-cover"></div>
+                  <div class="skeleton-body">
+                    <div class="skeleton-line tall"></div>
+                    <div class="skeleton-line short"></div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        } @else if (collectionGames.length) {
+          <ng-container *ngTemplateOutlet="gameCollection; context: { $implicit: collectionGames }"></ng-container>
+        } @else if (hasActiveFilters()) {
+          <div class="empty-state">
+            <div class="empty-icon" aria-hidden="true"><ion-icon name="search-outline"></ion-icon></div>
+            <h2>No games match</h2>
+            <p>Nothing in {{ collectionMeta[collection].title | lowercase }} fits these filters.</p>
+            <button type="button" class="btn btn--ghost" (click)="clearFilters()">Clear filters</button>
+          </div>
+        } @else {
+          <div class="empty-state empty-state--compact">
+            <div class="empty-icon" aria-hidden="true">
+              <ion-icon [name]="collectionMeta[collection].icon"></ion-icon>
+            </div>
+            <p>{{ collectionMeta[collection].empty }}</p>
+            @if (collection === 'wishlist') {
+              <a routerLink="/wishlist/add" class="btn btn--ghost">
+                <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+                Add to wishlist
+              </a>
+            } @else if (collection === 'playing' && collectionCount('not_started') > 0) {
+              <button type="button" class="btn btn--ghost" (click)="setCollection('not_started')">Open backlog</button>
+            }
+          </div>
         }
-        @if (!hasActiveFilters()) {
-          <p>Add your first title — covers, play status, and history live here.</p>
-        }
-        @if (!hasActiveFilters()) {
-          <ion-button routerLink="/add" class="add-first-game-btn">
-            <ion-icon name="add-outline" slot="start"></ion-icon>
-            Add game
-          </ion-button>
-        }
-      </div>
+      </section>
+
+      <!-- Wishlist (on the "All" view) -->
+      @if (showWishlistSection && !gamesLoading()) {
+        <section class="library-section" aria-labelledby="wishlist-title">
+          <div class="section-header">
+            <div class="library-head__title">
+              <h2 class="section-title" id="wishlist-title">Wishlist</h2>
+              <span class="section-count">{{ wishlistGames.length }}</span>
+            </div>
+            <a routerLink="/wishlist/add" class="section-add-btn">
+              <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+              <span>Add to wishlist</span>
+            </a>
+          </div>
+
+          @if (wishlistGames.length) {
+            <ng-container *ngTemplateOutlet="gameCollection; context: { $implicit: wishlistGames }"></ng-container>
+          } @else {
+            <p class="section-empty">{{ collectionMeta.wishlist.empty }}</p>
+          }
+        </section>
+      }
     }
+
+    <input #importFileInput type="file" accept="application/json,.json" hidden (change)="onImportFile($event)" />
   </div>
 
   <ion-toast
@@ -757,38 +397,148 @@
     [color]="toastColor"
     duration="3000"
     position="bottom"
+    cssClass="app-toast"
     (didDismiss)="toastMessage = ''"
   ></ion-toast>
 </ion-content>
 
+<!-- One renderer for every collection, in the user's chosen layout -->
+<ng-template #gameCollection let-games>
+  @switch (viewMode) {
+    @case ('grid') {
+      <div class="games-grid">
+        @for (game of games; track game.id) {
+          <app-game-card
+            class="game-card-wrapper"
+            [game]="game"
+            [countdownTick]="countdownTick"
+            (advanceStatus)="advanceStatus($event)"
+            (markCompleted)="markCompleted($event)"
+            (deleteGame)="deleteGame($event)"
+          ></app-game-card>
+        }
+      </div>
+    }
+    @case ('shelf') {
+      <div class="games-shelf">
+        @for (game of games; track game.id) {
+          <a class="shelf-item" [routerLink]="['/game', game.id]" [attr.title]="game.title" [attr.data-status]="game.status">
+            <div class="shelf-item__art">
+              <app-game-cover [title]="game.title" [coverImage]="game.coverImage" variant="card" />
+              @if (game.status !== 'not_started') {
+                <span class="shelf-item__status" [attr.aria-label]="statusLabel(game.status)"></span>
+              }
+              @if (platformLabel(game)) {
+                <span class="shelf-item__badge" [style.--platform-color]="game.platform.color">{{ platformLabel(game) }}</span>
+              }
+              <span class="shelf-item__shade" aria-hidden="true"></span>
+            </div>
+            <div class="shelf-item__meta">
+              <h3 class="shelf-item__title">{{ game.title }}</h3>
+              <p class="shelf-item__sub">
+                @if (game.status === 'wishlist') {
+                  {{ getCountdownLabel(game) }}
+                } @else {
+                  {{ game.releaseYear }}@if (isRated(game)) { · {{ game.rating }}/10 }@if (game.playtimeHours) { · {{ game.playtimeHours }}h }
+                }
+              </p>
+            </div>
+          </a>
+        }
+      </div>
+    }
+    @default {
+      <ul class="games-list">
+        @for (game of games; track game.id) {
+          <li class="game-row" [attr.data-status]="game.status">
+            <a class="game-row__link" [routerLink]="['/game', game.id]">
+              <div class="game-row__thumb">
+                <app-game-cover [title]="game.title" [coverImage]="game.coverImage" variant="thumbnail" />
+              </div>
+              <div class="game-row__body">
+                <h3 class="game-row__title">{{ game.title }}</h3>
+                <p class="game-row__meta">
+                  @if (platformLabel(game)) {
+                    <span class="platform-tag" [style.--platform-color]="game.platform.color">{{ platformLabel(game) }}</span>
+                  }
+                  @if (game.releaseYear) {
+                    <span>{{ game.releaseYear }}</span>
+                  }
+                  @if (game.developer.name && game.developer.name !== 'Unknown') {
+                    <span class="game-row__dev">{{ game.developer.name }}</span>
+                  }
+                </p>
+                <p class="game-row__stats">
+                  @if (game.status === 'wishlist') {
+                    <span class="wishlist-countdown">
+                      <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+                      {{ getCountdownLabel(game) }}
+                    </span>
+                  } @else {
+                    @if (isRated(game)) {
+                      <span [attr.aria-label]="'Rated ' + game.rating + ' out of 10'">
+                        <ion-icon name="star" class="game-row__star" aria-hidden="true"></ion-icon>{{ game.rating }}/10
+                      </span>
+                    }
+                    @if (game.playtimeHours) {
+                      <span><ion-icon name="time-outline" aria-hidden="true"></ion-icon>{{ game.playtimeHours }}h</span>
+                    }
+                  }
+                </p>
+              </div>
+            </a>
+
+            <div class="game-row__actions">
+              <span class="status-pill">
+                <ion-icon [name]="statusIcon(game.status)" aria-hidden="true"></ion-icon>
+                {{ statusLabel(game.status) }}
+              </span>
+              @if (getStatusAction(game.status); as action) {
+                <button
+                  type="button"
+                  class="quick-action"
+                  [disabled]="isWishlistLocked(game)"
+                  [title]="isWishlistLocked(game) ? 'Available on release day' : action.label"
+                  (click)="onQuickAction($event, game)"
+                >
+                  <ion-icon [name]="action.icon" aria-hidden="true"></ion-icon>
+                  <span>{{ action.label }}</span>
+                </button>
+              }
+              @if (canMarkCompleted(game)) {
+                <button type="button" class="quick-action quick-action--complete" (click)="onMarkCompleted($event, game)">
+                  <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
+                  <span>Complete</span>
+                </button>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  }
+</ng-template>
+
 @if (showExportDialog) {
-  <div
-    class="export-dialog-backdrop"
-    (click)="closeExportDialog()"
-    role="presentation"
-  >
-    <div
-      class="export-dialog"
-      role="dialog"
-      aria-labelledby="export-dialog-title"
-      aria-modal="true"
-      (click)="$event.stopPropagation()"
-    >
+  <div class="export-dialog-backdrop" role="presentation"
+    (click)="$event.target === $event.currentTarget && closeExportDialog()"
+    (keydown.escape)="closeExportDialog()">
+    <div class="export-dialog" role="dialog" aria-labelledby="export-dialog-title" aria-modal="true">
       <div class="export-dialog__head">
         <h2 id="export-dialog-title">{{ exportDialogTitle }}</h2>
         <p>{{ exportDialogMessage }}</p>
       </div>
+      @if (showWishlistExportOption) {
+        <label class="export-dialog__checkbox">
+          <input type="checkbox" [(ngModel)]="includeWishlistInExport" />
+          <span>Include wishlist</span>
+        </label>
+      }
       <div class="export-dialog__actions">
-        <button type="button" class="export-dialog__btn export-dialog__btn--export" (click)="exportAndClose('json')">JSON</button>
-        <button type="button" class="export-dialog__btn export-dialog__btn--export" (click)="exportAndClose('xlsx')">Excel (.xlsx)</button>
+        <button type="button" class="btn btn--primary" (click)="exportAndClose('json')">JSON</button>
+        <button type="button" class="btn btn--primary" (click)="exportAndClose('xlsx')">Excel (.xlsx)</button>
       </div>
-      <label class="export-dialog__checkbox">
-        <input type="checkbox" [(ngModel)]="includeWishlistInExport" />
-        <span>Include wishlist</span>
-      </label>
-      <button type="button" class="export-dialog__btn export-dialog__btn--cancel export-dialog__btn--cancel-block" (click)="closeExportDialog()">
-        Cancel
-      </button>
+      <button type="button" class="btn btn--ghost" (click)="closeExportDialog()">Cancel</button>
     </div>
   </div>
 }

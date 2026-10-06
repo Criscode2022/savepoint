@@ -1,56 +1,57 @@
 ---
-name: GameVault
-description: Cyberpunk neon personal game library — dark, dense, Steam-trustworthy
+name: Savepoint
+description: Personal game library — deep navy, one dark-blue accent, Steam-trustworthy density
 colors:
-  neon-purple: "#a855f7"
-  neon-purple-deep: "#7c3aed"
-  neon-cyan: "#06b6d4"
-  neon-pink: "#ec4899"
-  neon-green: "#10b981"
-  vault-bg: "#0a0a0f"
-  vault-surface: "#12121a"
-  vault-elevated: "#151520"
-  vault-input: "#0f0f15"
-  ink-primary: "#f8fafc"
-  ink-secondary: "#cbd5e1"
-  ink-muted: "#94a3b8"
-  border-neon: "rgba(168, 85, 247, 0.2)"
-  status-playing: "#3b82f6"
+  accent: "#2a56e8"
+  accent-strong: "#3b67f5"
+  accent-deep: "#1f45c4"
+  accent-ink: "#9bb7ff"
+  accent-ink-soft: "#dbe5ff"
+  accent-alt: "#22d3ee"
+  bg-base: "#070b17"
+  bg-surface: "#0b1222"
+  bg-elevated: "#101a2e"
+  bg-elevated-hover: "#142039"
+  bg-input: "#0a1020"
+  bg-overlay: "#111c34"
+  ink-primary: "#f5f8ff"
+  ink-secondary: "#c9d4e8"
+  ink-muted: "#9aa8c2"
+  border-subtle: "rgba(148, 170, 214, 0.14)"
+  status-not-started: "#9aa8c2"
+  status-playing: "#22d3ee"
+  status-paused: "#f59e0b"
   status-completed: "#22c55e"
   status-wishlist: "#f472b6"
+  rating: "#fbbf24"
   semantic-error: "#ef4444"
-  semantic-warning: "#f59e0b"
 typography:
   display:
-    fontFamily: "Orbitron, system-ui, sans-serif"
-    fontSize: "1.75rem"
+    fontFamily: "Chakra Petch, system-ui, sans-serif"
+    fontSize: "1.25rem–2.5rem"
     fontWeight: 700
+    lineHeight: 1.1
+    letterSpacing: "0.01em"
+  page-title:
+    fontFamily: "Inter, system-ui, sans-serif"
+    fontSize: "1.5rem"
+    fontWeight: 750
     lineHeight: 1.2
-    letterSpacing: "0.02em"
-  headline:
+    letterSpacing: "-0.015em"
+  panel-title:
     fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "1.35rem"
+    fontSize: "1rem"
     fontWeight: 700
     lineHeight: 1.35
-    letterSpacing: "normal"
-  title:
-    fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "1.0625rem"
-    fontWeight: 700
-    lineHeight: 1.35
-    letterSpacing: "normal"
   body:
     fontFamily: "Inter, system-ui, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.55
-    letterSpacing: "normal"
   label:
     fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "0.75rem"
-    fontWeight: 700
-    lineHeight: 1.2
-    letterSpacing: "0.06em"
+    fontSize: "0.75rem–0.8125rem"
+    fontWeight: 600
 rounded:
   sm: "6px"
   md: "12px"
@@ -63,189 +64,126 @@ spacing:
   md: "16px"
   lg: "24px"
   xl: "32px"
-  2xl: "48px"
 components:
   button-primary:
-    backgroundColor: "{colors.neon-purple}"
+    backgroundColor: "{colors.accent}"
     textColor: "#ffffff"
     rounded: "{rounded.md}"
-    padding: "12px 24px"
-  button-primary-hover:
-    backgroundColor: "{colors.neon-purple-deep}"
-    textColor: "#ffffff"
-    rounded: "{rounded.md}"
-    padding: "12px 24px"
-  button-outline:
-    backgroundColor: "transparent"
-    textColor: "{colors.neon-purple}"
-    rounded: "{rounded.md}"
-    padding: "11px 14px"
-  button-outline-hover:
-    backgroundColor: "rgba(168, 85, 247, 0.12)"
+    minHeight: "44px"
+  button-ghost:
+    backgroundColor: "rgba(255, 255, 255, 0.03)"
     textColor: "{colors.ink-primary}"
+    border: "1px solid rgba(148, 170, 214, 0.24)"
     rounded: "{rounded.md}"
-    padding: "11px 14px"
-  input-field:
-    backgroundColor: "{colors.vault-input}"
-    textColor: "{colors.ink-primary}"
-    rounded: "{rounded.md}"
-    padding: "12px 16px"
-  chip-genre:
-    backgroundColor: "rgba(168, 85, 247, 0.16)"
-    textColor: "#e9d5ff"
+  status-pill:
+    backgroundColor: "rgba(var(--tone-rgb), 0.12)"
+    textColor: "var(--tone-ink)"
     rounded: "{rounded.pill}"
-    padding: "6px 12px"
+  panel:
+    backgroundColor: "{colors.bg-elevated}"
+    border: "1px solid {colors.border-subtle}"
+    rounded: "{rounded.lg}"
+    padding: "20px"
+  chip:
+    backgroundColor: "rgba(59, 103, 245, 0.12)"
+    textColor: "{colors.accent-ink-soft}"
+    rounded: "{rounded.pill}"
 ---
 
-# Design System: GameVault
+# Design System: Savepoint
 
 ## Overview
 
-**Creative North Star: "The Refined Vault"**
+**Creative North Star: "The Save Point"**
 
-GameVault is a power-user game library **Command Center**: app shell with smart collections, Continue Playing, multi-view (grid/list/shelf), and ⌘K command palette — dressed in cyberpunk atmosphere with Apple-level craft. Density from Steam/GOG; motion and materials from Linear/Apple Music restraint. Neon is earned on brand, selection, and hover — never wallpaper.
+Savepoint is a power-user game library: sidebar collections, a ⌘K command palette, grid / list / shelf layouts, and quick status actions. It is dressed in deep navy with one confident blue, and a save-point crystal as its mark. Density comes from Steam/GOG; restraint from Linear. Personality lives in moments — empty states, completions, saves — never in labels or data.
 
-The system explicitly rejects over-neon RGB gamer cliché, mobile F2P UI energy, spreadsheet ugliness, and generic SaaS dashboards. Neon is earned on brand marks, primary actions, and hover feedback — never as wallpaper.
+**Key characteristics**
 
-**Key Characteristics:**
-
-- Dark-first surfaces with layered depth (vault bg → surface → elevated card)
-- Information-dense library views with platform badges, status chips, and inline stats
-- Inter for all UI copy; Orbitron reserved for brand wordmark and hero titles only
-- Purple-led accent with cyan/pink/green reserved for semantic status and secondary highlights
-- Tactile cards with lift-on-hover, not static icon+text grids
-- WCAG AAA text contrast prioritized on body copy and labels over aesthetic glow
+- Navy surfaces layered base → surface → elevated → overlay
+- One dark-blue accent for the primary action, current selection and focus
+- Status tones via `[data-status]` (`--tone`, `--tone-rgb`, `--tone-ink`), always paired with an icon or label
+- Inter for all UI; Chakra Petch only for brand moments
+- Buttons name the action they perform ("Pause", "Resume", "Start playing"), not the current state
+- AA everywhere, AAA on body copy
 
 ## Colors
 
-A committed dark palette: near-black vault backgrounds carry the atmosphere; saturated neon accents mark brand, actions, and status.
+### Accent
 
-### Primary
+- **Savepoint Blue** (`--accent` #2a56e8): solid fill for the primary action of a view; white label at 5.8:1.
+- **Strong / Deep** (`--accent-strong` #3b67f5, `--accent-deep` #1f45c4): hover and pressed.
+- **Tint channel** (`--accent-rgb` 59, 103, 245): translucent backgrounds and borders for selected chips, active nav, focus rings.
+- **Accent ink** (`--accent-ink` #9bb7ff, `--accent-ink-soft` #dbe5ff): text and icons on navy or on accent tints.
+- **Signal cyan** (`--accent-alt` #22d3ee): playtime and activity only.
 
-- **Neon Purple** (#a855f7): Primary actions, brand gradient start, focus rings, scrollbar thumb, selected tab. The vault's signature accent — use sparingly on any single screen.
-- **Neon Purple Deep** (#7c3aed): Hover/pressed states on primary buttons and active emphasis.
+### Neutrals
 
-### Secondary
+| Token | Value | Use |
+|---|---|---|
+| `--bg-base` | #070b17 | App background |
+| `--bg-surface` | #0b1222 | Sidebar, topbar, footers |
+| `--bg-elevated` | #101a2e | Cards and panels |
+| `--bg-input` | #0a1020 | Fields, nested rows |
+| `--bg-overlay` | #111c34 | Popovers, alerts, palette |
+| `--ink-primary` | #f5f8ff | Headings, values |
+| `--ink-secondary` | #c9d4e8 | Body, metadata (11.6:1 on elevated) |
+| `--ink-muted` | #9aa8c2 | Secondary labels (7.2:1 on elevated) |
 
-- **Neon Cyan** (#06b6d4): Secondary accent — playtime stats, gradient end, auth orb atmosphere. Pair with purple for brand gradients only; never as a second competing primary.
-- **Neon Pink** (#ec4899): Wishlist status, countdown badges, tertiary accent in auth/marketing moments.
+### Status
 
-### Tertiary
+Backlog slate, Playing cyan, Paused amber, Completed green, Wishlist pink. Never reuse these as decoration. Apply them with `data-status` on the element (or an ancestor) and read `--tone*` in CSS.
 
-- **Neon Green** (#10b981): Completed status, success confirmations, release countdown "available" state.
+### Named rules
 
-### Neutral
+**The One Blue Rule.** Solid blue appears once per view, on the primary action. Everything else uses tints.
 
-- **Vault Background** (#0a0a0f): App shell, ion-content default. The deepest layer.
-- **Vault Surface** (#12121a): Toolbars, tab bars, secondary panels.
-- **Vault Elevated** (#151520): Cards, modals, form sections. Slightly lifted from surface.
-- **Vault Input** (#0f0f15): Text fields, search inputs, select backgrounds.
-- **Ink Primary** (#f8fafc): Headings, primary body text, button labels on dark fills.
-- **Ink Secondary** (#cbd5e1): Descriptions, metadata values, card body copy.
-- **Ink Muted** (#94a3b8): Secondary labels, separators — bump toward #cbd5e1 if contrast fails AAA on elevated surfaces.
-- **Border Neon** (rgba(168, 85, 247, 0.2)): Default card and input borders; intensify to 0.35 on hover.
-
-### Named Rules
-
-**The One Glow Rule.** Neon box-shadow and pulse animations appear only on hover, focus, or brand hero moments — never as a default resting state on every card.
-
-**The Readable Dark Rule.** Body text and placeholders must meet WCAG AAA where practical (#cbd5e1 minimum on #151520). Muted gray (#64748b) is deprecated for readable copy; reserve it for decorative separators only.
+**The Readable Dark Rule.** No text below 4.5:1 on its surface, placeholders included.
 
 ## Typography
 
-**Display Font:** Orbitron (with system-ui fallback)  
-**Body Font:** Inter (with system-ui fallback)  
-**Label Font:** Inter (uppercase chips and platform badges use label weight/spacing)
-
-**Character:** Orbitron delivers gaming identity in one word — "GameVault" — then Inter takes over for every task. The pairing is contrast by role, not decoration.
-
-### Hierarchy
-
-- **Display** (700, 1.75rem, 1.2): Brand wordmark, auth page title. Orbitron only.
-- **Headline** (700, 1.35rem, 1.35): Page and card section titles (form card headers, filter panel).
-- **Title** (700, 1.0625rem, 1.35): Game card titles, list item primary labels. Max 2 lines with clamp.
-- **Body** (400, 0.875rem, 1.55): Descriptions, form help, card metadata. Max 65–75ch in prose blocks.
-- **Label** (700, 0.75rem, 0.06em tracking, uppercase): Platform chips, filter badges, stat pill labels.
-
-### Named Rules
-
-**The Orbitron Gate.** Orbitron is forbidden on buttons, form labels, data tables, and navigation items. If it's not the brand name or a page hero, it's Inter.
+- **Display** — Chakra Petch 700: wordmark, auth title, empty-library hero, year headings in Play history.
+- **Page title** — Inter 750, 1.5rem (1.3125rem on phones), sentence case.
+- **Panel title** — Inter 700, 1rem, sentence case. No uppercase eyebrows.
+- **Body** — Inter 400, 0.875–0.9375rem, max 70ch for prose.
+- **Labels** — Inter 600, 0.75–0.8125rem. Only platform chips are uppercase.
 
 ## Elevation
 
-Hybrid system: tonal layering at rest, shadow + glow on interaction. Cards sit on vault-elevated (#151520) with a soft ambient shadow (0 12px 32px rgba(0,0,0,0.35)) and a 1px border. Hover lifts cards 4px with a purple border intensification — depth is responsive, not decorative.
-
-### Shadow Vocabulary
-
-- **Card ambient** (`0 12px 32px rgba(0, 0, 0, 0.35)`): Default game cards and form cards at rest.
-- **Card hover** (`0 20px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(168, 85, 247, 0.25)`): Lift + neon rim on interactive cards.
-- **Neon purple glow** (`0 0 20px rgba(168, 85, 247, 0.4)`): Primary buttons, auth logo — accent moments only.
-- **Form panel** (`0 16px 40px rgba(0, 0, 0, 0.35)`): Form cards and filter panels.
-
-### Named Rules
-
-**The Flat-By-Default Rule.** Surfaces are flat at rest. Shadows and glow appear as a response to hover, focus, or primary CTA — not on every container.
+Flat at rest. Cards lift 4px on hover with a blue rim (`--shadow-card-hover`); the primary button carries `--shadow-accent`. Glow is reserved for the brand crystal.
 
 ## Components
 
-Atmospheric but task-first: Ionic primitives styled with vault tokens, custom game-library patterns on top.
+Shared primitives live in `src/app/shared/styles/app-controls.scss` — use them before writing new styles.
 
-### Buttons
+- **Buttons** — `.btn.btn--primary`, `.btn.btn--ghost`, `.btn.btn--danger`, `.btn--sm`; `.icon-btn` (+ `--danger`); `.text-btn`.
+- **Segmented control** — `.segmented` for the grid / list / shelf switch.
+- **Panel** — `.panel`, `.panel__head`, `.panel__title`, `.panel__hint`, `.panel__empty`. Never nest panels.
+- **Stat strip** — `.stat-strip` with `.stat-strip__item` (one panel, several figures; no hero-metric tiles).
+- **Chips** — `.chip`, `.chip--alt`, `.chip--neutral` for read-only labels; `.status-pill` for status.
+- **Meter** — `.meter` / `.meter__fill` (`.meter--success`).
+- **Menus** — `ion-popover.app-menu-popover` with `.menu-list` / `.menu-list__item`.
+- **Page header** — `<app-page-header title subtitle backHref backLabel>` with `[pageActions]` projection. Top-level pages omit `backHref`.
+- **Brand mark** — `<app-brand-mark [size] [glow]>`.
 
-- **Shape:** Rounded rectangles (12px / `--radius-md`); icon-only actions are circular (38px).
-- **Primary:** Purple fill (#a855f7), white label, 600 weight, subtle neon shadow. Used for save, add game, auth submit.
-- **Outline:** Transparent fill, purple border and text; hover fills rgba(168, 85, 247, 0.12). Status toggles on game cards.
-- **Clear/Ghost:** Transparent, secondary ink (#94a3b8); header icon buttons.
-- **Hover / Focus:** 2px purple outline-offset focus ring globally; buttons lift 2px on primary hover where applicable.
+### Game card (signature component)
 
-### Chips
-
-- **Genre chip:** Pill (999px), rgba(168, 85, 247, 0.16) fill, #e9d5ff text, 1px purple border at 0.28 opacity.
-- **Platform badge:** Pill on cover image, platform-color mixed 88% with black, uppercase label at 0.6875rem / 700 / 0.06em tracking.
-- **Stat pill:** rgba(255,255,255,0.04) fill, rating (amber) and playtime (cyan) icon accents.
-
-### Cards / Containers
-
-- **Game card:** 18px radius, gradient dark fill, 3:4 cover aspect, platform badge + status badge overlays, footer status button.
-- **Form card:** 20px radius, rgba(18,18,32,0.92) fill, purple-tinted border, 1.25rem internal padding.
-- **Filters panel:** 16px radius, compact 0.875rem padding, same border/shadow vocabulary as form cards.
-- **Hover:** translateY(-4px), border-color shift to purple — never nested cards.
-
-### Inputs / Fields
-
-- **Style:** Vault input bg (#0f0f15), 12px radius, 1px neon-tinted border, 12px 16px padding.
-- **Search field:** Icon-leading, full-width in library header, same token set as inputs.
-- **Focus:** Border shifts to neon purple + optional 10px purple glow — must not reduce text contrast.
-- **Placeholder:** Use #94a3b8 minimum; prefer #cbd5e1 if AAA target applies.
-
-### Navigation
-
-- **Header:** Vault surface toolbar, brand mark + Orbitron "GameVault" (gradient on "Vault" only), icon actions right-aligned.
-- **Stats bar:** Horizontal filter tabs — total / playing / completed / wishlist counts as tappable stat items.
-- **Quick nav:** Play History and Wishlist as text+count+chevron row buttons below search.
-- **Mobile:** Ionic responsive grid; content-wrapper max 1600px on desktop, 900px on forms.
-
-### Game Card (signature component)
-
-The collection atom: cover art (3:4), platform chip, optional status badge, title + developer + year, truncated description, rating/playtime stats, genre chips (max 3), footer status CTA. Status colors: playing (blue), completed (green), wishlist (pink). Hover reveals edit/delete overlay on cover.
+3:4 cover with a labelled status pill (top-left), platform chip or release countdown (bottom-left), edit/remove on hover (always visible on touch). Body: title, developer · year, ★ rating and playtime, up to 3 genres. Footer: the next action ("Start playing", "Pause" + "Complete", "Resume" + "Complete", "Add to library") or "Finished Mar 2026" for completed games.
 
 ## Do's and Don'ts
 
-### Do:
+### Do
 
-- **Do** use Inter for all UI text and Orbitron only for brand/display moments.
-- **Do** keep library views information-dense — metadata, filters, and stats visible without drilling in.
-- **Do** apply neon purple to primary actions and focus states; cyan/pink/green for semantic status only.
-- **Do** lift cards on hover (4px) with border intensification — tactile feedback for a collection tool.
-- **Do** respect `prefers-reduced-motion`: replace pulse/glow/slide with instant or crossfade transitions.
-- **Do** maintain AAA text contrast on body copy (#cbd5e1+) even when it softens neon accents.
+- Use tokens from `src/theme/variables.scss`; never hardcode hex/rgba in components.
+- Drive status color through `[data-status]`.
+- Keep library views dense: metadata, filters and counts visible without drilling in.
+- Validate forms on submit and move focus to the first invalid field.
+- Respect `prefers-reduced-motion`.
 
-### Don't:
+### Don't
 
-- **Don't** use over-neon / RGB gamer cliché — constant glow, gradient text on every heading, pulsing borders as default decoration.
-- **Don't** use mobile free-to-play UI patterns — loot-box energy, cartoon chrome, loud gradient CTAs, fake urgency.
-- **Don't** ship spreadsheet ugly layouts — raw tables with no hierarchy, no scan path, no collection delight.
-- **Don't** fall into generic SaaS dashboard patterns — cream cards, hero metrics, eyebrow labels on every section.
-- **Don't** use gradient text (`background-clip: text`) except the single "Vault" brand span in the header.
-- **Don't** nest cards or use side-stripe borders (>1px colored left/right accent) on list items.
-- **Don't** put Orbitron on buttons, labels, or data-dense UI — it breaks Steam/GOG trust.
+- Don't use gradient text, side-stripe borders, or uppercase eyebrows above sections.
+- Don't show the same control twice in one viewport (e.g. two layout toggles).
+- Don't disable a submit button to signal invalid input.
+- Don't put the display face on buttons, labels or data.
+- Don't fall into RGB-gamer cliché or generic SaaS dashboards.

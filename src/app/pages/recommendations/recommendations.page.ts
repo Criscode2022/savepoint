@@ -1,19 +1,8 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  IonContent,
-  IonHeader,
-  IonToolbar,
-  IonBackButton,
-  IonIcon,
-  IonSpinner,
-  IonButton,
-  IonChip,
-  IonToast,
-} from '@ionic/angular/standalone';
+import { IonContent, IonIcon, IonSpinner, IonToast } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
-  arrowBackOutline,
   bulbOutline,
   heartOutline,
   openOutline,
@@ -31,22 +20,12 @@ import {
 } from '../../models/recommendation.model';
 import { GameService } from '../../services/game.service';
 import { RecommendationsService } from '../../services/recommendations.service';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 
 @Component({
   selector: 'app-recommendations',
   standalone: true,
-  imports: [
-    CommonModule,
-    IonContent,
-    IonHeader,
-    IonToolbar,
-    IonBackButton,
-    IonIcon,
-    IonSpinner,
-    IonButton,
-    IonChip,
-    IonToast,
-  ],
+  imports: [CommonModule, PageHeaderComponent, IonContent, IonIcon, IonSpinner, IonToast],
   templateUrl: './recommendations.page.html',
   styleUrl: './recommendations.page.scss',
 })
@@ -66,7 +45,6 @@ export class RecommendationsPage implements OnInit, OnDestroy {
 
   public ngOnInit(): void {
     addIcons({
-      arrowBackOutline,
       bulbOutline,
       heartOutline,
       openOutline,
@@ -91,7 +69,7 @@ export class RecommendationsPage implements OnInit, OnDestroy {
         },
         error: () => {
           this.loading = false;
-          this.toast('Failed to load library', 'danger');
+          this.toast("Couldn't load your library. Try again.", 'danger');
         },
       });
   }
@@ -117,7 +95,7 @@ export class RecommendationsPage implements OnInit, OnDestroy {
         },
         error: () => {
           this.loading = false;
-          this.toast('Failed to load recommendations', 'danger');
+          this.toast("Couldn't load picks right now. Try Shuffle picks in a moment.", 'danger');
         },
       });
   }
@@ -162,7 +140,7 @@ export class RecommendationsPage implements OnInit, OnDestroy {
       (g) => g.title.toLowerCase() === rec.title.toLowerCase(),
     );
     if (already) {
-      this.toast('Already in your vault', 'warning');
+      this.toast('Already in your library', 'warning');
       return;
     }
 

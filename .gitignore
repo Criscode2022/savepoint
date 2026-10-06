@@ -55,3 +55,9 @@ src/assets/env.js
 # Capacitor
 /ios
 /android
+
+# Impeccable engine binaries (platform-specific; the skill launcher downloads them on demand)
+**/skills/impeccable/scripts/bin/
+
+# Per-machine Claude Code settings
+.claude/settings.local.json

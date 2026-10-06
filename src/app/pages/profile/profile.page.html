@@ -1,184 +1,113 @@
-<ion-header class="ion-no-border">
-  <ion-toolbar class="header-toolbar">
-    <div class="header-inner">
-      <div class="header-brand">
-        <ion-button
-          routerLink="/home"
-          class="header-back-btn"
-          fill="clear"
-          aria-label="Back to home"
-        >
-          <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
-        </ion-button>
-        <h1 class="header-title">Profile</h1>
-      </div>
-
-      <div class="header-actions">
-        <ion-button
-          (click)="logout()"
-          class="header-icon-btn logout-btn"
-          fill="clear"
-          aria-label="Log out"
-        >
-          <ion-icon name="log-out-outline" slot="icon-only"></ion-icon>
-        </ion-button>
-      </div>
-    </div>
-  </ion-toolbar>
-</ion-header>
-
 <ion-content class="profile-content">
   @if (user) {
     <div class="profile-container">
-      <!-- Profile Header -->
-      <header class="profile-header">
-        <ion-avatar class="profile-avatar">
+      <app-page-header title="Profile" />
+
+      <section class="panel profile-header">
+        <div class="profile-avatar" aria-hidden="true">
           @if (user.avatarUrl && !avatarLoadFailed) {
-            <img
-              [src]="user.avatarUrl"
-              [alt]="user.username || user.email"
-              (error)="avatarLoadFailed = true"
-            />
+            <img [src]="user.avatarUrl" alt="" (error)="avatarLoadFailed = true" />
           } @else {
-            <div
-              class="profile-avatar-fallback"
-              aria-hidden="true"
-            >
-              <ion-icon name="person-outline"></ion-icon>
-            </div>
+            <span class="profile-avatar__initials">{{ initials }}</span>
           }
-        </ion-avatar>
+        </div>
 
         <div class="profile-info">
-          <h1 class="profile-name">{{ user.username || 'Gamer' }}</h1>
+          <h2 class="profile-name">{{ displayName }}</h2>
           <p class="profile-email">{{ user.email }}</p>
-          <div class="profile-badges">
-            <span class="level-badge">
-              <ion-icon name="trophy-outline" aria-hidden="true"></ion-icon>
-              Level {{ userLevel }}
-            </span>
+
+          <div class="level">
+            <div class="level__head">
+              <span class="level__badge">
+                <ion-icon name="trophy-outline" aria-hidden="true"></ion-icon>
+                Level {{ level }} · {{ levelTitle }}
+              </span>
+              <span class="level__xp">{{ levelXp }} / {{ xpPerLevel }} XP</span>
+            </div>
+            <div class="meter" role="progressbar" [attr.aria-valuenow]="levelXp" aria-valuemin="0"
+              [attr.aria-valuemax]="xpPerLevel" [attr.aria-label]="'Progress to level ' + (level + 1)">
+              <span class="meter__fill" [style.width.%]="(levelXp / xpPerLevel) * 100"></span>
+            </div>
+            <p class="level__hint">Finish games and log hours to level up.</p>
           </div>
         </div>
-      </header>
+      </section>
 
-      <!-- Stats Grid -->
-      <ion-grid class="stats-grid">
-        <ion-row>
-          <ion-col size="6" sizeMd="3">
-            <ion-card class="stat-card">
-              <ion-card-content>
-                <div class="stat-icon-wrapper games">
-                  <ion-icon name="game-controller-outline"></ion-icon>
-                </div>
-                <div class="stat-value">{{ totalGames }}</div>
-                <div class="stat-label">Total Games</div>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
+      <section class="panel stat-strip" aria-label="Library totals">
+        <div class="stat-strip__item">
+          <span class="stat-strip__value">{{ totalGames }}</span>
+          <span class="stat-strip__label">In library</span>
+        </div>
+        <div class="stat-strip__item">
+          <span class="stat-strip__value">{{ completedGames }}</span>
+          <span class="stat-strip__label">Completed</span>
+        </div>
+        <div class="stat-strip__item">
+          <span class="stat-strip__value">{{ totalHours }}h</span>
+          <span class="stat-strip__label">Played</span>
+        </div>
+        <div class="stat-strip__item">
+          <span class="stat-strip__value">{{ averageRating }}</span>
+          <span class="stat-strip__label">Avg rating</span>
+        </div>
+      </section>
 
-          <ion-col size="6" sizeMd="3">
-            <ion-card class="stat-card">
-              <ion-card-content>
-                <div class="stat-icon-wrapper completed">
-                  <ion-icon name="checkmark-circle-outline"></ion-icon>
-                </div>
-                <div class="stat-value">{{ completedGames }}</div>
-                <div class="stat-label">Completed</div>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
+      <section class="panel">
+        <div class="panel__head">
+          <h2 class="panel__title">Completion</h2>
+          <span class="progress-value">{{ completedGames }} of {{ totalGames }} · {{ completionRate }}%</span>
+        </div>
+        <div class="meter meter--success" role="progressbar"
+          [attr.aria-valuenow]="completionRate" aria-valuemin="0" aria-valuemax="100" aria-label="Completion rate">
+          <span class="meter__fill" [style.width.%]="completionRate"></span>
+        </div>
+        <p class="panel__note">
+          @if (wishlistCount) {
+            Wishlist games ({{ wishlistCount }}) aren’t counted until they join your library.
+          }
+          <a routerLink="/insights" class="panel__link">See all insights →</a>
+        </p>
+      </section>
 
-          <ion-col size="6" sizeMd="3">
-            <ion-card class="stat-card">
-              <ion-card-content>
-                <div class="stat-icon-wrapper hours">
-                  <ion-icon name="time-outline"></ion-icon>
-                </div>
-                <div class="stat-value">{{ totalHours }}</div>
-                <div class="stat-label">Hours Played</div>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-
-          <ion-col size="6" sizeMd="3">
-            <ion-card class="stat-card">
-              <ion-card-content>
-                <div class="stat-icon-wrapper rating">
-                  <ion-icon name="star-outline"></ion-icon>
-                </div>
-                <div class="stat-value">{{ averageRating }}</div>
-                <div class="stat-label">Avg Rating</div>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-
-      <!-- Progress Section -->
-      <ion-card class="profile-card progress-card">
-        <ion-card-header>
-          <ion-card-title>Collection Progress</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          <div class="progress-item">
-            <div class="progress-header">
-              <span>Completion rate</span>
-              <span class="progress-value">{{ completionRate }}%</span>
-            </div>
-            <ion-progress-bar [value]="completionRate / 100" color="success"></ion-progress-bar>
-          </div>
-        </ion-card-content>
-      </ion-card>
-
-      <!-- Recent Games -->
-      <ion-card class="profile-card recent-games-card">
-        <ion-card-header>
-          <ion-card-title>Recently Added</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          @if (recentGames.length > 0) {
-            <div class="recent-games-list">
-              @for (game of recentGames; track game.id) {
-                <a
-                  class="recent-game-row"
-                  [routerLink]="['/game', game.id]"
-                >
+      <section class="panel">
+        <h2 class="panel__title">Recently added</h2>
+        @if (recentGames.length) {
+          <ul class="recent-games-list">
+            @for (game of recentGames; track game.id) {
+              <li>
+                <a class="recent-game-row" [routerLink]="['/game', game.id]" [attr.data-status]="game.status">
                   <div class="recent-game-row__thumb">
-                    <app-game-cover
-                      [title]="game.title"
-                      [coverImage]="game.coverImage"
-                      variant="thumbnail"
-                    ></app-game-cover>
+                    <app-game-cover [title]="game.title" [coverImage]="game.coverImage" variant="thumbnail" />
                   </div>
                   <div class="recent-game-row__body">
                     <h3 class="recent-game-row__title">{{ game.title }}</h3>
                     <p class="recent-game-row__meta">
-                      {{ game.platform.name || 'Unknown' }} · {{ game.releaseYear }}
+                      {{ game.platform.name }}@if (game.releaseYear) { · {{ game.releaseYear }} }
                     </p>
                   </div>
-                  <span
-                    class="recent-game-row__status"
-                    [class]="'recent-game-row__status--' + game.status"
-                  >
-                    {{ getStatusLabel(game.status) }}
+                  <span class="status-pill">
+                    <ion-icon [name]="statusIcon(game.status)" aria-hidden="true"></ion-icon>
+                    {{ statusLabel(game.status) }}
                   </span>
                 </a>
-              }
-            </div>
-          } @else {
-            <p class="profile-empty-note">No games in your collection yet.</p>
-          }
-        </ion-card-content>
-      </ion-card>
+              </li>
+            }
+          </ul>
+        } @else if (!gamesLoading()) {
+          <p class="panel__empty">Nothing here yet. <a routerLink="/add">Add your first game</a>.</p>
+        }
+      </section>
+
+      <section class="panel account-panel">
+        <div>
+          <h2 class="panel__title">Account</h2>
+          <p class="panel__empty">Signed in as {{ user.email }}</p>
+        </div>
+        <button type="button" class="btn btn--danger" (click)="logout()">
+          <ion-icon name="log-out-outline" aria-hidden="true"></ion-icon>
+          Log out
+        </button>
+      </section>
     </div>
   }
-
-  <ion-toast
-    [isOpen]="!!toastMessage"
-    [message]="toastMessage"
-    [color]="toastColor"
-    duration="3000"
-    position="bottom"
-    (didDismiss)="toastMessage = ''">
-  </ion-toast>
 </ion-content>

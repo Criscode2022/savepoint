@@ -2,14 +2,14 @@
   <div
     class="cmd-backdrop"
     role="presentation"
-    (click)="close()"
+    (click)="$event.target === $event.currentTarget && close()"
+    (keydown.escape)="close()"
   >
     <div
       class="cmd-panel"
       role="dialog"
       aria-modal="true"
       aria-label="Command palette"
-      (click)="$event.stopPropagation()"
     >
       <div class="cmd-search">
         <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
@@ -20,7 +20,8 @@
           [(ngModel)]="query"
           (ngModelChange)="onQueryChange()"
           (keydown)="onKeydown($event)"
-          placeholder="Search..."
+          placeholder="Find a game, page or action…"
+          aria-label="Search games, pages and actions"
           autocomplete="off"
           spellcheck="false"
         />
@@ -103,5 +104,6 @@
   [color]="toastColor"
   [duration]="2200"
   position="bottom"
+  cssClass="app-toast"
   (didDismiss)="toastMessage = ''"
 ></ion-toast>

@@ -1,19 +1,12 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { LibraryCollection } from '../shared/library-collections';
 
 export interface SavedCollection {
   id: string;
   name: string;
   /** Smart collection key or 'all' */
-  filter:
-    | 'all'
-    | 'not_started'
-    | 'playing'
-    | 'paused'
-    | 'completed'
-    | 'wishlist'
-    | 'rated'
-    | 'with_playtime';
+  filter: LibraryCollection;
   /** Optional tag filter */
   tag?: string;
   createdAt: string;

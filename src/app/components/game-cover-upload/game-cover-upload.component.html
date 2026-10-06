@@ -1,27 +1,5 @@
 <div class="cover-upload">
   <div class="cover-upload__preview">
-    <div class="cover-media-actions">
-      <button
-        type="button"
-        class="cover-media-action cover-media-action--edit"
-        aria-label="Upload cover image"
-        [disabled]="uploading"
-        (click)="fileInput.click()"
-      >
-        <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
-      </button>
-      @if (coverImage) {
-        <button
-          type="button"
-          class="cover-media-action cover-media-action--remove"
-          aria-label="Remove cover image"
-          [disabled]="uploading"
-          (click)="clearCover()"
-        >
-          <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
-        </button>
-      }
-    </div>
     <app-game-cover
       [title]="title || 'Game cover'"
       [coverImage]="coverImage"
@@ -38,39 +16,25 @@
       (change)="onFileSelected($event)"
     />
 
-    <ion-button
-      type="button"
-      fill="outline"
-      class="cover-upload__button"
-      [disabled]="uploading"
-      (click)="fileInput.click()"
-    >
+    <button type="button" class="btn btn--ghost btn--sm" [disabled]="uploading" (click)="fileInput.click()">
       @if (uploading) {
         <ion-spinner name="crescent"></ion-spinner>
       } @else {
-        <ion-icon name="cloud-upload-outline" slot="start"></ion-icon>
+        <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon>
       }
-      {{ uploading ? 'Processing...' : 'Upload image' }}
-    </ion-button>
+      {{ uploading ? 'Processing…' : coverImage ? 'Replace image' : 'Upload image' }}
+    </button>
 
     @if (coverImage) {
-      <ion-button
-        type="button"
-        fill="clear"
-        color="danger"
-        class="cover-upload__button cover-upload__button--remove"
-        [disabled]="uploading"
-        (click)="clearCover()"
-      >
-        <ion-icon name="trash-outline" slot="start"></ion-icon>
+      <button type="button" class="btn btn--danger btn--sm" [disabled]="uploading" (click)="clearCover()">
+        <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
         Remove
-      </ion-button>
+      </button>
     }
   </div>
 
   <p class="cover-upload__hint">
-    JPG, PNG, WebP, or GIF up to {{ maxInputLabel }}. Images are compressed before saving.
-    Or search RAWG and pick a cover.
+    JPG, PNG, WebP or GIF up to {{ maxInputLabel }} — we compress it before saving.
   </p>
 
   <!-- RAWG cover search -->

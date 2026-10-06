@@ -16,7 +16,7 @@ import {
 } from '../models/recommendation.model';
 import { RawgGameSummary, RawgService } from './rawg.service';
 
-/** Map common GameVault genre labels → RAWG genre slugs */
+/** Map common library genre labels → RAWG genre slugs */
 const GENRE_SLUG_MAP: Record<string, string> = {
   action: 'action',
   adventure: 'adventure',

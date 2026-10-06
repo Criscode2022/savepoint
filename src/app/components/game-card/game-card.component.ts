@@ -1,43 +1,39 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { 
-  IonCard, IonCardHeader, IonCardTitle, IonCardContent,
-  IonIcon, IonButton, IonChip
-} from '@ionic/angular/standalone';
+import { IonIcon } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { 
-  starOutline, timeOutline, checkmarkCircleOutline, 
-  ellipseOutline, trashOutline, createOutline, heartOutline, pauseCircleOutline
+import {
+  timeOutline, checkmarkCircleOutline, ellipseOutline, trashOutline, createOutline,
+  heartOutline, pauseCircleOutline, playCircleOutline, playOutline, pauseOutline, addOutline, star,
 } from 'ionicons/icons';
-import { Game, GAME_STATUS_LABELS, GamePlayStatus } from '../../models/game.model';
+import { Game, GAME_STATUS_ICONS, GAME_STATUS_LABELS } from '../../models/game.model';
 import { formatReleaseCountdown, canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
+import { getStatusAction } from '../../shared/utils/game-status.utils';
+import { isRated } from '../../shared/utils/rating.utils';
 import { GameCoverComponent } from '../game-cover/game-cover.component';
-import { GameRatingComponent } from '../game-rating/game-rating.component';
 
 @Component({
   selector: 'app-game-card',
   standalone: true,
-  imports: [
-    CommonModule, RouterLink, GameCoverComponent, GameRatingComponent,
-    IonCard, IonCardHeader, IonCardTitle, IonCardContent,
-    IonIcon, IonButton, IonChip
-  ],
+  imports: [CommonModule, RouterLink, GameCoverComponent, IonIcon],
   templateUrl: './game-card.component.html',
   styleUrl: './game-card.component.scss',
 })
 export class GameCardComponent implements OnInit {
-  @Input() game!: Game;
-  @Input() coverImage?: string;
+  @Input({ required: true }) game!: Game;
   @Input() countdownTick = 0;
-  @Output() onToggleCompleted = new EventEmitter<string>();
-  @Output() onMarkCompleted = new EventEmitter<string>();
-  @Output() onDelete = new EventEmitter<string>();
+  @Output() advanceStatus = new EventEmitter<string>();
+  @Output() markCompleted = new EventEmitter<string>();
+  @Output() deleteGame = new EventEmitter<string>();
+
+  protected readonly statusLabels = GAME_STATUS_LABELS;
+  protected readonly statusIcons = GAME_STATUS_ICONS;
 
   public ngOnInit(): void {
     addIcons({
-      starOutline, timeOutline, checkmarkCircleOutline,
-      ellipseOutline, trashOutline, createOutline, heartOutline, pauseCircleOutline
+      timeOutline, checkmarkCircleOutline, ellipseOutline, trashOutline, createOutline,
+      heartOutline, pauseCircleOutline, playCircleOutline, playOutline, pauseOutline, addOutline, star,
     });
   }
 
@@ -51,58 +47,30 @@ export class GameCardComponent implements OnInit {
     return this.game.status === 'wishlist' && !canAddWishlistToLibrary(this.game);
   }
 
-  protected handleStatusClick(event: Event): void {
-    event.stopPropagation();
-    event.preventDefault();
-    this.onToggleCompleted.emit(this.game.id);
+  protected get action() {
+    return getStatusAction(this.game.status);
   }
 
-  protected handleMarkCompletedClick(event: Event): void {
-    event.stopPropagation();
-    event.preventDefault();
-    this.onMarkCompleted.emit(this.game.id);
-  }
-
-  protected showMarkCompleted(): boolean {
+  protected get canMarkCompleted(): boolean {
     return this.game.status === 'playing' || this.game.status === 'paused';
   }
 
-  private handleFooterClick(event: Event): void {
-    this.handleStatusClick(event);
+  protected get showRating(): boolean {
+    return isRated(this.game) && this.game.status !== 'wishlist';
   }
 
-  private toggleCompleted(event: Event): void {
-    this.handleFooterClick(event);
-  }
-
-  private cycleStatus(event: Event): void {
-    this.handleFooterClick(event);
-  }
-
-  protected getStatusLabel(): string {
-    if (this.game.status === 'wishlist') {
-      return 'Add to Library';
-    }
-    return GAME_STATUS_LABELS[this.game.status];
-  }
-
-  protected getStatusIcon(): string {
-    const icons: Record<GamePlayStatus, string> = {
-      not_started: 'ellipse-outline',
-      playing: 'time-outline',
-      paused: 'pause-circle-outline',
-      completed: 'checkmark-circle-outline',
-      wishlist: 'heart-outline',
-    };
-    return icons[this.game.status];
-  }
-
-  protected getPlaytime(): number | null {
-    const hours = this.game.playtimeHours ?? this.game.playtime;
+  protected get playtime(): number | null {
+    const hours = this.game.playtimeHours;
     return hours != null && hours > 0 ? hours : null;
   }
 
-  protected getPlatformColor(): string {
-    return this.game.platform.color || '#a855f7';
+  protected get hasPlatform(): boolean {
+    return !!this.game.platform.name && this.game.platform.name !== 'Unknown';
+  }
+
+  protected emit(event: Event, output: EventEmitter<string>): void {
+    event.stopPropagation();
+    event.preventDefault();
+    output.emit(this.game.id);
   }
 }

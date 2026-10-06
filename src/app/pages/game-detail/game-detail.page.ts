@@ -2,38 +2,41 @@ import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ViewWillEnter } from '@ionic/angular';
-import { 
-    IonContent, IonHeader, IonToolbar, IonBackButton,
-    IonIcon, IonButton, IonCard, IonCardContent,
-  IonChip, IonToast, IonSelect, IonSelectOption, IonInput, AlertController
+import {
+  IonContent, IonIcon, IonToast, IonSelect, IonSelectOption, IonInput,
+  AlertController, ViewWillEnter,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { 
-  arrowBackOutline, starOutline, timeOutline, calendarOutline,
-  businessOutline, personOutline, gameControllerOutline,
-  checkmarkCircleOutline, createOutline, trashOutline, ellipseOutline, heartOutline,
-  chevronDownOutline, pauseCircleOutline
+import {
+  addOutline, starOutline, timeOutline, gameControllerOutline, checkmarkCircleOutline,
+  createOutline, trashOutline, ellipseOutline, heartOutline, chevronDownOutline,
+  pauseCircleOutline, playCircleOutline, closeOutline, libraryOutline,
 } from 'ionicons/icons';
-import { Game, GAME_STATUS_LABELS, GamePlayStatus, PlaySession } from '../../models/game.model';
+import { Game, GAME_STATUS_ICONS, GAME_STATUS_LABELS, GamePlayStatus, PlaySession } from '../../models/game.model';
 import { GameService } from '../../services/game.service';
 import { GameCoverComponent } from '../../components/game-cover/game-cover.component';
 import { GameRatingComponent } from '../../components/game-rating/game-rating.component';
-import { canAddWishlistToLibrary } from '../../shared/utils/release-countdown';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
+import { canAddWishlistToLibrary, formatReleaseCountdown } from '../../shared/utils/release-countdown';
 import {
   confirmResetPlayHistory,
   statusChangeClearsPlayHistory,
+  statusChangeMessage,
 } from '../../shared/utils/game-status.utils';
-import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils';
+import { canRateGame, formatRatingLabel, isRated } from '../../shared/utils/rating.utils';
+
+interface TimelineEvent {
+  label: string;
+  date: string;
+  icon: string;
+}
 
 @Component({
   selector: 'app-game-detail',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, RouterLink, GameCoverComponent, GameRatingComponent,
-    IonContent, IonHeader, IonToolbar, IonBackButton,
-    IonIcon, IonButton, IonCard, IonCardContent,
-    IonChip, IonToast, IonSelect, IonSelectOption, IonInput
+    CommonModule, FormsModule, RouterLink, GameCoverComponent, GameRatingComponent, PageHeaderComponent,
+    IonContent, IonIcon, IonToast, IonSelect, IonSelectOption, IonInput,
   ],
   templateUrl: './game-detail.page.html',
 })
@@ -48,7 +51,7 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
   protected game: Game | null = null;
   protected playSessions: PlaySession[] = [];
   protected readonly statusSheetOptions = {
-    header: 'Change status',
+    header: 'Set status',
     cssClass: 'app-status-sheet',
   };
   protected toastMessage = '';
@@ -73,10 +76,9 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
 
   public ngOnInit(): void {
     addIcons({
-      arrowBackOutline, starOutline, timeOutline, calendarOutline,
-      businessOutline, personOutline, gameControllerOutline,
-      checkmarkCircleOutline, createOutline, trashOutline, ellipseOutline, heartOutline,
-      chevronDownOutline, pauseCircleOutline
+      addOutline, starOutline, timeOutline, gameControllerOutline, checkmarkCircleOutline,
+      createOutline, trashOutline, ellipseOutline, heartOutline, chevronDownOutline,
+      pauseCircleOutline, playCircleOutline, closeOutline, libraryOutline,
     });
 
     const gameId = this.route.snapshot.paramMap.get('id');
@@ -142,18 +144,19 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     if (!this.game || !this.canLogHours() || this.loggingPlaytime) {
       return;
     }
+    const hours = Number(this.logHours);
     this.loggingPlaytime = true;
-    this.gameService.logPlaytime(this.game.id, Number(this.logHours)).subscribe({
+    this.gameService.logPlaytime(this.game.id, hours).subscribe({
       next: (updated) => {
         this.game = updated;
         this.loggingPlaytime = false;
         this.logHours = 1;
         this.loadPlaySessions(updated.id);
-        this.showToast('Playtime logged', 'success');
+        this.showToast(`+${hours}h logged — progress saved`, 'success');
       },
       error: (err) => {
         this.loggingPlaytime = false;
-        this.showToast(err?.message || 'Failed to log playtime', 'danger');
+        this.showToast(err?.message || "Couldn't log that session. Try again.", 'danger');
       },
     });
   }
@@ -189,20 +192,45 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     }
   }
 
-  private applyStatus(status: GamePlayStatus): void {
+  protected applyStatus(status: GamePlayStatus): void {
     if (!this.game || this.game.status === status) return;
 
     this.gameService.setStatus(this.game.id, status, this.game).subscribe({
       next: (updatedGame) => {
         this.game = updatedGame;
         this.loadPlaySessions(updatedGame.id);
-        this.showToast(`${this.getStatusLabel(status)} status saved`, 'success');
+        this.showToast(statusChangeMessage(updatedGame.title, status), 'success');
       },
       error: () => {
         this.resetStatusSelect(this.game!.status);
-        this.showToast('Failed to update status', 'danger');
+        this.showToast("Couldn't update the status. Try again.", 'danger');
       },
     });
+  }
+
+  protected hasRating(): boolean {
+    return !!this.game && isRated(this.game);
+  }
+
+  protected canMarkCompleted(): boolean {
+    return this.game?.status === 'playing' || this.game?.status === 'paused';
+  }
+
+  protected hasPlatform(): boolean {
+    return !!this.game?.platform.name && this.game.platform.name !== 'Unknown';
+  }
+
+  protected countdownLabel(): string {
+    return this.game ? formatReleaseCountdown(this.game).label : '';
+  }
+
+  protected formatMinutes(totalMinutes: number): string {
+    if (totalMinutes < 60) {
+      return `${totalMinutes}m`;
+    }
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
   }
 
   protected getAvailableStatusOptions(): GamePlayStatus[] {
@@ -217,36 +245,12 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     return ['not_started', 'playing', 'paused', 'completed'];
   }
 
-  private setStatus(status: GamePlayStatus): void {
-    void this.applyStatusWithConfirmation(status);
-  }
-
-  private async applyStatusWithConfirmation(status: GamePlayStatus): Promise<void> {
-    if (!this.game || this.game.status === status) return;
-
-    if (statusChangeClearsPlayHistory(this.game.status, status)) {
-      const confirmed = await confirmResetPlayHistory(this.alertController);
-      if (!confirmed) {
-        return;
-      }
-    }
-
-    this.applyStatus(status);
-  }
-
   protected getStatusLabel(status: GamePlayStatus): string {
     return GAME_STATUS_LABELS[status];
   }
 
   protected getStatusIcon(status: GamePlayStatus): string {
-    const icons: Record<GamePlayStatus, string> = {
-      not_started: 'ellipse-outline',
-      playing: 'time-outline',
-      paused: 'pause-circle-outline',
-      completed: 'checkmark-circle-outline',
-      wishlist: 'heart-outline',
-    };
-    return icons[status];
+    return GAME_STATUS_ICONS[status];
   }
 
   protected getFormattedReleaseDate(): string {
@@ -298,7 +302,7 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
       },
       error: () => {
         this.ratingSaving = false;
-        this.showToast('Failed to save rating', 'danger');
+        this.showToast("Couldn't save your rating. Try again.", 'danger');
       },
     });
   }
@@ -313,26 +317,15 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
       (sum, session) => sum + (session.durationMinutes ?? 0),
       0,
     );
-
-    if (totalMinutes <= 0) {
-      return '0m';
-    }
-
-    if (totalMinutes < 60) {
-      return `${totalMinutes}m`;
-    }
-
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+    return this.formatMinutes(Math.max(0, totalMinutes));
   }
 
-  protected getTimelineEvents(): Array<{ label: string; date: string; icon: string }> {
+  protected getTimelineEvents(): TimelineEvent[] {
     if (!this.game) {
       return [];
     }
 
-    const events: Array<{ label: string; date: string; icon: string }> = [];
+    const events: TimelineEvent[] = [];
 
     if (this.game.status === 'wishlist') {
       events.push({
@@ -437,7 +430,7 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
       },
       error: () => {
         this.game = { ...currentGame, coverImage: previousCover };
-        this.showToast('Failed to remove cover image', 'danger');
+        this.showToast("Couldn't remove the cover. Try again.", 'danger');
       },
     });
   }
@@ -446,8 +439,8 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
     if (!this.game) return;
 
     const alert = await this.alertController.create({
-      header: 'Delete game?',
-      message: `"${this.game.title}" will be permanently removed from your library.`,
+      header: `Remove ${this.game.title}?`,
+      message: 'Its status, rating, playtime and notes will be permanently deleted.',
       cssClass: 'app-alert',
       buttons: [
         {
@@ -456,7 +449,7 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
           cssClass: 'app-alert-btn-cancel',
         },
         {
-          text: 'Delete',
+          text: 'Remove',
           role: 'destructive',
           cssClass: 'app-alert-btn-delete',
           handler: () => this.performDelete(),
@@ -470,14 +463,15 @@ export class GameDetailPage implements OnInit, ViewWillEnter {
   private performDelete(): void {
     if (!this.game) return;
 
+    const title = this.game.title;
     this.gameService.deleteGame(this.game.id).subscribe({
       next: () => {
-        this.router.navigate(['/home'], {
-          state: { showDeletedGameToast: true },
+        void this.router.navigate(['/home'], {
+          state: { toast: `${title} removed from your library` },
         });
       },
       error: () => {
-        this.showToast('Failed to delete game', 'danger');
+        this.showToast(`Couldn't remove ${title}. Try again.`, 'danger');
       },
     });
   }

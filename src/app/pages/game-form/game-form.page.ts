@@ -1,17 +1,15 @@
-import { Component, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm, NgModel } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
-  IonContent, IonHeader, IonToolbar, IonBackButton,
-  IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
-  IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-  IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton, IonSpinner, AlertController
+  IonContent, IonFooter, IonIcon, IonCard, IonCardContent, IonItem, IonLabel, IonInput,
+  IonSelect, IonSelectOption, IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton,
+  IonSpinner, AlertController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
-  arrowBackOutline, saveOutline, imageOutline, closeOutline,
-  searchOutline, cloudDownloadOutline, checkmarkCircleOutline,
+  saveOutline, imageOutline, closeOutline, searchOutline, flashOutline, checkmarkCircleOutline,
 } from 'ionicons/icons';
 import {
   Subject,
@@ -29,11 +27,12 @@ import { PlatformService } from '../../services/platform.service';
 import { RawgService, RawgGameSummary } from '../../services/rawg.service';
 import { GameRatingComponent } from '../../components/game-rating/game-rating.component';
 import { GameCoverUploadComponent } from '../../components/game-cover-upload/game-cover-upload.component';
+import { PageHeaderComponent } from '../../components/page-header/page-header.component';
 import {
   confirmResetPlayHistory,
   statusChangeClearsPlayHistory,
 } from '../../shared/utils/game-status.utils';
-import { canRateGame, formatRatingLabel } from '../../shared/utils/rating.utils';
+import { canRateGame, formatRatingLabel, isRated } from '../../shared/utils/rating.utils';
 import { shouldShowFieldError } from '../../shared/utils/form-field-error';
 
 @Component({
@@ -41,11 +40,9 @@ import { shouldShowFieldError } from '../../shared/utils/form-field-error';
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterLink,
-    IonContent, IonHeader, IonToolbar, IonBackButton,
-    IonButton, IonIcon, IonCard, IonCardHeader, IonCardTitle,
-    IonCardContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-    IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton, IonSpinner,
-    GameRatingComponent, GameCoverUploadComponent,
+    IonContent, IonFooter, IonIcon, IonCard, IonCardContent, IonItem, IonLabel, IonInput,
+    IonSelect, IonSelectOption, IonTextarea, IonToast, IonChip, IonSegment, IonSegmentButton,
+    IonSpinner, GameRatingComponent, GameCoverUploadComponent, PageHeaderComponent,
   ],
   templateUrl: './game-form.page.html',
   styleUrl: './game-form.page.scss',
@@ -57,6 +54,7 @@ export class GameFormPage implements OnInit, OnDestroy {
   private readonly platformService = inject(PlatformService);
   private readonly alertController = inject(AlertController);
   private readonly rawg = inject(RawgService);
+  private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
 
   @ViewChild('gameForm') private gameFormRef?: NgForm;
 
@@ -114,12 +112,11 @@ export class GameFormPage implements OnInit, OnDestroy {
 
   public ngOnInit(): void {
     addIcons({
-      arrowBackOutline,
       saveOutline,
       imageOutline,
       closeOutline,
       searchOutline,
-      cloudDownloadOutline,
+      flashOutline,
       checkmarkCircleOutline,
     });
 
@@ -260,18 +257,25 @@ export class GameFormPage implements OnInit, OnDestroy {
   }
 
   protected get pageTitle(): string {
-    if (this.isEdit) return 'Edit Game';
-    return this.isWishlistMode ? 'Add to Wishlist' : 'Add Game';
+    if (this.isEdit) return 'Edit game';
+    return this.isWishlistMode ? 'Add to wishlist' : 'Add a game';
   }
 
-  protected get formCardTitle(): string {
-    if (this.isEdit) return 'Edit Game Information';
-    return this.isWishlistMode ? 'Wishlist Game Information' : 'Game Information';
+  protected get pageSubtitle(): string {
+    if (this.isEdit) return this.game.title ? `Changes to ${this.game.title} save when you hit Save.` : '';
+    return this.isWishlistMode
+      ? 'Track an upcoming release — we’ll count down to launch day.'
+      : 'Fields marked * are required. Everything else can wait.';
+  }
+
+  /** Where Cancel / back returns: the game you were editing, otherwise the library */
+  protected get cancelHref(): string {
+    return this.isEdit && this.gameId ? `/game/${this.gameId}` : '/home';
   }
 
   protected get submitLabel(): string {
-    if (this.isEdit) return 'Save Changes';
-    return this.isWishlistMode ? 'Add to Wishlist' : 'Save Game';
+    if (this.isEdit) return 'Save changes';
+    return this.isWishlistMode ? 'Add to wishlist' : 'Save game';
   }
 
   protected get maxReleaseYear(): number {
@@ -476,6 +480,10 @@ export class GameFormPage implements OnInit, OnDestroy {
     this.game.rating = rating ?? undefined;
   }
 
+  protected hasRating(): boolean {
+    return isRated(this.game);
+  }
+
   protected getRatingDisplay(): string {
     return formatRatingLabel(this.ratingPreview ?? this.game.rating);
   }
@@ -502,10 +510,6 @@ export class GameFormPage implements OnInit, OnDestroy {
     this.game.tags = (this.game.tags ?? []).filter((t) => t !== tag);
   }
 
-  protected canSubmitForm(): boolean {
-    return !!this.gameFormRef && this.canSubmit(this.gameFormRef);
-  }
-
   protected submitForm(): void {
     if (this.gameFormRef) {
       void this.onSubmit(this.gameFormRef);
@@ -518,6 +522,8 @@ export class GameFormPage implements OnInit, OnDestroy {
     this.revealInvalidFields(form);
 
     if (!this.canSubmit(form)) {
+      this.showToast('A few fields need attention before saving.');
+      this.focusFirstInvalidField();
       return;
     }
 
@@ -568,19 +574,31 @@ export class GameFormPage implements OnInit, OnDestroy {
     request$.subscribe({
       next: (savedGame) => {
         if (this.isEdit && savedGame?.id) {
-          this.router.navigate(['/game', savedGame.id]);
+          void this.router.navigate(['/game', savedGame.id]);
           return;
         }
 
-        this.router.navigate(['/home']);
+        const destination = nextStatus === 'wishlist' ? 'wishlist' : 'library';
+        void this.router.navigate(['/home'], {
+          queryParams: nextStatus === 'wishlist' ? { collection: 'wishlist' } : {},
+          state: { toast: `${payload.title} saved to your ${destination}` },
+        });
       },
       error: (error) => {
         this.showToast(
           error.message ||
-            (this.isEdit ? 'Failed to update game' : 'Failed to add game'),
+            (this.isEdit ? "Couldn't save your changes. Try again." : "Couldn't add the game. Try again."),
         );
         this.isSubmitting = false;
       }
+    });
+  }
+
+  private focusFirstInvalidField(): void {
+    setTimeout(() => {
+      const field = this.host.nativeElement.querySelector<HTMLElement>('.field-invalid');
+      field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      field?.querySelector<HTMLElement>('input, textarea, ion-select')?.focus();
     });
   }
 

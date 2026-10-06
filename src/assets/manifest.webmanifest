@@ -1,11 +1,11 @@
 {
-  "name": "GameVault",
-  "short_name": "GameVault",
-  "description": "Your video game library",
+  "name": "Savepoint",
+  "short_name": "Savepoint",
+  "description": "Every game you own, play and want — saved in one place.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0f",
-  "theme_color": "#0a0a0f",
+  "background_color": "#070b17",
+  "theme_color": "#070b17",
   "icons": [
     {
       "src": "assets/icon/favicon-192.png",

@@ -10,7 +10,6 @@ import { ThemeService } from './services/theme.service';
   imports: [CommonModule, IonApp, IonRouterOutlet]
 })
 export class AppComponent {
+  // Injected for its side effect: applies the stored theme on startup.
   private readonly themeService = inject(ThemeService);
-
-  private readonly title = 'GameVault';
 }

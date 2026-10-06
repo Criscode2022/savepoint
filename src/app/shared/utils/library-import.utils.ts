@@ -135,7 +135,7 @@ function mapObjectToDraft(raw: Record<string, unknown>): ImportGameDraft | null 
 }
 
 /**
- * Accepts GameVault JSON export shapes:
+ * Accepts Savepoint (formerly GameVault) JSON export shapes:
  * - { exportedAt, games: [...] }
  * - [ ...games ]
  */
