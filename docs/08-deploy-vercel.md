@@ -27,7 +27,7 @@ Las URLs de Neon Auth / Data API van en variables de entorno de Netlify (`NEON_A
 
 ## Smoke
 
-1. Abrir [https://videogames-library.netlify.app](https://videogames-library.netlify.app)
+1. Abrir [savepoint.cristiancode.dev](https://savepoint.cristiancode.dev)
 2. Login → biblioteca con grid de covers
 3. Ficha de un título, ⌘K, wishlist, insights
 

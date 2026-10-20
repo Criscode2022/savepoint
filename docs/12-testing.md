@@ -4,14 +4,23 @@ title: Testing · visión
 
 # Testing · visión
 
-Savepoint no tiene GitHub Actions ni suite Karma. El contrato de prueba que **sí existe** es un **smoke Playwright** en `scripts/browser-check.mjs`: login real, recorre las rutas del vault y guarda PNG en `.browser-check/`.
+Savepoint **no tiene tests unitarios ni de integración**: no hay ficheros `*.spec.ts` y `angular.json` no define un target `test`, así que `npm test` termina con *Cannot determine project or target for command*. Lo que existe es un **smoke con Playwright** (`scripts/browser-check.mjs`) que inicia sesión con una cuenta real, recorre las pantallas principales y guarda capturas.
 
-| Capa | Runner | Qué cubre | Comando |
-|------|--------|-----------|---------|
-| Smoke / e2e | Playwright (Chromium) | Login, home, add, wishlist, historial, perfil, ficha, móvil | `node scripts/browser-check.mjs` |
-| Unitario | — | No hay `*.spec.ts` en el repo | — |
-| CI | — | No hay `.github/workflows` | — |
+Estado a 20 de octubre de 2026:
 
-`package.json` declara `playwright` y `ng test` / `ng lint`, pero el catálogo de casos que se enseña aquí es el browser-check: es lo que produce las capturas del portfolio.
+| Capa                                                  | Herramienta                            | Qué comprueba                                                     | Estado                                  |
+| ----------------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------- | --------------------------------------- |
+| [Unitarios](./13-testing-unit.md)                     | —                                      | —                                                                 | No hay                                  |
+| [Integración](./14-testing-integration.md)            | `ng build` y `ng lint`                 | Que la app compila y sigue las reglas de ESLint                   | El build pasa; el lint da 32 errores    |
+| [Smoke en el navegador](./15-testing-e2e.md)          | Playwright (Chromium), script propio   | Login, biblioteca, añadir, wishlist, historial, perfil, ficha, móvil | Se lanza a mano contra la app en local |
+| [CI](./16-testing-ci.md)                              | —                                      | —                                                                 | No hay workflow de tests                |
 
-Siguientes documentos: [unitarios](./13-testing-unit.md) · [integración](./14-testing-integration.md) · [e2e](./15-testing-e2e.md) · [CI](./16-testing-ci.md).
+## Comandos
+
+```bash
+npm run build     # ng build (antes, set-env genera environment.ts desde .env)
+npm run lint      # ng lint con angular-eslint
+BROWSER_CHECK_EMAIL=… BROWSER_CHECK_PASSWORD=… node scripts/browser-check.mjs
+```
+
+El smoke necesita la app arrancada (`npm start`, en `:4200`) y una cuenta de Savepoint. Sus credenciales van en variables de entorno, nunca en el repo.

@@ -18,7 +18,7 @@ El command center de escritorio (sidebar + ⌘K) se traduce a tabs Ionic abajo y
 
 # Resultados
 
-- PWA en [videogames-library.netlify.app](https://videogames-library.netlify.app).
+- PWA en [savepoint.cristiancode.dev](https://savepoint.cristiancode.dev).
 - Biblioteca con covers, colecciones smart, wishlist, insights y paleta ⌘K.
 - Auth Neon + Postgres Data API; RAWG opcional.
 - Smoke Playwright (`scripts/browser-check.mjs`) con capturas de home, alta, ficha, historial y móvil.

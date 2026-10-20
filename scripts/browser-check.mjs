@@ -2,9 +2,14 @@ import { chromium } from 'playwright';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const BASE = 'http://localhost:4200';
-const EMAIL = 'cristian@gmail.com';
-const PASSWORD = '12345678a';
+const BASE = process.env.BASE_URL ?? 'http://localhost:4200';
+// A Savepoint account to sign in with. Never commit its credentials.
+const EMAIL = process.env.BROWSER_CHECK_EMAIL;
+const PASSWORD = process.env.BROWSER_CHECK_PASSWORD;
+if (!EMAIL || !PASSWORD) {
+  console.error('Set BROWSER_CHECK_EMAIL and BROWSER_CHECK_PASSWORD to a Savepoint account.');
+  process.exit(1);
+}
 const OUT = path.join(process.cwd(), '.browser-check');
 
 const routes = [
